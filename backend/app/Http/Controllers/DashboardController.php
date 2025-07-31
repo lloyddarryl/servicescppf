@@ -65,37 +65,43 @@ class DashboardController extends Controller
             ]
         ];
         
-        // Services disponibles
-        $services = [
-           
-             [
-                'id' => 'simulateur_pension',
-                'name' => 'Simulateur de Pension',
-                'description' => 'Simuler votre future pension de retraite',
-                'icon' => 'icon-simulator',
-                'available' => true
-             ],
-            [
-                'id' => 'grappe_familiale',
-                'name' => 'Grappe Familiale',
-                'description' => 'Gérer vos informations familiales',
-                'icon' => 'users',
-                'available' => true
-            ],
-            [
-                'id' => 'cotisations',
-                'name' => 'Suivi des Cotisations',
-                'description' => 'Consulter l\'historique de vos cotisations',
-                'icon' => 'chart',
-                'available' => true
-            ],
-             [
-                'id' => 'prise_rdv',
-                'name' => "Prise de Rendez-vous",
-                'description' => 'Réserver un rendez-vous avec un conseiller',
-                'icon' => 'document-check',
-                'available' => true
-            ]
+       // Services disponibles mis à jour avec Article 94
+    $services = [
+        [
+            'id' => 'simulateur_pension',
+            'name' => 'Simulateur de Pension',
+            'description' => 'Estimez votre pension selon l\'Article 94 (Années × 1,8%)',
+            'icon' => 'calculator',
+            'available' => true,
+            'priority' => 1,
+            'badge' => 'Article 94',
+            'color' => 'blue',
+            'subtitle' => 'Nouvelle réglementation'
+        ],
+        [
+            'id' => 'grappe_familiale',
+            'name' => 'Grappe Familiale',
+            'description' => 'Gérer vos ayants droit et bénéficiaires',
+            'icon' => 'users',
+            'available' => true,
+            'color' => 'green'
+        ],
+        [
+            'id' => 'cotisations',
+            'name' => 'Suivi des Cotisations',
+            'description' => 'Consulter l\'historique de vos cotisations',
+            'icon' => 'chart',
+            'available' => true,
+            'color' => 'purple'
+        ],
+        [
+            'id' => 'prise_rdv',
+            'name' => 'Prise de Rendez-vous',
+            'description' => 'Réserver un rendez-vous avec un conseiller',
+            'icon' => 'calendar',
+            'available' => true,
+            'color' => 'orange'
+        ]
            
         ];
 
@@ -122,13 +128,23 @@ class DashboardController extends Controller
                 'phone_verified' => !is_null($agent->phone_verified_at),
             ],
             'dashboard' => [
-                'stats' => $stats,
-                'activites_recentes' => $activites,
-                'services_disponibles' => $services,
+            'stats' => $stats,
+            'activites_recentes' => $activites,
+            'services_disponibles' => $services,
+            'info_article94' => [
+                'titre' => 'Nouvelle Réglementation Article 94',
+                'description' => 'Calcul des pensions selon la formule : Années de service × 1,8%',
+                'coefficients_actuels' => [
+                    '2025' => '91%',
+                    '2026' => '94%', 
+                    '2027' => '96%',
+                    '2028' => '98%',
+                    '2029+' => '100%'
+                ]
             ]
-        ]);
-    }
-
+        ]
+    ]);
+}
     /**
      * Dashboard pour retraités
      */
@@ -787,4 +803,264 @@ class DashboardController extends Controller
             'message' => 'Notification marquée comme lue'
         ]);
     }
+    // Ajouter ces méthodes à la classe DashboardController existante
+
+/**
+ * Dashboard étendu avec simulateur de pension
+ */
+public function getExtendedDashboard(Request $request)
+{
+    $user = $request->user();
+    $userType = $user instanceof Agent ? 'actif' : 'retraite';
+
+    if ($userType === 'actif') {
+        return $this->getExtendedAgentDashboard($user);
+    } else {
+        return $this->getExtendedRetraiteDashboard($user);
+    }
+}
+
+/**
+ * Dashboard étendu pour agents actifs
+ */
+private function getExtendedAgentDashboard($agent)
+{
+    // Données de base du dashboard existant
+    $basicData = $this->agentDashboard(request())->getData();
+    
+    // Ajouter les données du simulateur
+    $simulatorData = $this->getSimulatorPreview($agent);
+    $careerData = $this->getCareerSummary($agent);
+    
+    // Mettre à jour les services avec le simulateur
+    $services = $basicData->dashboard->services_disponibles;
+    
+    // Ajouter le simulateur de pension comme premier service
+    array_unshift($services, [
+        'id' => 'simulateur_pension',
+        'name' => 'Simulateur de Pension',
+        'description' => 'Estimez votre future pension de retraite',
+        'icon' => 'calculator',
+        'available' => true,
+        'priority' => 1,
+        'badge' => 'Nouveau'
+    ]);
+
+    // Enrichir les statistiques
+    $extendedStats = array_merge((array)$basicData->dashboard->stats, [
+        'pension_estimee' => $simulatorData['pension_estimee'],
+        'annees_restantes' => $simulatorData['annees_restantes'],
+        'taux_remplacement' => $simulatorData['taux_remplacement']
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'user_type' => 'actif',
+        'user' => $basicData->user,
+        'dashboard' => [
+            'stats' => $extendedStats,
+            'activites_recentes' => $basicData->dashboard->activites_recentes,
+            'services_disponibles' => $services,
+            'simulateur_preview' => $simulatorData,
+            'carriere_summary' => $careerData,
+            'widgets' => [
+                'pension_countdown' => [
+                    'years_left' => $simulatorData['annees_restantes'],
+                    'months_left' => $simulatorData['mois_restants'],
+                    'retirement_date' => $simulatorData['date_retraite']
+                ],
+                'salary_evolution' => $careerData['evolution_salaire'],
+                'service_duration' => $careerData['duree_service']
+            ]
+        ]
+    ]);
+}
+
+/**
+ * Dashboard étendu pour retraités
+ */
+private function getExtendedRetraiteDashboard($retraite)
+{
+    // Données de base du dashboard existant
+    $basicData = $this->retraiteDashboard(request())->getData();
+    
+    // Ajouter l'analyse de pension
+    $pensionAnalysis = $this->getPensionAnalysis($retraite);
+    
+    return response()->json([
+        'success' => true,
+        'user_type' => 'retraite',
+        'user' => $basicData->user,
+        'dashboard' => [
+            'stats' => $basicData->dashboard->stats,
+            'activites_recentes' => $basicData->dashboard->activites_recentes,
+            'services_disponibles' => $basicData->dashboard->services_disponibles,
+            'pension_analysis' => $pensionAnalysis,
+            'widgets' => [
+                'pension_details' => [
+                    'montant_mensuel' => $retraite->montant_pension,
+                    'prochaine_revalorisation' => $this->getNextRevalorisation(),
+                    'cumul_percu' => $this->getCumulPercu($retraite)
+                ]
+            ]
+        ]
+    ]);
+}
+
+/**
+ * Aperçu rapide du simulateur selon Article 94
+ */
+private function getSimulatorPreview($agent)
+{
+    try {
+        // Calculer une simulation rapide selon Article 94
+        $dateNaissance = $this->estimateBirthDate($agent);
+        $age = Carbon::parse($dateNaissance)->age;
+        $ageRetraite = 60;
+        $anneesRestantes = max(0, $ageRetraite - $age);
+        $moisRestants = $anneesRestantes * 12;
+        
+        $dureeService = Carbon::parse($agent->date_prise_service)->diffInYears(now());
+        $dureeServiceRetraite = $dureeService + $anneesRestantes;
+        
+        $indice = $agent->indice ?? 1001;
+        $salaireActuel = $indice * 500;
+        
+        // Calcul selon Article 94
+        $tauxLiquidation = $this->calculateTauxLiquidationArticle94($dureeServiceRetraite);
+        $pensionBase = ($salaireActuel * $tauxLiquidation) / 100;
+        
+        // Coefficient temporel pour l'année de retraite prévue
+        $anneeRetraite = now()->addYears($anneesRestantes)->year;
+        $coefficientTemporel = $this->getCoefficientTemporelPreview($anneeRetraite);
+        
+        // Pension après coefficient
+        $pensionApresCoeff = ($pensionBase * $coefficientTemporel) / 100;
+        
+        $tauxRemplacement = ($pensionApresCoeff / $salaireActuel) * 100;
+        
+        return [
+            'pension_estimee' => round($pensionApresCoeff),
+            'pension_base' => round($pensionBase),
+            'coefficient_temporel' => $coefficientTemporel,
+            'annees_restantes' => $anneesRestantes,
+            'mois_restants' => $moisRestants,
+            'taux_remplacement' => round($tauxRemplacement, 1),
+            'taux_liquidation' => round($tauxLiquidation, 1),
+            'date_retraite' => Carbon::parse($dateNaissance)->addYears(60)->format('Y-m-d'),
+            'eligible' => $dureeServiceRetraite >= 15,
+            'duree_service_retraite' => $dureeServiceRetraite,
+            'annee_retraite' => $anneeRetraite,
+            'methode' => 'Article 94',
+            'formule' => 'Années × 1,8%'
+        ];
+        
+    } catch (\Exception $e) {
+        Log::error('Erreur simulation preview Article 94:', ['error' => $e->getMessage()]);
+        
+        return [
+            'pension_estimee' => 0,
+            'annees_restantes' => 0,
+            'mois_restants' => 0,
+            'taux_remplacement' => 0,
+            'eligible' => false,
+            'error' => 'Simulation non disponible'
+        ];
+    }
+}
+/**
+ * Obtenir le coefficient temporel pour preview
+ */
+private function getCoefficientTemporelPreview($annee)
+{
+    $coefficients = [
+        2024 => 89, 2025 => 91, 2026 => 94, 
+        2027 => 96, 2028 => 98
+    ];
+    
+    return $annee >= 2029 ? 100 : ($coefficients[$annee] ?? 100);
+}
+
+/**
+ * Résumé de carrière
+ */
+private function getCareerSummary($agent)
+{
+    $dureeService = Carbon::parse($agent->date_prise_service)->diffInYears(now());
+    $salaireActuel = ($agent->indice ?? 1001) * 500;
+    $salaireInitial = 400 * 500; // Estimation
+    
+    return [
+        'duree_service' => [
+            'annees' => $dureeService,
+            'mois' => Carbon::parse($agent->date_prise_service)->diffInMonths(now()),
+            'debut' => $agent->date_prise_service
+        ],
+        'evolution_salaire' => [
+            'initial' => $salaireInitial,
+            'actuel' => $salaireActuel,
+            'progression' => round((($salaireActuel - $salaireInitial) / $salaireInitial) * 100, 1)
+        ],
+        'grade_actuel' => $agent->grade,
+        'direction' => $agent->direction,
+        'indice' => $agent->indice ?? 1001
+    ];
+}
+
+/**
+ * Analyse de pension pour retraités
+ */
+private function getPensionAnalysis($retraite)
+{
+    $anneesRetraite = Carbon::parse($retraite->date_retraite)->diffInYears(now());
+    $totalPercu = $retraite->montant_pension * $anneesRetraite * 12;
+    
+    return [
+        'annees_retraite' => $anneesRetraite,
+        'total_percu' => $totalPercu,
+        'moyenne_mensuelle' => $retraite->montant_pension,
+        'evolution_pension' => [
+            'initial' => $retraite->montant_pension * 0.9, // Estimation
+            'actuel' => $retraite->montant_pension,
+            'revalorisation' => '10%'
+        ]
+    ];
+}
+
+/**
+ * Prochaine revalorisation
+ */
+private function getNextRevalorisation()
+{
+    return now()->addMonths(6)->format('Y-m-d');
+}
+
+/**
+ * Cumul perçu depuis la retraite
+ */
+private function getCumulPercu($retraite)
+{
+    $moisRetraite = Carbon::parse($retraite->date_retraite)->diffInMonths(now());
+    return $retraite->montant_pension * $moisRetraite;
+}
+
+/**
+ * Estimer la date de naissance
+ */
+private function estimateBirthDate($agent)
+{
+    // Estimation : 25 ans à l'embauche
+    return Carbon::parse($agent->date_prise_service)->subYears(25)->format('Y-m-d');
+}
+
+/**
+ * Calculer le taux de liquidation selon Article 94
+ */
+private function calculateTauxLiquidationArticle94($dureeService)
+{
+    if ($dureeService < 15) return 0;
+    return $dureeService * 1.8;
+}
+
+
 }

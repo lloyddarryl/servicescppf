@@ -1,3 +1,5 @@
+// Mise à jour du fichier frontend/src/App.js pour inclure le simulateur
+
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import api from './services/api';
@@ -8,6 +10,7 @@ import Login from './pages/login/Login';
 import SetupProfile from './pages/setup_profile/SetupProfile';
 import Dashboard from './pages/dashboard/Dashboard';
 import EditProfile from './pages/dashboard/edit_profile/EditProfile';
+import SimulateurPension from './pages/simulateur/SimulateurPension';
 import './App.css';
 
 function App() {
@@ -57,10 +60,90 @@ function App() {
             </ProtectedRoute>
           } />
           
+          {/* ✅ NOUVEAU : Route pour le simulateur de pension (actifs uniquement) */}
+          <Route path="/actifs/simulateur-pension" element={
+            <ProtectedRoute requiredUserType="actif">
+              <SimulateurPension />
+            </ProtectedRoute>
+          } />
+          
+          {/* ✅ Autres services actifs (à développer) */}
+          <Route path="/actifs/attestations" element={
+            <ProtectedRoute requiredUserType="actif">
+              <div style={{padding: '6rem 2rem', textAlign: 'center'}}>
+                <h1>Attestations</h1>
+                <p>Module en développement</p>
+              </div>
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/actifs/cotisations" element={
+            <ProtectedRoute requiredUserType="actif">
+              <div style={{padding: '6rem 2rem', textAlign: 'center'}}>
+                <h1>Suivi des Cotisations</h1>
+                <p>Module en développement</p>
+              </div>
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/actifs/grappe-familiale" element={
+            <ProtectedRoute requiredUserType="actif">
+              <div style={{padding: '6rem 2rem', textAlign: 'center'}}>
+                <h1>Grappe Familiale</h1>
+                <p>Module en développement</p>
+              </div>
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/actifs/rendez-vous" element={
+            <ProtectedRoute requiredUserType="actif">
+              <div style={{padding: '6rem 2rem', textAlign: 'center'}}>
+                <h1>Prise de Rendez-vous</h1>
+                <p>Module en développement</p>
+              </div>
+            </ProtectedRoute>
+          } />
+          
           {/* ✅ Routes protégées spécifiques aux retraités */}
           <Route path="/retraites/profil" element={
             <ProtectedRoute requiredUserType="retraite">
               <EditProfile userType="retraite" />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/retraites/pension" element={
+            <ProtectedRoute requiredUserType="retraite">
+              <div style={{padding: '6rem 2rem', textAlign: 'center'}}>
+                <h1>Suivi Pension</h1>
+                <p>Module en développement</p>
+              </div>
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/retraites/certificats-vie" element={
+            <ProtectedRoute requiredUserType="retraite">
+              <div style={{padding: '6rem 2rem', textAlign: 'center'}}>
+                <h1>Certificats de Vie</h1>
+                <p>Module en développement</p>
+              </div>
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/retraites/historique" element={
+            <ProtectedRoute requiredUserType="retraite">
+              <div style={{padding: '6rem 2rem', textAlign: 'center'}}>
+                <h1>Historique</h1>
+                <p>Module en développement</p>
+              </div>
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/retraites/attestations" element={
+            <ProtectedRoute requiredUserType="retraite">
+              <div style={{padding: '6rem 2rem', textAlign: 'center'}}>
+                <h1>Attestations</h1>
+                <p>Module en développement</p>
+              </div>
             </ProtectedRoute>
           } />
           

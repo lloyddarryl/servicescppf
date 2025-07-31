@@ -90,4 +90,40 @@ class Agent extends Authenticatable
     {
         return $query->where('first_login', true);
     }
+    // File: app/Models/Agent.php (ajouts)
+
+// Ajouter ces relations dans la classe Agent existante:
+
+public function carrieres()
+{
+    return $this->hasMany(CarriereHistorique::class);
+}
+
+public function simulations()
+{
+    return $this->hasMany(SimulationPension::class);
+}
+
+public function carriereActuelle()
+{
+    return $this->hasOne(CarriereHistorique::class)
+                ->where('valide', true)
+                ->orderBy('date_carriere', 'desc');
+}
+
+// Calculer la durée de service
+public function getDureeServiceAttribute()
+{
+    if ($this->date_prise_service) {
+        return \Carbon\Carbon::parse($this->date_prise_service)->diffInYears(now());
+    }
+    return 0;
+}
+
+// Calculer le salaire selon l'indice
+public function getSalaireCalculeAttribute()
+{
+    return ($this->indice ?? 1001) * 500;
+}
+
 }

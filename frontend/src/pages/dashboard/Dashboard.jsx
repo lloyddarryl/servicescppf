@@ -66,18 +66,19 @@ const Dashboard = () => {
     // Construire l'URL selon le type d'utilisateur
     const serviceUrls = {
       actif: {
-        attestations: '/actifs/attestations',
-        prestations: '/actifs/prestations',
-        cotisations: '/actifs/cotisations',
-        profil: '/actifs/profil'
+      simulateur_pension: '/actifs/simulateur-pension',
+      grappe_familiale: '/actifs/grappe-familiale',
+      cotisations: '/actifs/cotisations',
+      prise_rdv: '/actifs/rendez-vous',
+      attestations: '/actifs/attestations',
+      profil: '/actifs/profil'
       },
-      retraite: {
-        pension: '/retraites/pension',
-        certificats: '/retraites/certificats-vie',
-        historique: '/retraites/historique',
-        attestations: '/retraites/attestations',
-        profil: '/retraites/profil'  // ✅ Et ici aussi
-
+     retraite: {
+      pension: '/retraites/pension',
+      certificats: '/retraites/certificats-vie',
+      historique: '/retraites/historique',
+      attestations: '/retraites/attestations',
+      profil: '/retraites/profil'
       }
     };
 

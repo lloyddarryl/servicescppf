@@ -143,4 +143,78 @@ Route::middleware('auth:sanctum')->get('/test-profile', function (Request $reque
         ], 500);
     }
 });
+
+// Ajout dans routes/api.php
+
+// Routes pour le simulateur de pension (agents actifs uniquement)
+Route::middleware(['auth:sanctum', 'check.user.type:actif'])->prefix('actifs')->group(function () {
+    
+    // Simulateur de pension
+    Route::prefix('simulateur-pension')->group(function () {
+        // Obtenir le profil pour simulation
+        Route::get('/profil', [App\Http\Controllers\PensionSimulatorController::class, 'getProfile']);
+        
+        // Lancer une simulation
+        Route::post('/simuler', [App\Http\Controllers\PensionSimulatorController::class, 'simulatePension']);
+        
+        // Obtenir l'historique des simulations
+        Route::get('/historique', [App\Http\Controllers\PensionSimulatorController::class, 'getSimulationHistory']);
+        
+        // Obtenir les paramètres de calcul
+        Route::get('/parametres', [App\Http\Controllers\PensionSimulatorController::class, 'getParameters']);
+        
+        // Obtenir les grilles indiciaires
+        Route::get('/grilles', [App\Http\Controllers\PensionSimulatorController::class, 'getGrilles']);
+        
+        // Sauvegarder une simulation favorite
+        Route::post('/sauvegarder/{id}', [App\Http\Controllers\PensionSimulatorController::class, 'saveFavorite']);
+        
+        // Supprimer une simulation
+        Route::delete('/supprimer/{id}', [App\Http\Controllers\PensionSimulatorController::class, 'deleteSimulation']);
+        
+        // Exporter une simulation en PDF
+        Route::get('/exporter/{id}', [App\Http\Controllers\PensionSimulatorController::class, 'exportPDF']);
+        
+        // Comparer plusieurs simulations
+        Route::post('/comparer', [App\Http\Controllers\PensionSimulatorController::class, 'compareSimulations']);
+    });
+    
+    // Gestion de carrière (pour alimenter le simulateur)
+    Route::prefix('carriere')->group(function () {
+        // Obtenir l'historique de carrière complet
+        Route::get('/historique', [App\Http\Controllers\CarriereController::class, 'getHistorique']);
+        
+        // Obtenir la position actuelle
+        Route::get('/position-actuelle', [App\Http\Controllers\CarriereController::class, 'getPositionActuelle']);
+        
+        // Mettre à jour les informations de carrière
+        Route::put('/mettre-a-jour', [App\Http\Controllers\CarriereController::class, 'updateCarriere']);
+        
+        // Projeter une évolution de carrière
+        Route::post('/projeter-evolution', [App\Http\Controllers\CarriereController::class, 'projeterEvolution']);
+    });
+});
+
+// Routes pour les retraités (consultation uniquement)
+Route::middleware(['auth:sanctum', 'check.user.type:retraite'])->prefix('retraites')->group(function () {
+    
+    // Consultation de pension existante
+    Route::prefix('pension-actuelle')->group(function () {
+        // Détails de la pension actuelle
+        Route::get('/details', [App\Http\Controllers\PensionSimulatorController::class, 'getPensionDetails']);
+        
+        // Historique des versements
+        Route::get('/historique-versements', [App\Http\Controllers\PensionSimulatorController::class, 'getHistoriqueVersements']);
+        
+        // Simuler une révision de pension
+        Route::post('/simuler-revision', [App\Http\Controllers\PensionSimulatorController::class, 'simulerRevision']);
+    });
+});
+
+// Routes communes (dashboard mis à jour)
+Route::middleware('auth:sanctum')->group(function () {
+    // Mise à jour du dashboard pour inclure le simulateur
+    Route::get('/dashboard-extended', [App\Http\Controllers\DashboardController::class, 'getExtendedDashboard']);
+});
+
 });
