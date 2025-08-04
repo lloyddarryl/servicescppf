@@ -11,6 +11,7 @@ import SetupProfile from './pages/setup_profile/SetupProfile';
 import Dashboard from './pages/dashboard/Dashboard';
 import EditProfile from './pages/dashboard/edit_profile/EditProfile';
 import SimulateurPension from './pages/simulateur/SimulateurPension';
+import GrappeFamiliale from './pages/famille/GrappeFamiliale';
 import './App.css';
 
 function App() {
@@ -95,6 +96,9 @@ function App() {
             </ProtectedRoute>
           } />
           
+          <Route path="/actifs/famille" element={<GrappeFamiliale />} />
+
+
           <Route path="/actifs/rendez-vous" element={
             <ProtectedRoute requiredUserType="actif">
               <div style={{padding: '6rem 2rem', textAlign: 'center'}}>

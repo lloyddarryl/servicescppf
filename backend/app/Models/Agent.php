@@ -12,6 +12,9 @@ class Agent extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
+    // Assurez-vous que timestamps est true (c'est true par défaut)
+    public $timestamps = true;
+
     protected $fillable = [
         'matricule_solde',
         'nom',
@@ -26,20 +29,33 @@ class Agent extends Authenticatable
         'first_login',
         'password_changed',
         'status',
-        'is_active'
+        'is_active',
+        // Ajout des champs manquants
+        'date_naissance',
+        'situation_matrimoniale',
+        'sexe',
+        'corps',
+        'etablissement',
+        'indice'
     ];
 
     protected $hidden = [
         'password',
     ];
 
+    protected $dates = [
+        'date_naissance',
+        'date_prise_service',
+        'email_verified_at',
+        'phone_verified_at'
+    ];
+
     protected $casts = [
-        'date_prise_service' => 'date',
+        'date_naissance' => 'date:Y-m-d',
+        'date_prise_service' => 'date:Y-m-d',
         'first_login' => 'boolean',
         'password_changed' => 'boolean',
-        'is_active' => 'boolean',
-        'email_verified_at' => 'datetime',
-        'phone_verified_at' => 'datetime',
+        'is_active' => 'boolean'
     ];
 
     /**
@@ -124,6 +140,64 @@ public function getDureeServiceAttribute()
 public function getSalaireCalculeAttribute()
 {
     return ($this->indice ?? 1001) * 500;
+}
+
+// Ajoutez ces relations dans app/Models/Agent.php
+
+/**
+ * Relation avec le conjoint actif
+ */
+public function conjoint()
+{
+    return $this->hasOne(Conjoint::class)->where('statut', 'ACTIF');
+}
+
+/**
+ * Relation avec tous les conjoints (historique)
+ */
+public function conjoints()
+{
+    return $this->hasMany(Conjoint::class);
+}
+
+/**
+ * Relation avec les enfants actifs
+ */
+public function enfants()
+{
+    return $this->hasMany(Enfant::class)->where('actif', true);
+}
+
+/**
+ * Relation avec tous les enfants (y compris inactifs)
+ */
+public function tousLesEnfants()
+{
+    return $this->hasMany(Enfant::class);
+}
+
+/**
+ * Obtenir le nombre d'enfants actifs
+ */
+public function getNombreEnfantsAttribute()
+{
+    return $this->enfants()->count();
+}
+
+/**
+ * Obtenir le nombre d'enfants mineurs
+ */
+public function getNombreEnfantsMineurAttribute()
+{
+    return $this->enfants()->whereRaw('DATEDIFF(CURDATE(), date_naissance) < 18*365')->count();
+}
+
+/**
+ * Vérifier si l'agent a un conjoint
+ */
+public function getAConjointAttribute()
+{
+    return $this->conjoint()->exists();
 }
 
 }

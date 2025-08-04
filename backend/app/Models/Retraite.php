@@ -109,4 +109,54 @@ class Retraite extends Authenticatable
     {
         return number_format($this->montant_pension, 0, ',', ' ') . ' FCFA';
     }
+
+    /**
+     * Relation avec les enfants
+     *//**
+ * Relation avec le conjoint actif
+ */
+public function conjoint()
+{
+    return $this->hasOne(Conjoint::class)->where('statut', 'ACTIF');
+}
+
+/**
+ * Relation avec tous les conjoints (historique)
+ */
+public function conjoints()
+{
+    return $this->hasMany(Conjoint::class);
+}
+
+/**
+ * Relation avec les enfants actifs
+ */
+public function enfants()
+{
+    return $this->hasMany(Enfant::class)->where('actif', true);
+}
+
+/**
+ * Relation avec tous les enfants (y compris inactifs)
+ */
+public function tousLesEnfants()
+{
+    return $this->hasMany(Enfant::class);
+}
+
+/**
+ * Obtenir le nombre d'enfants actifs
+ */
+public function getNombreEnfantsAttribute()
+{
+    return $this->enfants()->count();
+}
+
+/**
+ * Vérifier si le retraité a un conjoint
+ */
+public function getAConjointAttribute()
+{
+    return $this->conjoint()->exists();
+}
 }

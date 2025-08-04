@@ -70,8 +70,8 @@ class DashboardController extends Controller
         [
             'id' => 'simulateur_pension',
             'name' => 'Simulateur de Pension',
-            'description' => 'Estimez votre pension selon l\'Article 94 (Années × 1,8%)',
-            'icon' => 'calculator',
+            'description' => 'Estimez votre pension de retraite.',
+            'icon' => 'cog',
             'available' => true,
             'priority' => 1,
             'badge' => 'Article 94',

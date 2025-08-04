@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/Header';
-import { utils } from '../../services/api';
+import { utils, pensionSimulatorService } from '../../services/api';
 import './SimulateurPension.css';
 
 const SimulateurPension = () => {
@@ -17,100 +17,98 @@ const SimulateurPension = () => {
     indice: '',
     dateRetraite: ''
   });
+  const [error, setError] = useState(null);
 
-  const makeApiCall = useCallback(async (endpoint, options = {}) => {
-    const baseUrl = 'http://localhost:8000/api';
-    const url = `${baseUrl}${endpoint}`;
-    
-    const defaultOptions = {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-    };
-    
-    return fetch(url, {
-      ...defaultOptions,
-      ...options,
-      headers: {
-        ...defaultOptions.headers,
-        ...options.headers
+  // Fonction pour déterminer la civilité
+  const getTitle = (sexe, situationMatrimoniale) => {
+    if (sexe === 'F') {
+      if (situationMatrimoniale === 'Marié(e)' || situationMatrimoniale === 'Mariée') {
+        return 'Mme';
       }
-    });
-  }, []);
+      return 'Mlle';
+    }
+    return 'M.';
+  };
+
+  const getFullName = (userProfile) => {
+    if (!userProfile) return '';
+    const title = getTitle(userProfile.sexe, userProfile.situationMatrimoniale);
+    return `${title} ${userProfile.nom}${userProfile.prenoms}`;
+  };
 
   const loadHistory = useCallback(async () => {
     try {
-      const response = await makeApiCall('/actifs/simulateur-pension/historique');
-      const data = await response.json();
-      
-      if (data.success) {
-        setSimulationHistory(data.simulations);
+      const response = await pensionSimulatorService.getHistory();
+      if (response.data.success) {
+        setSimulationHistory(response.data.simulations);
       }
     } catch (error) {
       console.error('Erreur historique:', error);
+      // Ne pas afficher d'erreur pour l'historique, c'est optionnel
     }
-  }, [makeApiCall]);
+  }, []);
 
   const simulatePension = useCallback(async (indiceCustom = null, dateRetraiteCustom = null) => {
     try {
+      setError(null);
       const requestData = {};
       if (indiceCustom) requestData.indice = indiceCustom;
       if (dateRetraiteCustom) requestData.date_retraite = dateRetraiteCustom;
-      
-      const response = await makeApiCall('/actifs/simulateur-pension/simuler', {
-        method: 'POST',
-        body: JSON.stringify(requestData)
-      });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        setSimulationData(data.simulation);
+
+      const response = await pensionSimulatorService.simulate(requestData);
+
+      if (response.data.success) {
+        setSimulationData(response.data.simulation);
         await loadHistory(); // Recharger l'historique après simulation
+      } else {
+        setError(response.data.message || 'Erreur lors de la simulation');
       }
-      
     } catch (error) {
       console.error('Erreur simulation:', error);
+      setError(
+        error.response?.data?.message || 
+        'Erreur lors de la simulation de la pension'
+      );
     }
-  }, [makeApiCall, loadHistory]);
+  }, [loadHistory]);
 
   const loadInitialData = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       
-      const profileResponse = await makeApiCall('/actifs/simulateur-pension/profil');
-      const profileData = await profileResponse.json();
+      const profileResponse = await pensionSimulatorService.getProfile();
       
-      if (profileData.success) {
-        setUserProfile(profileData.profile);
-        await simulatePension(profileData.profile.indice);
+      if (profileResponse.data.success) {
+        setUserProfile(profileResponse.data.profile);
+        // Lancer une simulation automatique avec les données du profil
+        await simulatePension(profileResponse.data.profile.indice);
+      } else {
+        setError(profileResponse.data.message || 'Erreur lors du chargement du profil');
       }
-      
     } catch (error) {
-      console.error('Erreur chargement données:', error);
+      console.error('Erreur lors du chargement des données :', error);
+      setError(
+        error.response?.data?.message || 
+        'Erreur lors du chargement des données du simulateur'
+      );
     } finally {
       setLoading(false);
     }
-  }, [makeApiCall, simulatePension]);
+  }, [simulatePension]);
 
-  // Charger les données initiales
   useEffect(() => {
     if (!utils.isAuthenticated()) {
       navigate('/services');
       return;
     }
-    
     loadInitialData();
   }, [navigate, loadInitialData]);
 
   const handleCustomSimulation = async (e) => {
     e.preventDefault();
-    
     const indice = customSimulation.indice || userProfile?.indice;
     const dateRetraite = customSimulation.dateRetraite || null;
-    
     await simulatePension(indice, dateRetraite);
   };
 
@@ -147,6 +145,26 @@ const SimulateurPension = () => {
     );
   }
 
+  if (error && !userProfile) {
+    return (
+      <div className="simulateur-pension">
+        <Header />
+        <div className="loading-container">
+          <div className="alert alert-warning">
+            <p>❌ {error}</p>
+            <button 
+              className="simulate-button" 
+              onClick={() => loadInitialData()}
+              style={{ marginTop: '1rem' }}
+            >
+              Réessayer
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="simulateur-pension">
       <Header />
@@ -154,13 +172,18 @@ const SimulateurPension = () => {
       <main className="simulateur-main">
         <div className="simulateur-container">
           
-          {/* En-tête */}
+          {/* En-tête personnalisé */}
           <div className="simulateur-header">
             <div className="header-content">
               <h1 className="simulateur-title">
                 <span className="title-icon">🧮</span>
                 Simulateur de Pension CPPF
               </h1>
+              {userProfile && (
+                <div className="user-welcome">
+                  Bienvenue {getFullName(userProfile)}
+                </div>
+              )}
               <p className="simulateur-subtitle">
                 Estimez votre future pension de retraite en tant qu'agent de l'État
               </p>
@@ -174,13 +197,20 @@ const SimulateurPension = () => {
             </button>
           </div>
 
+          {/* Affichage des erreurs */}
+          {error && (
+            <div className="alert alert-warning" style={{ marginBottom: '2rem' }}>
+              ⚠️ {error}
+            </div>
+          )}
+
           {/* Navigation */}
           <div className="simulateur-nav">
             <button
               className={`nav-button ${activeTab === 'profile' ? 'active' : ''}`}
               onClick={() => setActiveTab('profile')}
             >
-              👤 Mon Profil
+              👤 Mes Informations
             </button>
             <button
               className={`nav-button ${activeTab === 'simulation' ? 'active' : ''}`}
@@ -203,7 +233,7 @@ const SimulateurPension = () => {
             {activeTab === 'profile' && userProfile && (
               <div className="profile-section">
                 
-                {/* Informations personnelles */}
+                {/* Informations personnelles enrichies */}
                 <div className="profile-card">
                   <div className="card-header">
                     <h2>👤 Informations Personnelles</h2>
@@ -223,9 +253,26 @@ const SimulateurPension = () => {
                         <span>{calculateAge(userProfile.dateNaissance)} ans</span>
                       </div>
                       <div className="profile-item">
+                        <label>Date de naissance:</label>
+                        <span>{new Date(userProfile.dateNaissance).toLocaleDateString('fr-FR')}</span>
+                      </div>
+                      <div className="profile-item">
+                        <label>Sexe:</label>
+                        <span>{userProfile.sexe === 'M' ? 'Masculin' : 'Féminin'}</span>
+                      </div>
+                      <div className="profile-item">
                         <label>Situation matrimoniale:</label>
                         <span>{userProfile.situationMatrimoniale}</span>
                       </div>
+                      <div className="profile-item">
+                        <label>Téléphone:</label>
+                        <span>{userProfile.telephone || 'Non renseigné'}</span>
+                      </div>
+                      <div className="profile-item">
+                        <label>Email:</label>
+                        <span>{userProfile.email || 'Non renseigné'}</span>
+                      </div>
+                      
                     </div>
                   </div>
                 </div>
@@ -268,7 +315,7 @@ const SimulateurPension = () => {
                 {/* Rémunération */}
                 <div className="profile-card salary-card">
                   <div className="card-header">
-                    <h2>💰 Rémunération Actuelle</h2>
+                    <h2>💰 Solde de Base</h2>
                   </div>
                   <div className="card-content">
                     <div className="salary-display">
@@ -333,7 +380,7 @@ const SimulateurPension = () => {
                 {simulationData && (
                   <div className="results-section">
                     
-                    {/* Statistiques principales */}
+                    {/* ✅ Statistiques principales avec 5 cartes incluant coefficient temporel */}
                     <div className="stats-grid">
                       <div className="stat-card primary">
                         <div className="stat-icon">📅</div>
@@ -348,7 +395,10 @@ const SimulateurPension = () => {
                         <div className="stat-icon">⏱️</div>
                         <div className="stat-content">
                           <div className="stat-label">Durée de Service</div>
-                          <div className="stat-value">{simulationData.dureeServiceRetraite} ans</div>
+                          <div className="stat-value">
+                            {simulationData.dureeServiceRetraite} ans
+                            {simulationData.dureeServiceMois > 0 && ` et ${simulationData.dureeServiceMois} mois`}
+                          </div>
                           <div className="stat-subtitle">À la retraite</div>
                         </div>
                       </div>
@@ -362,7 +412,17 @@ const SimulateurPension = () => {
                         </div>
                       </div>
 
+                      {/* ✅ NOUVELLE CARTE : Coefficient temporel */}
                       <div className="stat-card warning">
+                        <div className="stat-icon">📈</div>
+                        <div className="stat-content">
+                          <div className="stat-label">Coefficient de Progressivité</div>
+                          <div className="stat-value">{simulationData.coefficientTemporel}%</div>
+                          <div className="stat-subtitle">Article 94</div>
+                        </div>
+                      </div>
+
+                      <div className="stat-card primary">
                         <div className="stat-icon">💰</div>
                         <div className="stat-content">
                           <div className="stat-label">Pension Estimée</div>
@@ -390,7 +450,7 @@ const SimulateurPension = () => {
                           <div className="step-formula">
                             {simulationData.dureeServiceRetraite < 15 
                               ? "Moins de 15 ans - Pas de pension"
-                              : `${simulationData.dureeServiceRetraite} années × 1,8% = ${simulationData.tauxLiquidation}%`
+                              : `${simulationData.dureeServiceAnnuite || simulationData.dureeServiceRetraite} années (annuité) × 1,8% = ${simulationData.tauxLiquidation}%`
                             }
                           </div>
                         </div>
@@ -454,6 +514,10 @@ const SimulateurPension = () => {
                       <div className="alert alert-info">
                         📈 Évolution des coefficients : 2025=91%, 2026=94%, 2027=96%, 2028=98%, 2029+=100%
                       </div>
+
+                      <div className="alert alert-info">
+                        ⚖️ Principe d'annuité appliqué : &lt;6 mois = +0,5 an | ≥6 mois = +1 an complet
+                      </div>
                     </div>
                   </div>
                 )}
@@ -470,12 +534,15 @@ const SimulateurPension = () => {
                   <div className="card-content">
                     {simulationHistory.length > 0 ? (
                       <div className="history-list">
-                        {simulationHistory.map(sim => (
+                          {simulationHistory.map(sim => ( 
                           <div key={sim.id} className="history-item">
                             <div className="history-date">{sim.date}</div>
                             <div className="history-details">
                               <div>Retraite: {sim.dateRetraite}</div>
-                              <div>Service: {sim.dureeService} ans</div>
+                              <div>Service: {Math.floor(sim.dureeService)} ans 
+                                {Math.floor((sim.dureeService % 1) * 12) > 0 && 
+                                ` et ${Math.floor((sim.dureeService % 1) * 12)} mois`}
+                              </div>
                               <div>Indice: {sim.indice}</div>
                             </div>
                             <div className="history-result">

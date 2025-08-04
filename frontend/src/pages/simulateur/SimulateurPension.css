@@ -57,7 +57,7 @@
 }
 
 .simulateur-title {
-  font-size: 2.5rem;
+  font-size: 2.0rem;
   font-weight: bold;
   color: #1E3A8A;
   margin-bottom: 0.5rem;
@@ -68,6 +68,36 @@
 
 .title-icon {
   font-size: 2rem;
+}
+
+/* ✅ CSS pour l'accueil personnalisé */
+.user-welcome {
+  font-size: 0.95rem;
+  color: #1E3A8A;
+  font-weight: 500;
+  margin: 0.25rem 0 0.75rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  opacity: 0.9;
+  font-style: italic;
+  animation: slideInLeft 0.6s ease-out;
+}
+
+.user-welcome::before {
+  content: "👋";
+  font-size: 1rem;
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 0.9;
+    transform: translateX(0);
+  }
 }
 
 .simulateur-subtitle {
@@ -123,7 +153,7 @@
 }
 
 .nav-button.active {
-  background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%);
+  background: linear-gradient(135deg, #10b913 0%, #f5e90b 50%, #0b31ad 100%);
   color: white;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
@@ -154,10 +184,11 @@
 .profile-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  border-color: #3B82F6;
 }
 
 .card-header {
-  background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
+  background: linear-gradient(135deg, #10b913 0%, #f5e90b 50%, #0b31ad 100%);
   color: white;
   padding: 1.5rem;
 }
@@ -200,8 +231,8 @@
 
 /* Salary Card */
 .salary-card .card-content {
-  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-  color: white;
+  background: linear-gradient(135deg, #ffffff 0%, #eeeeee 100%);
+  color: rgb(0, 0, 0);
 }
 
 .salary-display {
@@ -228,7 +259,13 @@
 .simulation-card {
   background: #f8fafc;
   border-radius: 1rem;
+  overflow: hidden;
   border: 1px solid #e2e8f0;
+  transition: all 0.3s ease;
+}
+
+.simulation-card:hover {
+  border-color: #10B981;
 }
 
 .custom-form {
@@ -293,24 +330,27 @@
 .results-section {
   display: grid;
   gap: 2rem;
+  animation: fadeInUp 0.6s ease-out;
 }
 
+/* ✅ Stats Grid pour 5 cartes */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .stat-card {
   background: white;
   border-radius: 1rem;
-  padding: 1.5rem;
+  padding: 1rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   border-left: 4px solid;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  animation: fadeInUp 0.6s ease-out;
 }
 
 .stat-card:hover {
@@ -318,10 +358,10 @@
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
 }
 
-.stat-card.primary { border-left-color: #3B82F6; }
-.stat-card.success { border-left-color: #10B981; }
-.stat-card.info { border-left-color: #8B5CF6; }
-.stat-card.warning { border-left-color: #F59E0B; }
+.stat-card.primary { border-left-color: #1bb910; }
+.stat-card.success { border-left-color: #f5e20b; }
+.stat-card.info { border-left-color: #0831b9; }
+.stat-card.warning { border-left-color: #f50b0b; }
 
 .stat-icon {
   font-size: 2rem;
@@ -350,6 +390,13 @@
   font-size: 0.75rem;
   color: #9ca3af;
 }
+
+/* Animations pour les cartes */
+.stat-card:nth-child(1) { animation-delay: 0.1s; }
+.stat-card:nth-child(2) { animation-delay: 0.2s; }
+.stat-card:nth-child(3) { animation-delay: 0.3s; }
+.stat-card:nth-child(4) { animation-delay: 0.4s; }
+.stat-card:nth-child(5) { animation-delay: 0.5s; }
 
 /* Calculation Details */
 .calculation-details {
@@ -442,6 +489,10 @@
   overflow: hidden;
 }
 
+.history-card:hover {
+  border-color: #8B5CF6;
+}
+
 .history-list {
   background: white;
   border-radius: 0 0 1rem 1rem;
@@ -508,7 +559,71 @@
   margin: 0;
 }
 
-/* Responsive Design */
+/* Scrollbar personnalisée */
+.history-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.history-list::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.history-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.history-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Focus states pour l'accessibilité */
+.nav-button:focus,
+.back-button:focus,
+.simulate-button:focus,
+.form-group input:focus {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+}
+
+/* États désactivés */
+.simulate-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.simulate-button:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* ✅ Responsive Design */
+@media (min-width: 1200px) {
+  .stats-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1199px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .simulateur-main {
     padding-top: 5rem;
@@ -527,6 +642,12 @@
   
   .simulateur-title {
     font-size: 2rem;
+    justify-content: center;
+  }
+  
+  .user-welcome {
+    font-size: 0.875rem;
+    text-align: center;
     justify-content: center;
   }
   
@@ -619,87 +740,4 @@
   .stat-value {
     font-size: 1.25rem;
   }
-}
-
-/* Animation pour les résultats */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.results-section {
-  animation: fadeInUp 0.6s ease-out;
-}
-
-.stat-card {
-  animation: fadeInUp 0.6s ease-out;
-}
-
-.stat-card:nth-child(1) { animation-delay: 0.1s; }
-.stat-card:nth-child(2) { animation-delay: 0.2s; }
-.stat-card:nth-child(3) { animation-delay: 0.3s; }
-.stat-card:nth-child(4) { animation-delay: 0.4s; }
-
-/* Effets de hover améliorés */
-.profile-card:hover {
-  border-color: #3B82F6;
-}
-
-.simulation-card:hover {
-  border-color: #10B981;
-}
-
-.history-card:hover {
-  border-color: #8B5CF6;
-}
-
-/* Transitions fluides */
-* {
-  transition: all 0.3s ease;
-}
-
-/* Scrollbar personnalisée */
-.history-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.history-list::-webkit-scrollbar-track {
-  background: #f1f5f9;
-  border-radius: 3px;
-}
-
-.history-list::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
-}
-
-.history-list::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-/* Focus states pour l'accessibilité */
-.nav-button:focus,
-.back-button:focus,
-.simulate-button:focus,
-.form-group input:focus {
-  outline: 2px solid #3B82F6;
-  outline-offset: 2px;
-}
-
-/* États désactivés */
-.simulate-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.simulate-button:disabled:hover {
-  transform: none;
-  box-shadow: none;
 }

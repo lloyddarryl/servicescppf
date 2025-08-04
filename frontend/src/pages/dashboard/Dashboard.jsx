@@ -114,7 +114,12 @@ const Dashboard = () => {
       'banknotes': '💰',
       'document-check': '📋',
       'pencil': '✏️',
-      'academic-cap': '🎓'
+      'academic-cap': '🎓',
+      'cog': '⚙️',
+      'bell': '🔔',
+      'file-alt': '📑',
+      'certificate': '📜',
+      'calendar': '📅',
     };
     return icons[iconName] || '📌';
   };
