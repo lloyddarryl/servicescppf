@@ -1,3 +1,5 @@
+// File: frontend/src/services/api.js - Services famille universels
+
 import axios from 'axios';
 
 // Configuration de base de l'API
@@ -10,7 +12,7 @@ const api = axios.create({
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
-  timeout: 30000, // 30 secondes de timeout
+  timeout: 30000,
 });
 
 // Intercepteur pour ajouter le token d'authentification
@@ -77,18 +79,11 @@ export const userService = {
   resendVerification: () => api.post('/profile/resend-verification')
 };
 
-// ✅ SERVICES POUR LE SIMULATEUR DE PENSION
+// Services pour le simulateur de pension (actifs uniquement)
 export const pensionSimulatorService = {
-  // Obtenir le profil pour le simulateur
   getProfile: () => api.get('/actifs/simulateur-pension/profil'),
-  
-  // Lancer une simulation
   simulate: (data) => api.post('/actifs/simulateur-pension/simuler', data),
-  
-  // Obtenir l'historique des simulations
   getHistory: () => api.get('/actifs/simulateur-pension/historique'),
-  
-  // Obtenir les paramètres de calcul
   getParameters: () => api.get('/actifs/simulateur-pension/parametres')
 };
 
@@ -110,20 +105,53 @@ export const retraiteService = {
   getHistorique: () => api.get('/retraites/historique'),
 };
 
-// Ajoutez ces services dans frontend/src/services/api.js
-
-// ✅ Services pour la gestion de la famille
+// ✅ SERVICES FAMILLE UNIVERSELS - Détection automatique du type d'utilisateur
 export const familleService = {
-  // Obtenir la grappe familiale complète
-  getGrappeFamiliale: () => api.get('/actifs/famille'),
-  
-  // Gestion du conjoint
-  saveConjoint: (data) => api.post('/actifs/famille/conjoint', data),
-  
-  // Gestion des enfants
-  addEnfant: (data) => api.post('/actifs/famille/enfants', data),
-  updateEnfant: (id, data) => api.put(`/actifs/famille/enfants/${id}`, data),
-  deleteEnfant: (id) => api.delete(`/actifs/famille/enfants/${id}`)
+    // Helper pour déterminer le préfixe selon le type d'utilisateur
+    _getUserPrefix: () => {
+        const userType = localStorage.getItem('user_type');
+        return userType === 'retraite' ? 'retraites' : 'actifs';
+    },
+
+    // Obtenir la grappe familiale
+    getGrappeFamiliale: async () => {
+        try {
+            const prefix = familleService._getUserPrefix();
+            const response = await api.get(`/${prefix}/famille`);
+            return response.data; // Retourner directement response.data
+        } catch (error) {
+            console.error('API Error:', error);
+            throw error;
+        }
+    },
+
+    // Sauvegarder/modifier un conjoint
+    saveConjoint: async (conjointData) => {
+        const prefix = familleService._getUserPrefix();
+        const response = await api.post(`/${prefix}/famille/conjoint`, conjointData);
+        return response.data;
+    },
+
+    // Ajouter un enfant
+    addEnfant: async (enfantData) => {
+        const prefix = familleService._getUserPrefix();
+        const response = await api.post(`/${prefix}/famille/enfants`, enfantData);
+        return response.data;
+    },
+
+    // Modifier un enfant
+    updateEnfant: async (enfantId, enfantData) => {
+        const prefix = familleService._getUserPrefix();
+        const response = await api.put(`/${prefix}/famille/enfants/${enfantId}`, enfantData);
+        return response.data;
+    },
+
+    // Supprimer un enfant
+    deleteEnfant: async (enfantId) => {
+        const prefix = familleService._getUserPrefix();
+        const response = await api.delete(`/${prefix}/famille/enfants/${enfantId}`);
+        return response.data;
+    }
 };
 
 // Utilitaires
@@ -154,6 +182,7 @@ export const utils = {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('setup_token');
     localStorage.removeItem('user_data');
+    localStorage.removeItem('user_type');
   },
   
   formatPhoneNumber: (phone) => {

@@ -106,98 +106,98 @@ class Agent extends Authenticatable
     {
         return $query->where('first_login', true);
     }
+
     // File: app/Models/Agent.php (ajouts)
 
-// Ajouter ces relations dans la classe Agent existante:
+    // Ajouter ces relations dans la classe Agent existante:
 
-public function carrieres()
-{
-    return $this->hasMany(CarriereHistorique::class);
-}
-
-public function simulations()
-{
-    return $this->hasMany(SimulationPension::class);
-}
-
-public function carriereActuelle()
-{
-    return $this->hasOne(CarriereHistorique::class)
-                ->where('valide', true)
-                ->orderBy('date_carriere', 'desc');
-}
-
-// Calculer la durée de service
-public function getDureeServiceAttribute()
-{
-    if ($this->date_prise_service) {
-        return \Carbon\Carbon::parse($this->date_prise_service)->diffInYears(now());
+    public function carrieres()
+    {
+        return $this->hasMany(CarriereHistorique::class);
     }
-    return 0;
-}
 
-// Calculer le salaire selon l'indice
-public function getSalaireCalculeAttribute()
-{
-    return ($this->indice ?? 1001) * 500;
-}
+    public function simulations()
+    {
+        return $this->hasMany(SimulationPension::class);
+    }
 
-// Ajoutez ces relations dans app/Models/Agent.php
+    public function carriereActuelle()
+    {
+        return $this->hasOne(CarriereHistorique::class)
+                    ->where('valide', true)
+                    ->orderBy('date_carriere', 'desc');
+    }
 
-/**
- * Relation avec le conjoint actif
- */
-public function conjoint()
-{
-    return $this->hasOne(Conjoint::class)->where('statut', 'ACTIF');
-}
+    // Calculer la durée de service
+    public function getDureeServiceAttribute()
+    {
+        if ($this->date_prise_service) {
+            return \Carbon\Carbon::parse($this->date_prise_service)->diffInYears(now());
+        }
+        return 0;
+    }
 
-/**
- * Relation avec tous les conjoints (historique)
- */
-public function conjoints()
-{
-    return $this->hasMany(Conjoint::class);
-}
+    // Calculer le salaire selon l'indice
+    public function getSalaireCalculeAttribute()
+    {
+        return ($this->indice ?? 1001) * 500;
+    }
 
-/**
- * Relation avec les enfants actifs
- */
-public function enfants()
-{
-    return $this->hasMany(Enfant::class)->where('actif', true);
-}
+    // Ajoutez ces relations dans app/Models/Agent.php
 
-/**
- * Relation avec tous les enfants (y compris inactifs)
- */
-public function tousLesEnfants()
-{
-    return $this->hasMany(Enfant::class);
-}
+    /**
+     * Relation avec le conjoint actif
+     */
+    public function conjoint()
+    {
+        return $this->hasOne(Conjoint::class)->where('statut', 'ACTIF');
+    }
 
-/**
- * Obtenir le nombre d'enfants actifs
- */
-public function getNombreEnfantsAttribute()
-{
-    return $this->enfants()->count();
-}
+    /**
+     * Relation avec tous les conjoints (historique)
+     */
+    public function conjoints()
+    {
+        return $this->hasMany(Conjoint::class);
+    }
 
-/**
- * Obtenir le nombre d'enfants mineurs
- */
-public function getNombreEnfantsMineurAttribute()
-{
-    return $this->enfants()->whereRaw('DATEDIFF(CURDATE(), date_naissance) < 18*365')->count();
-}
+    /**
+     * Relation avec les enfants actifs
+     */
+    public function enfants()
+    {
+        return $this->hasMany(Enfant::class)->where('actif', true);
+    }
 
-/**
- * Vérifier si l'agent a un conjoint
- */
-public function getAConjointAttribute()
-{
-    return $this->conjoint()->exists();
-}
+    /**
+     * Relation avec tous les enfants (y compris inactifs)
+     */
+    public function tousLesEnfants()
+    {
+        return $this->hasMany(Enfant::class);
+    }
 
+    /**
+     * Obtenir le nombre d'enfants actifs
+     */
+    public function getNombreEnfantsAttribute()
+    {
+        return $this->enfants()->count();
+    }
+
+    /**
+     * Obtenir le nombre d'enfants mineurs
+     */
+    public function getNombreEnfantsMineurAttribute()
+    {
+        return $this->enfants()->whereRaw('DATEDIFF(CURDATE(), date_naissance) < 18*365')->count();
+    }
+
+    /**
+     * Vérifier si l'agent a un conjoint
+     */
+    public function getAConjointAttribute()
+    {
+        return $this->conjoint()->exists();
+    }
 }

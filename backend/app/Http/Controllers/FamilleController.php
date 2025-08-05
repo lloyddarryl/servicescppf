@@ -1,5 +1,5 @@
 <?php
-// File: app/Http/Controllers/FamilleController.php
+// File: app/Http/Controllers/FamilleController.php - CORRECTED VERSION
 
 namespace App\Http\Controllers;
 
@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use App\Models\Agent;
+use App\Models\Retraite;
 use App\Models\Conjoint;
 use App\Models\Enfant;
 use App\Models\PrestationFamiliale;
@@ -15,49 +16,54 @@ use Carbon\Carbon;
 class FamilleController extends Controller
 {
     /**
-     * Vérifier que l'utilisateur est un agent actif
+     * Vérifier que l'utilisateur est un agent actif OU un retraité
      */
-    private function checkUserIsAgent($user)
+    private function checkUserAccess($user)
     {
-        if (!($user instanceof Agent)) {
+        // ✅ CORRECTION : Permettre l'accès aux agents ET aux retraités
+        if (!($user instanceof Agent) && !($user instanceof Retraite)) {
             return response()->json([
                 'success' => false, 
-                'message' => 'Accès non autorisé - Ce service est réservé aux agents actifs'
+                'message' => 'Accès non autorisé - Ce service est réservé aux utilisateurs authentifiés'
             ], 403);
         }
         return null;
     }
 
     /**
-     * Obtenir la grappe familiale complète de l'agent
+     * ✅ CORRECTION : Obtenir la grappe familiale pour agent actif OU retraité
      */
     public function getGrappeFamiliale(Request $request)
     {
         try {
             $user = $request->user();
             
-            $checkResult = $this->checkUserIsAgent($user);
+            $checkResult = $this->checkUserAccess($user);
             if ($checkResult) return $checkResult;
 
-            // Récupérer le conjoint actif
-            $conjoint = Conjoint::where('agent_id', $user->id)
-                ->actif()
-                ->first();
+            // ✅ Déterminer le type d'utilisateur et l'ID approprié
+            $isAgent = $user instanceof Agent;
+            $userType = $isAgent ? 'actif' : 'retraite';
+            
+            // Récupérer le conjoint actif selon le type d'utilisateur
+            $conjoint = $isAgent 
+                ? Conjoint::where('agent_id', $user->id)->where('statut', 'ACTIF')->first()
+                : Conjoint::where('retraite_id', $user->id)->where('statut', 'ACTIF')->first();
 
-            // Récupérer les enfants actifs
-            $enfants = Enfant::where('agent_id', $user->id)
-                ->actif()
-                ->orderBy('date_naissance', 'desc')
-                ->with('prestations')
-                ->get();
+            // Récupérer les enfants actifs selon le type d'utilisateur  
+            $enfants = $isAgent
+                ? Enfant::where('agent_id', $user->id)->where('actif', true)->orderBy('date_naissance', 'desc')->get()
+                : Enfant::where('retraite_id', $user->id)->where('actif', true)->orderBy('date_naissance', 'desc')->get();
 
             // Statistiques famille
             $stats = [
                 'nombre_enfants' => $enfants->count(),
-                'enfants_mineurs' => $enfants->where('age', '<', 18)->count(),
+                'enfants_mineurs' => $enfants->filter(function($enfant) {
+                    return Carbon::parse($enfant->date_naissance)->age < 18;
+                })->count(),
                 'enfants_avec_prestations' => $enfants->where('prestation_familiale', true)->count(),
                 'conjoint_presente' => $conjoint ? true : false,
-                'conjoint_travaille' => $conjoint && $conjoint->travaille
+                'conjoint_travaille' => $conjoint && !empty($conjoint->matricule_conjoint)
             ];
 
             // Formater les données du conjoint
@@ -65,15 +71,15 @@ class FamilleController extends Controller
             if ($conjoint) {
                 $conjointData = [
                     'id' => $conjoint->id,
-                    'nom_complet' => $conjoint->nom_complet,
+                    'nom_complet' => trim($conjoint->prenoms . ' ' . $conjoint->nom),
                     'nom' => $conjoint->nom,
                     'prenoms' => $conjoint->prenoms,
                     'sexe' => $conjoint->sexe,
-                    'age' => $conjoint->age,
-                    'date_naissance' => $conjoint->date_naissance->format('Y-m-d'),
-                    'date_mariage' => $conjoint->date_mariage ? $conjoint->date_mariage->format('Y-m-d') : null,
-                    'travaille' => $conjoint->travaille,
-                    'identifiant' => $conjoint->identifiant,
+                    'age' => Carbon::parse($conjoint->date_naissance)->age,
+                    'date_naissance' => $conjoint->date_naissance,
+                    'date_mariage' => $conjoint->date_mariage,
+                    'travaille' => !empty($conjoint->matricule_conjoint),
+                    'identifiant' => $conjoint->matricule_conjoint ?: $conjoint->nag_conjoint,
                     'profession' => $conjoint->profession,
                     'statut' => $conjoint->statut
                 ];
@@ -81,34 +87,39 @@ class FamilleController extends Controller
 
             // Formater les données des enfants
             $enfantsData = $enfants->map(function ($enfant) {
+                $age = Carbon::parse($enfant->date_naissance)->age;
                 return [
                     'id' => $enfant->id,
                     'enfant_id' => $enfant->enfant_id,
-                    'nom_complet' => $enfant->nom_complet,
+                    'nom_complet' => trim($enfant->prenoms . ' ' . $enfant->nom),
                     'nom' => $enfant->nom,
                     'prenoms' => $enfant->prenoms,
                     'sexe' => $enfant->sexe,
-                    'age' => $enfant->age,
-                    'date_naissance' => $enfant->date_naissance->format('Y-m-d'),
+                    'age' => $age,
+                    'date_naissance' => $enfant->date_naissance,
                     'prestation_familiale' => $enfant->prestation_familiale,
                     'scolarise' => $enfant->scolarise,
                     'niveau_scolaire' => $enfant->niveau_scolaire,
-                    'est_mineur' => $enfant->est_mineur,
-                    'en_age_scolarite' => $enfant->en_age_scolarite,
-                    'prestations_actives' => $enfant->prestations()->actif()->count()
+                    'est_mineur' => $age < 18,
+                    'en_age_scolarite' => $age >= 3 && $age <= 25,
+                    'prestations_actives' => 0 // À implémenter si nécessaire
                 ];
             });
+
+            // ✅ Données de l'agent/retraité adaptées
+            $agentData = [
+                'id' => $user->id,
+                'nom_complet' => trim($user->prenoms . ' ' . $user->nom),
+                'matricule' => $isAgent ? $user->matricule_solde : $user->numero_pension,
+                'sexe' => $user->sexe ?? 'M',
+                'situation_matrimoniale' => $user->situation_matrimoniale ?? 'Non spécifiée',
+                'type' => $userType
+            ];
 
             return response()->json([
                 'success' => true,
                 'grappe_familiale' => [
-                    'agent' => [
-                        'id' => $user->id,
-                        'nom_complet' => $user->prenoms . ' ' . $user->nom,
-                        'matricule' => $user->matricule_solde,
-                        'sexe' => $user->sexe ?? 'M',
-                        'situation_matrimoniale' => $user->situation_matrimoniale
-                    ],
+                    'agent' => $agentData,
                     'conjoint' => $conjointData,
                     'enfants' => $enfantsData,
                     'statistiques' => $stats
@@ -118,7 +129,8 @@ class FamilleController extends Controller
         } catch (\Exception $e) {
             Log::error('Erreur récupération grappe familiale:', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
+                'user_id' => $request->user()->id ?? 'unknown'
             ]);
 
             return response()->json([
@@ -129,14 +141,14 @@ class FamilleController extends Controller
     }
 
     /**
-     * Ajouter ou modifier le conjoint
+     * ✅ CORRECTION : Sauvegarder conjoint pour agent OU retraité
      */
-    public function saveconjoint(Request $request)
+    public function saveConjoint(Request $request)
     {
         try {
             $user = $request->user();
             
-            $checkResult = $this->checkUserIsAgent($user);
+            $checkResult = $this->checkUserAccess($user);
             if ($checkResult) return $checkResult;
 
             $validator = Validator::make($request->all(), [
@@ -158,11 +170,22 @@ class FamilleController extends Controller
             }
 
             $data = $validator->validated();
-            $data['agent_id'] = $user->id;
-            $data['travaille'] = !empty($data['matricule_conjoint']);
+            $data['statut'] = 'ACTIF';
+            
+            // ✅ Déterminer le type d'utilisateur
+            $isAgent = $user instanceof Agent;
+            if ($isAgent) {
+                $data['agent_id'] = $user->id;
+                $data['retraite_id'] = null;
+            } else {
+                $data['retraite_id'] = $user->id;
+                $data['agent_id'] = null;
+            }
 
             // Vérifier s'il y a déjà un conjoint actif
-            $conjoint = Conjoint::where('agent_id', $user->id)->actif()->first();
+            $conjoint = $isAgent 
+                ? Conjoint::where('agent_id', $user->id)->where('statut', 'ACTIF')->first()
+                : Conjoint::where('retraite_id', $user->id)->where('statut', 'ACTIF')->first();
 
             if ($conjoint) {
                 $conjoint->update($data);
@@ -178,7 +201,8 @@ class FamilleController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Erreur sauvegarde conjoint:', [
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
+                'user_id' => $request->user()->id ?? 'unknown'
             ]);
 
             return response()->json([
@@ -189,14 +213,14 @@ class FamilleController extends Controller
     }
 
     /**
-     * Ajouter un enfant
+     * ✅ CORRECTION : Ajouter enfant pour agent OU retraité
      */
     public function addEnfant(Request $request)
     {
         try {
             $user = $request->user();
             
-            $checkResult = $this->checkUserIsAgent($user);
+            $checkResult = $this->checkUserAccess($user);
             if ($checkResult) return $checkResult;
 
             $validator = Validator::make($request->all(), [
@@ -218,12 +242,29 @@ class FamilleController extends Controller
             }
 
             $data = $validator->validated();
-            $data['agent_id'] = $user->id;
-            $data['matricule_parent'] = Enfant::generateMatriculeParent($user->matricule_solde);
+            $data['actif'] = true;
+            
+            // ✅ Déterminer le type d'utilisateur
+            $isAgent = $user instanceof Agent;
+            if ($isAgent) {
+                $data['agent_id'] = $user->id;
+                $data['retraite_id'] = null;
+                $data['matricule_parent'] = substr($user->matricule_solde, 0, -1); // Enlever la lettre finale
+            } else {
+                $data['retraite_id'] = $user->id;
+                $data['agent_id'] = null;
+                $data['matricule_parent'] = $user->numero_pension; // Pour les retraités, utiliser le numéro de pension
+            }
 
             // Vérifier si l'enfant n'existe pas déjà
             $existant = Enfant::where('enfant_id', $data['enfant_id'])
-                ->where('agent_id', $user->id)
+                ->where(function($query) use ($user, $isAgent) {
+                    if ($isAgent) {
+                        $query->where('agent_id', $user->id);
+                    } else {
+                        $query->where('retraite_id', $user->id);
+                    }
+                })
                 ->first();
 
             if ($existant) {
@@ -243,7 +284,8 @@ class FamilleController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Erreur ajout enfant:', [
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
+                'user_id' => $request->user()->id ?? 'unknown'
             ]);
 
             return response()->json([
@@ -254,18 +296,26 @@ class FamilleController extends Controller
     }
 
     /**
-     * Modifier un enfant
+     * Modifier un enfant (reste identique mais avec support retraité)
      */
     public function updateEnfant(Request $request, $id)
     {
         try {
             $user = $request->user();
             
-            $checkResult = $this->checkUserIsAgent($user);
+            $checkResult = $this->checkUserAccess($user);
             if ($checkResult) return $checkResult;
 
+            // ✅ Trouver l'enfant selon le type d'utilisateur
+            $isAgent = $user instanceof Agent;
             $enfant = Enfant::where('id', $id)
-                ->where('agent_id', $user->id)
+                ->where(function($query) use ($user, $isAgent) {
+                    if ($isAgent) {
+                        $query->where('agent_id', $user->id);
+                    } else {
+                        $query->where('retraite_id', $user->id);
+                    }
+                })
                 ->first();
 
             if (!$enfant) {
@@ -301,7 +351,8 @@ class FamilleController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Erreur modification enfant:', [
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
+                'user_id' => $request->user()->id ?? 'unknown'
             ]);
 
             return response()->json([
@@ -312,18 +363,26 @@ class FamilleController extends Controller
     }
 
     /**
-     * Supprimer un enfant (désactivation)
+     * Supprimer un enfant (reste identique mais avec support retraité)
      */
     public function deleteEnfant(Request $request, $id)
     {
         try {
             $user = $request->user();
             
-            $checkResult = $this->checkUserIsAgent($user);
+            $checkResult = $this->checkUserAccess($user);
             if ($checkResult) return $checkResult;
 
+            // ✅ Trouver l'enfant selon le type d'utilisateur
+            $isAgent = $user instanceof Agent;
             $enfant = Enfant::where('id', $id)
-                ->where('agent_id', $user->id)
+                ->where(function($query) use ($user, $isAgent) {
+                    if ($isAgent) {
+                        $query->where('agent_id', $user->id);
+                    } else {
+                        $query->where('retraite_id', $user->id);
+                    }
+                })
                 ->first();
 
             if (!$enfant) {
@@ -343,7 +402,8 @@ class FamilleController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Erreur suppression enfant:', [
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
+                'user_id' => $request->user()->id ?? 'unknown'
             ]);
 
             return response()->json([

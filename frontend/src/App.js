@@ -87,14 +87,12 @@ function App() {
             </ProtectedRoute>
           } />
           
-          <Route path="/actifs/grappe-familiale" element={
-            <ProtectedRoute requiredUserType="actif">
-              <div style={{padding: '6rem 2rem', textAlign: 'center'}}>
-                <h1>Grappe Familiale</h1>
-                <p>Module en développement</p>
-              </div>
-            </ProtectedRoute>
-          } />
+              {/* ✅ Redirection vers la vraie page Grappe Familiale */}
+                <Route path="/actifs/grappe-familiale" element={
+                <ProtectedRoute requiredUserType="actif">
+                  <GrappeFamiliale />
+                </ProtectedRoute>
+                } />
           
           <Route path="/actifs/famille" element={<GrappeFamiliale />} />
 

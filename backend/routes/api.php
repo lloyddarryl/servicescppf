@@ -5,6 +5,8 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PensionSimulatorController;
+use App\Http\Controllers\FamilleController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -84,18 +86,26 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/notifications', [DashboardController::class, 'getNotifications']);
         Route::put('/notifications/{id}/read', [DashboardController::class, 'markNotificationRead']);
         
-        // ✅ Routes pour la gestion de la famille
-         Route::prefix('famille')->group(function () {
-        // Obtenir la grappe familiale complète
-        Route::get('/', [FamilleController::class, 'getGrappeFamiliale']);
-        
-        // Gestion du conjoint
-        Route::post('/conjoint', [FamilleController::class, 'saveConjoint']);
+        // CORRECTION : Ajoutez le controller manquant dans les routes api.php
+
+
+        // Dans la section des routes spécifiques aux agents actifs
+        Route::prefix('actifs')->group(function () {
+            // ... autres routes ...
             
-        // Gestion des enfants
-        Route::post('/enfants', [FamilleController::class, 'addEnfant']);
-        Route::put('/enfants/{id}', [FamilleController::class, 'updateEnfant']);
-        Route::delete('/enfants/{id}', [FamilleController::class, 'deleteEnfant']);
+            // ✅ AJOUT : Routes pour la gestion de la famille (MANQUANTES dans votre routes/api.php)
+            Route::prefix('famille')->group(function () {
+                // Obtenir la grappe familiale complète
+                Route::get('/', [FamilleController::class, 'getGrappeFamiliale']);
+                
+                // Gestion du conjoint
+                Route::post('/conjoint', [FamilleController::class, 'saveConjoint']);
+                    
+                // Gestion des enfants
+                Route::post('/enfants', [FamilleController::class, 'addEnfant']);
+                Route::put('/enfants/{id}', [FamilleController::class, 'updateEnfant']);
+                Route::delete('/enfants/{id}', [FamilleController::class, 'deleteEnfant']);
+            });
         });
 
         // Historique et suivi        
@@ -117,10 +127,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Ajoutez ces routes temporaires pour le diagnostic
     Route::middleware('auth:sanctum')->group(function () {
-    // Routes de diagnostic (à supprimer après tests)
-    Route::get('/test/pension/diagnostic', [App\Http\Controllers\PensionTestController::class, 'diagnostic']);
-    Route::post('/test/pension/init', [App\Http\Controllers\PensionTestController::class, 'initTestData']);
-    Route::delete('/test/pension/cleanup', [App\Http\Controllers\PensionTestController::class, 'cleanup']);
+        // Routes de diagnostic (à supprimer après tests)
+        Route::get('/test/pension/diagnostic', [App\Http\Controllers\PensionTestController::class, 'diagnostic']);
+        Route::post('/test/pension/init', [App\Http\Controllers\PensionTestController::class, 'initTestData']);
+        Route::delete('/test/pension/cleanup', [App\Http\Controllers\PensionTestController::class, 'cleanup']);
     });
     
     // Routes spécifiques aux retraités avec préfixe /retraites
@@ -159,6 +169,20 @@ Route::middleware('auth:sanctum')->group(function () {
         // Notifications
         Route::get('/notifications', [DashboardController::class, 'getNotificationsRetraite']);
         Route::put('/notifications/{id}/read', [DashboardController::class, 'markNotificationReadRetraite']);
+
+        // ✅ NOUVELLE SECTION : GESTION DE LA FAMILLE POUR RETRAITÉS
+        Route::prefix('famille')->group(function () {
+            // Obtenir la grappe familiale complète
+            Route::get('/', [FamilleController::class, 'getGrappeFamiliale']);
+            
+            // Gestion du conjoint
+            Route::post('/conjoint', [FamilleController::class, 'saveConjoint']);
+                
+            // Gestion des enfants
+            Route::post('/enfants', [FamilleController::class, 'addEnfant']);
+            Route::put('/enfants/{id}', [FamilleController::class, 'updateEnfant']);
+            Route::delete('/enfants/{id}', [FamilleController::class, 'deleteEnfant']);
+        });
     });
 
     // Route générale pour le dashboard (redirige selon le type d'utilisateur)

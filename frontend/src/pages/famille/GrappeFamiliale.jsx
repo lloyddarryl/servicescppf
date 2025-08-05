@@ -1,4 +1,4 @@
-// File: frontend/src/pages/famille/GrappeFamiliale.jsx
+// File: frontend/src/pages/famille/GrappeFamiliale.jsx - Version universelle
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -15,6 +15,7 @@ const GrappeFamiliale = () => {
   const [showConjointForm, setShowConjointForm] = useState(false);
   const [showEnfantForm, setShowEnfantForm] = useState(false);
   const [editingEnfant, setEditingEnfant] = useState(null);
+  const [userType, setUserType] = useState('actif'); // ✅ État pour le type d'utilisateur
 
   // États des formulaires
   const [conjointForm, setConjointForm] = useState({
@@ -46,14 +47,30 @@ const GrappeFamiliale = () => {
       
       const response = await familleService.getGrappeFamiliale();
       
-      if (response.data.success) {
-        setGrappeFamiliale(response.data.grappe_familiale);
+      // Vérifier si la réponse existe et a la bonne structure
+      if (!response || typeof response !== 'object') {
+        throw new Error('Réponse invalide du serveur');
+      }
+      
+      if (response.success) {
+        setGrappeFamiliale(response.grappe_familiale);
+        
+        // Déterminer le type d'utilisateur depuis les données
+        const userData = response.grappe_familiale?.agent;
+        if (userData?.type) {
+          setUserType(userData.type);
+        }
       } else {
-        setError(response.data.message || 'Erreur lors du chargement');
+        setError(response.message || 'Erreur lors du chargement');
       }
     } catch (error) {
       console.error('Erreur chargement famille:', error);
-      setError('Erreur lors du chargement de la grappe familiale');
+      
+      if (error.response?.status === 403) {
+        setError('Accès non autorisé. Veuillez vous connecter avec le bon type de compte.');
+      } else {
+        setError('Erreur lors du chargement de la grappe familiale');
+      }
     } finally {
       setLoading(false);
     }
@@ -64,6 +81,13 @@ const GrappeFamiliale = () => {
       navigate('/services');
       return;
     }
+    
+    // ✅ Récupérer le type d'utilisateur depuis localStorage
+    const storedUserType = localStorage.getItem('user_type');
+    if (storedUserType) {
+      setUserType(storedUserType);
+    }
+    
     loadGrappeFamiliale();
   }, [navigate, loadGrappeFamiliale]);
 
@@ -154,16 +178,17 @@ const GrappeFamiliale = () => {
     setShowEnfantForm(true);
   };
 
-  const calculateAge = (birthDate) => {
-    const today = new Date();
-    const birth = new Date(birthDate);
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-    return age;
-  };
+// eslint-disable-next-line no-unused-vars
+const calculateAge = (birthDate) => {
+  const today = new Date();
+  const birth = new Date(birthDate);
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
+};
 
   const getTitle = (sexe, situationMatrimoniale) => {
     if (sexe === 'F') {
@@ -173,6 +198,21 @@ const GrappeFamiliale = () => {
       return 'Mlle';
     }
     return 'M.';
+  };
+
+  // ✅ Fonction pour obtenir le label du matricule selon le type d'utilisateur
+  const getMatriculeLabel = () => {
+    return userType === 'retraite' ? 'N° Pension' : 'Matricule';
+  };
+
+  // ✅ Fonction pour obtenir le titre de la page selon le type d'utilisateur
+  const getPageTitle = () => {
+    return userType === 'retraite' ? 'Ma Grappe Familiale - Retraité' : 'Ma Grappe Familiale - Agent Actif';
+  };
+
+  // ✅ Fonction pour déterminer le bouton de retour selon le type d'utilisateur
+  const getBackRoute = () => {
+    return '/dashboard'; // Route générale qui redirige automatiquement
   };
 
   if (loading) {
@@ -214,26 +254,30 @@ const GrappeFamiliale = () => {
       <main className="famille-main">
         <div className="famille-container">
           
-          {/* En-tête */}
+          {/* En-tête adaptatif */}
           <div className="famille-header">
             <div className="header-content">
               <h1 className="famille-title">
                 <span className="title-icon">👨‍👩‍👧‍👦</span>
-                Ma Grappe Familiale
+                {getPageTitle()}
               </h1>
               {grappeFamiliale && (
                 <div className="user-welcome">
                   {getTitle(grappeFamiliale.agent.sexe, grappeFamiliale.agent.situation_matrimoniale)} {grappeFamiliale.agent.nom_complet}
+                  {userType === 'retraite' && <span className="badge-retraite"> • Retraité</span>}
                 </div>
               )}
               <p className="famille-subtitle">
-                Gérez les informations de votre famille et les prestations familiales
+                {userType === 'retraite' 
+                  ? 'Gérez les informations de votre famille en tant qu\'ancien agent de l\'État'
+                  : 'Gérez les informations de votre famille et les prestations familiales'
+                }
               </p>
             </div>
             
             <button 
               className="back-button"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate(getBackRoute())}
             >
               ← Retour au tableau de bord
             </button>
@@ -278,11 +322,11 @@ const GrappeFamiliale = () => {
                 {/* Statistiques famille */}
                 <div className="stats-grid">
                   <div className="stat-card primary">
-                    <div className="stat-icon">👑</div>
+                    <div className="stat-icon">{userType === 'retraite' ? '👴' : '👑'}</div>
                     <div className="stat-content">
-                      <div className="stat-label">Chef de famille</div>
+                      <div className="stat-label">{userType === 'retraite' ? 'Retraité' : 'Chef de famille'}</div>
                       <div className="stat-value">{grappeFamiliale.agent.nom_complet}</div>
-                      <div className="stat-subtitle">Matricule: {grappeFamiliale.agent.matricule}</div>
+                      <div className="stat-subtitle">{getMatriculeLabel()}: {grappeFamiliale.agent.matricule}</div>
                     </div>
                   </div>
 
@@ -310,12 +354,17 @@ const GrappeFamiliale = () => {
                     </div>
                   </div>
 
+                  {/* ✅ Statistique adaptée selon le type d'utilisateur */}
                   <div className="stat-card warning">
-                    <div className="stat-icon">💰</div>
+                    <div className="stat-icon">{userType === 'retraite' ? '👥' : '💰'}</div>
                     <div className="stat-content">
-                      <div className="stat-label">Prestations</div>
+                      <div className="stat-label">
+                        {userType === 'retraite' ? 'Ayants droit' : 'Prestations'}
+                      </div>
                       <div className="stat-value">{grappeFamiliale.statistiques.enfants_avec_prestations}</div>
-                      <div className="stat-subtitle">Enfant(s) bénéficiaire(s)</div>
+                      <div className="stat-subtitle">
+                        {userType === 'retraite' ? 'Enfant(s) ayant droit' : 'Enfant(s) bénéficiaire(s)'}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -328,15 +377,17 @@ const GrappeFamiliale = () => {
                     </div>
                     <div className="card-content">
                       
-                      {/* Agent principal */}
-                      <div className="membre-famille agent">
+                      {/* Utilisateur principal */}
+                      <div className={`membre-famille ${userType === 'retraite' ? 'retraite' : 'agent'}`}>
                         <div className="membre-info">
                           <div className="membre-nom">
                             <strong>{grappeFamiliale.agent.nom_complet}</strong>
-                            <span className="badge chef">Chef de famille</span>
+                            <span className="badge chef">
+                              {userType === 'retraite' ? 'Retraité' : 'Chef de famille'}
+                            </span>
                           </div>
                           <div className="membre-details">
-                            Matricule: {grappeFamiliale.agent.matricule} | 
+                            {getMatriculeLabel()}: {grappeFamiliale.agent.matricule} | 
                             Sexe: {grappeFamiliale.agent.sexe === 'M' ? 'Masculin' : 'Féminin'}
                           </div>
                         </div>
@@ -385,7 +436,9 @@ const GrappeFamiliale = () => {
                                 <strong>{enfant.nom_complet}</strong>
                                 <span className="badge enfant">Enfant</span>
                                 {enfant.prestation_familiale && (
-                                  <span className="badge prestation">Prestation</span>
+                                  <span className="badge prestation">
+                                    {userType === 'retraite' ? 'Ayant droit' : 'Prestation'}
+                                  </span>
                                 )}
                               </div>
                               <div className="membre-details">
@@ -417,7 +470,7 @@ const GrappeFamiliale = () => {
               </div>
             )}
 
-            {/* Section Conjoint */}
+            {/* Section Conjoint - Identique pour les deux types d'utilisateurs */}
             {activeTab === 'conjoint' && (
               <div className="conjoint-section">
                 {grappeFamiliale?.conjoint ? (
@@ -507,7 +560,7 @@ const GrappeFamiliale = () => {
                   </div>
                 )}
 
-                {/* Formulaire conjoint */}
+                {/* Formulaire conjoint - Identique pour les deux types */}
                 {showConjointForm && (
                   <div className="form-modal">
                     <div className="form-modal-content">
@@ -612,7 +665,7 @@ const GrappeFamiliale = () => {
               </div>
             )}
 
-            {/* Section Enfants */}
+            {/* Section Enfants - Adaptée selon le type d'utilisateur */}
             {activeTab === 'enfants' && (
               <div className="enfants-section">
                 <div className="enfants-header">
@@ -643,7 +696,11 @@ const GrappeFamiliale = () => {
                             <div className="enfant-badges">
                               <span className="badge age">{enfant.age} ans</span>
                               {enfant.est_mineur && <span className="badge mineur">Mineur</span>}
-                              {enfant.prestation_familiale && <span className="badge prestation">Prestation</span>}
+                              {enfant.prestation_familiale && (
+                                <span className="badge prestation">
+                                  {userType === 'retraite' ? 'Ayant droit' : 'Prestation'}
+                                </span>
+                              )}
                               {enfant.scolarise && <span className="badge scolarise">Scolarisé</span>}
                             </div>
                           </div>
@@ -682,7 +739,7 @@ const GrappeFamiliale = () => {
                   </div>
                 )}
 
-                {/* Formulaire enfant */}
+                {/* Formulaire enfant - Adapté selon le type d'utilisateur */}
                 {showEnfantForm && (
                   <div className="form-modal">
                     <div className="form-modal-content">
@@ -776,7 +833,10 @@ const GrappeFamiliale = () => {
                                 checked={enfantForm.prestation_familiale}
                                 onChange={(e) => setEnfantForm(prev => ({...prev, prestation_familiale: e.target.checked}))}
                               />
-                              Bénéficie de prestations familiales
+                              {userType === 'retraite' 
+                                ? 'Ayant droit aux prestations'
+                                : 'Bénéficie de prestations familiales'
+                              }
                             </label>
                           </div>
                         </div>
