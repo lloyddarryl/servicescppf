@@ -75,6 +75,7 @@ const Dashboard = () => {
       },
      retraite: {
       pension: '/retraites/pension',
+      grappe_familiale: '/retraites/grappe-familiale', 
       certificats: '/retraites/certificats-vie',
       historique: '/retraites/historique',
       attestations: '/retraites/attestations',

@@ -112,24 +112,7 @@ function App() {
               <EditProfile userType="retraite" />
             </ProtectedRoute>
           } />
-          
-          <Route path="/retraites/pension" element={
-            <ProtectedRoute requiredUserType="retraite">
-              <div style={{padding: '6rem 2rem', textAlign: 'center'}}>
-                <h1>Suivi Pension</h1>
-                <p>Module en développement</p>
-              </div>
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/retraites/certificats-vie" element={
-            <ProtectedRoute requiredUserType="retraite">
-              <div style={{padding: '6rem 2rem', textAlign: 'center'}}>
-                <h1>Certificats de Vie</h1>
-                <p>Module en développement</p>
-              </div>
-            </ProtectedRoute>
-          } />
+        
           
           <Route path="/retraites/historique" element={
             <ProtectedRoute requiredUserType="retraite">
@@ -140,17 +123,16 @@ function App() {
             </ProtectedRoute>
           } />
           
-          <Route path="/retraites/attestations" element={
+          <Route path="/retraites/grappe-familiale" element={
             <ProtectedRoute requiredUserType="retraite">
-              <div style={{padding: '6rem 2rem', textAlign: 'center'}}>
-                <h1>Attestations</h1>
-                <p>Module en développement</p>
-              </div>
-            </ProtectedRoute>
-          } />
-          
+            <GrappeFamiliale />
+           </ProtectedRoute>
+            } />
+
+            
+
           {/* ✅ Route de compatibilité */}
-          <Route path="/dashboard/edit-profile" element={
+          <Route path="/dashboard/documents" element={
             <ProtectedRoute>
               <EditProfile />
             </ProtectedRoute>

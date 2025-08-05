@@ -41,46 +41,73 @@ const GrappeFamiliale = () => {
   });
 
   const loadGrappeFamiliale = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await familleService.getGrappeFamiliale();
-      
-      // Vérifier si la réponse existe et a la bonne structure
-      if (!response || typeof response !== 'object') {
-        throw new Error('Réponse invalide du serveur');
-      }
-      
-      if (response.success) {
-        setGrappeFamiliale(response.grappe_familiale);
-        
-        // Déterminer le type d'utilisateur depuis les données
-        const userData = response.grappe_familiale?.agent;
-        if (userData?.type) {
-          setUserType(userData.type);
-        }
+  try {
+    setLoading(true);
+    setError(null);
+    
+    console.log('🔄 Début du chargement de la grappe familiale...');
+    
+    const response = await familleService.getGrappeFamiliale();
+    
+    console.log('📡 Réponse reçue:', response);
+    console.log('📋 Status:', response.status);
+    console.log('📋 Data:', response.data);
+    
+    // ✅ AMÉLIORATION : Vérification plus robuste de la réponse
+    if (response && response.data) {
+      if (response.data.success) {
+        console.log('✅ Données chargées avec succès');
+        setGrappeFamiliale(response.data.grappe_familiale);
       } else {
-        setError(response.message || 'Erreur lors du chargement');
+        console.error('❌ Erreur dans la réponse:', response.data.message);
+        setError(response.data.message || 'Erreur lors du chargement');
       }
-    } catch (error) {
-      console.error('Erreur chargement famille:', error);
-      
-      if (error.response?.status === 403) {
-        setError('Accès non autorisé. Veuillez vous connecter avec le bon type de compte.');
-      } else {
-        setError('Erreur lors du chargement de la grappe familiale');
-      }
-    } finally {
-      setLoading(false);
+    } else {
+      console.error('❌ Réponse invalide du serveur:', response);
+      setError('Réponse invalide du serveur');
     }
-  }, []);
+  } catch (error) {
+    console.error('❌ Erreur lors du chargement de la famille:', error);
+    
+    // ✅ AMÉLIORATION : Gestion d'erreur plus détaillée
+    if (error.response) {
+      // Le serveur a répondu avec un code d'erreur
+      console.error('📡 Response status:', error.response.status);
+      console.error('📡 Response data:', error.response.data);
+      console.error('📡 Response headers:', error.response.headers);
+      
+      if (error.response.status === 404) {
+        setError('Service non trouvé. Veuillez contacter l\'administrateur.');
+      } else if (error.response.status === 403) {
+        setError('Accès non autorisé. Veuillez vous reconnecter.');
+      } else if (error.response.status === 500) {
+        setError('Erreur serveur. Veuillez réessayer plus tard.');
+      } else {
+        setError(error.response.data?.message || 'Erreur lors du chargement');
+      }
+    } else if (error.request) {
+      // La requête a été faite mais pas de réponse
+      console.error('📡 No response received:', error.request);
+      setError('Pas de réponse du serveur. Vérifiez votre connexion.');
+    } else {
+      // Autre erreur
+      console.error('📡 Request setup error:', error.message);
+      setError('Erreur lors de la configuration de la requête');
+    }
+  } finally {
+    setLoading(false);
+  }
+}, []);
 
-  useEffect(() => {
-    if (!utils.isAuthenticated()) {
-      navigate('/services');
-      return;
-    }
+// ✅ AMÉLIORATION : Ajout de logs dans useEffect
+useEffect(() => {
+  console.log('🚀 Initialisation du composant GrappeFamiliale');
+  
+  if (!utils.isAuthenticated()) {
+    console.log('❌ Utilisateur non authentifié, redirection...');
+    navigate('/services');
+    return;
+  }
     
     // ✅ Récupérer le type d'utilisateur depuis localStorage
     const storedUserType = localStorage.getItem('user_type');
@@ -258,7 +285,6 @@ const calculateAge = (birthDate) => {
           <div className="famille-header">
             <div className="header-content">
               <h1 className="famille-title">
-                <span className="title-icon">👨‍👩‍👧‍👦</span>
                 {getPageTitle()}
               </h1>
               {grappeFamiliale && (
@@ -296,19 +322,19 @@ const calculateAge = (birthDate) => {
               className={`nav-button ${activeTab === 'vue-ensemble' ? 'active' : ''}`}
               onClick={() => setActiveTab('vue-ensemble')}
             >
-              🏠 Vue d'ensemble
+              Vue d'ensemble
             </button>
             <button
               className={`nav-button ${activeTab === 'conjoint' ? 'active' : ''}`}
               onClick={() => setActiveTab('conjoint')}
             >
-              💑 Conjoint(e)
+              Conjoint(e)
             </button>
             <button
               className={`nav-button ${activeTab === 'enfants' ? 'active' : ''}`}
               onClick={() => setActiveTab('enfants')}
             >
-              👶 Enfants
+              Enfants
             </button>
           </div>
 
@@ -322,7 +348,6 @@ const calculateAge = (birthDate) => {
                 {/* Statistiques famille */}
                 <div className="stats-grid">
                   <div className="stat-card primary">
-                    <div className="stat-icon">{userType === 'retraite' ? '👴' : '👑'}</div>
                     <div className="stat-content">
                       <div className="stat-label">{userType === 'retraite' ? 'Retraité' : 'Chef de famille'}</div>
                       <div className="stat-value">{grappeFamiliale.agent.nom_complet}</div>
@@ -331,7 +356,6 @@ const calculateAge = (birthDate) => {
                   </div>
 
                   <div className="stat-card success">
-                    <div className="stat-icon">💑</div>
                     <div className="stat-content">
                       <div className="stat-label">Conjoint(e)</div>
                       <div className="stat-value">
@@ -344,7 +368,6 @@ const calculateAge = (birthDate) => {
                   </div>
 
                   <div className="stat-card info">
-                    <div className="stat-icon">👶</div>
                     <div className="stat-content">
                       <div className="stat-label">Enfants</div>
                       <div className="stat-value">{grappeFamiliale.statistiques.nombre_enfants}</div>
@@ -356,7 +379,6 @@ const calculateAge = (birthDate) => {
 
                   {/* ✅ Statistique adaptée selon le type d'utilisateur */}
                   <div className="stat-card warning">
-                    <div className="stat-icon">{userType === 'retraite' ? '👥' : '💰'}</div>
                     <div className="stat-content">
                       <div className="stat-label">
                         {userType === 'retraite' ? 'Ayants droit' : 'Prestations'}
@@ -373,7 +395,7 @@ const calculateAge = (birthDate) => {
                 <div className="famille-overview">
                   <div className="overview-card">
                     <div className="card-header">
-                      <h3>👨‍👩‍👧‍👦 Composition Familiale</h3>
+                      <h3> Composition Familiale</h3>
                     </div>
                     <div className="card-content">
                       
@@ -382,9 +404,6 @@ const calculateAge = (birthDate) => {
                         <div className="membre-info">
                           <div className="membre-nom">
                             <strong>{grappeFamiliale.agent.nom_complet}</strong>
-                            <span className="badge chef">
-                              {userType === 'retraite' ? 'Retraité' : 'Chef de famille'}
-                            </span>
                           </div>
                           <div className="membre-details">
                             {getMatriculeLabel()}: {grappeFamiliale.agent.matricule} | 
@@ -414,6 +433,7 @@ const calculateAge = (birthDate) => {
                         <div className="membre-famille no-conjoint">
                           <div className="membre-info">
                             <div className="membre-nom">Aucun conjoint déclaré</div>
+                            
                             <button 
                               className="btn-add-small"
                               onClick={() => {
@@ -476,7 +496,7 @@ const calculateAge = (birthDate) => {
                 {grappeFamiliale?.conjoint ? (
                   <div className="conjoint-card">
                     <div className="card-header">
-                      <h3>💑 Informations du Conjoint</h3>
+                      <h3> Informations du Conjoint</h3>
                       <button 
                         className="btn-edit"
                         onClick={() => {
@@ -493,7 +513,7 @@ const calculateAge = (birthDate) => {
                           setShowConjointForm(true);
                         }}
                       >
-                        ✏️ Modifier
+                         Modifier
                       </button>
                     </div>
                     <div className="card-content">
@@ -546,7 +566,7 @@ const calculateAge = (birthDate) => {
                 ) : (
                   <div className="no-conjoint-card">
                     <div className="card-header">
-                      <h3>💑 Aucun Conjoint Déclaré</h3>
+                      <h3> Aucun Conjoint Déclaré</h3>
                     </div>
                     <div className="card-content">
                       <p>Vous n'avez pas encore déclaré de conjoint.</p>
@@ -669,7 +689,7 @@ const calculateAge = (birthDate) => {
             {activeTab === 'enfants' && (
               <div className="enfants-section">
                 <div className="enfants-header">
-                  <h3>👶 Liste des Enfants</h3>
+                  <h3> Liste des Enfants</h3>
                   <button 
                     className="btn-primary"
                     onClick={() => {
@@ -715,13 +735,13 @@ const calculateAge = (birthDate) => {
                             className="btn-edit"
                             onClick={() => handleEditEnfant(enfant)}
                           >
-                            ✏️ Modifier
+                             Modifier
                           </button>
                           <button 
                             className="btn-delete"
                             onClick={() => handleDeleteEnfant(enfant.id)}
                           >
-                            🗑️ Supprimer
+                             Supprimer
                           </button>
                         </div>
                       </div>

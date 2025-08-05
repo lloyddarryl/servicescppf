@@ -1,5 +1,4 @@
 <?php
-// File: app/Http/Controllers/FamilleController.php - CORRECTED VERSION
 
 namespace App\Http\Controllers;
 
@@ -20,7 +19,7 @@ class FamilleController extends Controller
      */
     private function checkUserAccess($user)
     {
-        // ✅ CORRECTION : Permettre l'accès aux agents ET aux retraités
+        // Permettre l'accès aux agents ET aux retraités
         if (!($user instanceof Agent) && !($user instanceof Retraite)) {
             return response()->json([
                 'success' => false, 
@@ -31,7 +30,7 @@ class FamilleController extends Controller
     }
 
     /**
-     * ✅ CORRECTION : Obtenir la grappe familiale pour agent actif OU retraité
+     * Obtenir la grappe familiale pour agent actif OU retraité
      */
     public function getGrappeFamiliale(Request $request)
     {
@@ -41,7 +40,7 @@ class FamilleController extends Controller
             $checkResult = $this->checkUserAccess($user);
             if ($checkResult) return $checkResult;
 
-            // ✅ Déterminer le type d'utilisateur et l'ID approprié
+            // Déterminer le type d'utilisateur et l'ID approprié
             $isAgent = $user instanceof Agent;
             $userType = $isAgent ? 'actif' : 'retraite';
             
@@ -102,11 +101,11 @@ class FamilleController extends Controller
                     'niveau_scolaire' => $enfant->niveau_scolaire,
                     'est_mineur' => $age < 18,
                     'en_age_scolarite' => $age >= 3 && $age <= 25,
-                    'prestations_actives' => 0 // À implémenter si nécessaire
+                    'prestations_actives' => 0
                 ];
             });
 
-            // ✅ Données de l'agent/retraité adaptées
+            // Données de l'agent/retraité adaptées
             $agentData = [
                 'id' => $user->id,
                 'nom_complet' => trim($user->prenoms . ' ' . $user->nom),
@@ -141,7 +140,7 @@ class FamilleController extends Controller
     }
 
     /**
-     * ✅ CORRECTION : Sauvegarder conjoint pour agent OU retraité
+     * Sauvegarder conjoint pour agent OU retraité
      */
     public function saveConjoint(Request $request)
     {
@@ -172,7 +171,7 @@ class FamilleController extends Controller
             $data = $validator->validated();
             $data['statut'] = 'ACTIF';
             
-            // ✅ Déterminer le type d'utilisateur
+            // Déterminer le type d'utilisateur
             $isAgent = $user instanceof Agent;
             if ($isAgent) {
                 $data['agent_id'] = $user->id;
@@ -213,7 +212,7 @@ class FamilleController extends Controller
     }
 
     /**
-     * ✅ CORRECTION : Ajouter enfant pour agent OU retraité
+     * Ajouter enfant pour agent OU retraité
      */
     public function addEnfant(Request $request)
     {
@@ -244,16 +243,16 @@ class FamilleController extends Controller
             $data = $validator->validated();
             $data['actif'] = true;
             
-            // ✅ Déterminer le type d'utilisateur
+            // Déterminer le type d'utilisateur
             $isAgent = $user instanceof Agent;
             if ($isAgent) {
                 $data['agent_id'] = $user->id;
                 $data['retraite_id'] = null;
-                $data['matricule_parent'] = substr($user->matricule_solde, 0, -1); // Enlever la lettre finale
+                $data['matricule_parent'] = substr($user->matricule_solde, 0, -1);
             } else {
                 $data['retraite_id'] = $user->id;
                 $data['agent_id'] = null;
-                $data['matricule_parent'] = $user->numero_pension; // Pour les retraités, utiliser le numéro de pension
+                $data['matricule_parent'] = $user->numero_pension;
             }
 
             // Vérifier si l'enfant n'existe pas déjà
@@ -296,7 +295,7 @@ class FamilleController extends Controller
     }
 
     /**
-     * Modifier un enfant (reste identique mais avec support retraité)
+     * Modifier un enfant
      */
     public function updateEnfant(Request $request, $id)
     {
@@ -306,7 +305,7 @@ class FamilleController extends Controller
             $checkResult = $this->checkUserAccess($user);
             if ($checkResult) return $checkResult;
 
-            // ✅ Trouver l'enfant selon le type d'utilisateur
+            // Trouver l'enfant selon le type d'utilisateur
             $isAgent = $user instanceof Agent;
             $enfant = Enfant::where('id', $id)
                 ->where(function($query) use ($user, $isAgent) {
@@ -363,7 +362,7 @@ class FamilleController extends Controller
     }
 
     /**
-     * Supprimer un enfant (reste identique mais avec support retraité)
+     * Supprimer un enfant
      */
     public function deleteEnfant(Request $request, $id)
     {
@@ -373,7 +372,7 @@ class FamilleController extends Controller
             $checkResult = $this->checkUserAccess($user);
             if ($checkResult) return $checkResult;
 
-            // ✅ Trouver l'enfant selon le type d'utilisateur
+            // Trouver l'enfant selon le type d'utilisateur
             $isAgent = $user instanceof Agent;
             $enfant = Enfant::where('id', $id)
                 ->where(function($query) use ($user, $isAgent) {

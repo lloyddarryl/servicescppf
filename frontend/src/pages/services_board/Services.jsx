@@ -66,9 +66,9 @@ const Services = () => {
                   
                   <div className="service-card__features">
                     <ul className="service-card__list">
-                      <li className="service-card__list-item">Attestations de cotisations</li>
-                      <li className="service-card__list-item">Prestations familiales</li>
-                      <li className="service-card__list-item">Suivi des dossiers</li>
+                      <li className="service-card__list-item">Suivi des cotisations</li>
+                      <li className="service-card__list-item">Grappe familiale</li>
+                      <li className="service-card__list-item">Prise de rendez-vous</li>
                     </ul>
                   </div>
                   
@@ -114,8 +114,8 @@ const Services = () => {
                   <div className="service-card__features">
                     <ul className="service-card__list">
                       <li className="service-card__list-item">Suivi des pensions</li>
-                      <li className="service-card__list-item">Certificats de vie</li>
-                      <li className="service-card__list-item">Historique carrière</li>
+                      <li className="service-card__list-item">Grappe familiale </li>
+                      <li className="service-card__list-item">Informations personnelles</li>
                     </ul>
                   </div>
                   

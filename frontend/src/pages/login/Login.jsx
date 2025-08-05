@@ -81,17 +81,17 @@ const Login = () => {
                   <ul className="login-page__features-list">
                     {type === 'actifs' ? (
                       <>
-                        <li className="login-page__feature-item">Attestations de cotisations</li>
-                        <li className="login-page__feature-item">Prestations familiales</li>
-                        <li className="login-page__feature-item">Suivi des dossiers</li>
-                        <li className="login-page__feature-item">Mise à jour profil</li>
+                        <li className="login-page__feature-item">Simulateur de pension</li>
+                        <li className="login-page__feature-item">Grappe familiale</li>
+                        <li className="login-page__feature-item">Suivi des cotisations</li>
+                        <li className="login-page__feature-item">Prise de rendez-vous</li>
                       </>
                     ) : (
                       <>
                         <li className="login-page__feature-item">Suivi des pensions</li>
-                        <li className="login-page__feature-item">Certificats de vie</li>
-                        <li className="login-page__feature-item">Historique carrière</li>
-                        <li className="login-page__feature-item">Documents retraite</li>
+                        <li className="login-page__feature-item">Grappe familiale</li>
+                        <li className="login-page__feature-item">Historique de paiements</li>
+                        <li className="login-page__feature-item">Documentation personnelle</li>
                       </>
                     )}
                   </ul>

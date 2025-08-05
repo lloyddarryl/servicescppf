@@ -1,4 +1,5 @@
 <?php
+// File: backend/routes/api.php - Version corrigée
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
@@ -6,7 +7,6 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PensionSimulatorController;
 use App\Http\Controllers\FamilleController;
-
 
 /*
 |--------------------------------------------------------------------------
@@ -37,6 +37,32 @@ Route::prefix('auth')->group(function () {
 // Routes protégées par authentification Sanctum
 Route::middleware('auth:sanctum')->group(function () {
     
+// ✅ ROUTE DE TEST FAMILLE
+    Route::get('/test-famille', function (Request $request) {
+        try {
+            $user = $request->user();
+            
+            return response()->json([
+                'success' => true,
+                'debug' => [
+                    'user_class' => get_class($user),
+                    'user_id' => $user->id,
+                    'user_table' => $user->getTable(),
+                    'is_agent' => $user instanceof \App\Models\Agent,
+                    'is_retraite' => $user instanceof \App\Models\Retraite,
+                    'user_attributes' => $user->getAttributes()
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile()
+            ], 500);
+        }
+    });
+
     // Routes d'authentification (communes)
     Route::prefix('auth')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
@@ -69,14 +95,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/cotisations', [DashboardController::class, 'getCotisations']);
         Route::get('/carriere', [DashboardController::class, 'getCarriere']);
         
-        
         // Routes de profil
         Route::get('/profil', [ProfileController::class, 'show']);
         Route::put('/profil', [ProfileController::class, 'update']);
         Route::put('/profil/password', [ProfileController::class, 'changePassword']);
         Route::post('/profil/verify-phone', [ProfileController::class, 'verifyPhone']);
         Route::post('/profil/resend-verification', [ProfileController::class, 'resendVerification']);
-        
 
         // Documents et certificats
         Route::get('/documents', [DashboardController::class, 'getDocuments']);
@@ -86,53 +110,24 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/notifications', [DashboardController::class, 'getNotifications']);
         Route::put('/notifications/{id}/read', [DashboardController::class, 'markNotificationRead']);
         
-        // CORRECTION : Ajoutez le controller manquant dans les routes api.php
-
-
-        // Dans la section des routes spécifiques aux agents actifs
-        Route::prefix('actifs')->group(function () {
-            // ... autres routes ...
-            
-            // ✅ AJOUT : Routes pour la gestion de la famille (MANQUANTES dans votre routes/api.php)
-            Route::prefix('famille')->group(function () {
-                // Obtenir la grappe familiale complète
-                Route::get('/', [FamilleController::class, 'getGrappeFamiliale']);
-                
-                // Gestion du conjoint
-                Route::post('/conjoint', [FamilleController::class, 'saveConjoint']);
-                    
-                // Gestion des enfants
-                Route::post('/enfants', [FamilleController::class, 'addEnfant']);
-                Route::put('/enfants/{id}', [FamilleController::class, 'updateEnfant']);
-                Route::delete('/enfants/{id}', [FamilleController::class, 'deleteEnfant']);
-            });
+        // ✅ FAMILLE - Routes pour les agents actifs
+        Route::prefix('famille')->group(function () {
+            Route::get('/', [FamilleController::class, 'getGrappeFamiliale']);
+            Route::post('/conjoint', [FamilleController::class, 'saveConjoint']);
+            Route::post('/enfants', [FamilleController::class, 'addEnfant']);
+            Route::put('/enfants/{id}', [FamilleController::class, 'updateEnfant']);
+            Route::delete('/enfants/{id}', [FamilleController::class, 'deleteEnfant']);
         });
 
-        // Historique et suivi        
-        // ✅ SIMULATEUR DE PENSION - Routes simplifiées
+        // ✅ SIMULATEUR DE PENSION - Routes pour agents actifs uniquement
         Route::prefix('simulateur-pension')->group(function () {
-            // Obtenir le profil pour simulation
             Route::get('/profil', [PensionSimulatorController::class, 'getProfile']);
-            
-            // Lancer une simulation
             Route::post('/simuler', [PensionSimulatorController::class, 'simulatePension']);
-            
-            // Obtenir l'historique des simulations
             Route::get('/historique', [PensionSimulatorController::class, 'getSimulationHistory']);
-            
-            // Obtenir les paramètres de calcul
             Route::get('/parametres', [PensionSimulatorController::class, 'getParameters']);
         });
     });
 
-    // Ajoutez ces routes temporaires pour le diagnostic
-    Route::middleware('auth:sanctum')->group(function () {
-        // Routes de diagnostic (à supprimer après tests)
-        Route::get('/test/pension/diagnostic', [App\Http\Controllers\PensionTestController::class, 'diagnostic']);
-        Route::post('/test/pension/init', [App\Http\Controllers\PensionTestController::class, 'initTestData']);
-        Route::delete('/test/pension/cleanup', [App\Http\Controllers\PensionTestController::class, 'cleanup']);
-    });
-    
     // Routes spécifiques aux retraités avec préfixe /retraites
     Route::prefix('retraites')->group(function () {
         // Dashboard
@@ -170,15 +165,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/notifications', [DashboardController::class, 'getNotificationsRetraite']);
         Route::put('/notifications/{id}/read', [DashboardController::class, 'markNotificationReadRetraite']);
 
-        // ✅ NOUVELLE SECTION : GESTION DE LA FAMILLE POUR RETRAITÉS
+        // ✅ FAMILLE - Routes pour les retraités (corrigées)
         Route::prefix('famille')->group(function () {
-            // Obtenir la grappe familiale complète
             Route::get('/', [FamilleController::class, 'getGrappeFamiliale']);
-            
-            // Gestion du conjoint
             Route::post('/conjoint', [FamilleController::class, 'saveConjoint']);
-                
-            // Gestion des enfants
             Route::post('/enfants', [FamilleController::class, 'addEnfant']);
             Route::put('/enfants/{id}', [FamilleController::class, 'updateEnfant']);
             Route::delete('/enfants/{id}', [FamilleController::class, 'deleteEnfant']);
@@ -188,16 +178,21 @@ Route::middleware('auth:sanctum')->group(function () {
     // Route générale pour le dashboard (redirige selon le type d'utilisateur)
     Route::get('/dashboard', [DashboardController::class, 'index']);
 
-    // Route de test
-    Route::get('/test-profile', function (Request $request) {
+    // Routes de diagnostic (temporaires)
+    Route::get('/test/pension/diagnostic', [App\Http\Controllers\PensionTestController::class, 'diagnostic']);
+    Route::post('/test/pension/init', [App\Http\Controllers\PensionTestController::class, 'initTestData']);
+    Route::delete('/test/pension/cleanup', [App\Http\Controllers\PensionTestController::class, 'cleanup']);
+    
+    // Route de test générale
+    Route::get('/test-profile', function (Illuminate\Http\Request $request) {
         try {
             $user = $request->user();
             
             return response()->json([
                 'success' => true,
                 'user_type' => get_class($user),
-                'user_id' => $user->id,
-                'middleware_test' => 'OK - Sans middleware'
+                'user_id' => $user->id ?? null,
+                'middleware_test' => 'OK - Route accessible'
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -207,4 +202,13 @@ Route::middleware('auth:sanctum')->group(function () {
             ], 500);
         }
     });
+});
+
+// ✅ Route de fallback pour API (optionnelle - gestion des 404)
+Route::fallback(function(){
+    return response()->json([
+        'success' => false,
+        'message' => 'Route non trouvée',
+        'error' => 'La route demandée n\'existe pas'
+    ], 404);
 });

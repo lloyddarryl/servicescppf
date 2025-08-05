@@ -105,53 +105,46 @@ export const retraiteService = {
   getHistorique: () => api.get('/retraites/historique'),
 };
 
-// ✅ SERVICES FAMILLE UNIVERSELS - Détection automatique du type d'utilisateur
+// ✅ NOUVEAU (CORRECT) :
 export const familleService = {
-    // Helper pour déterminer le préfixe selon le type d'utilisateur
-    _getUserPrefix: () => {
-        const userType = localStorage.getItem('user_type');
-        return userType === 'retraite' ? 'retraites' : 'actifs';
-    },
-
-    // Obtenir la grappe familiale
-    getGrappeFamiliale: async () => {
-        try {
-            const prefix = familleService._getUserPrefix();
-            const response = await api.get(`/${prefix}/famille`);
-            return response.data; // Retourner directement response.data
-        } catch (error) {
-            console.error('API Error:', error);
-            throw error;
-        }
-    },
-
-    // Sauvegarder/modifier un conjoint
-    saveConjoint: async (conjointData) => {
-        const prefix = familleService._getUserPrefix();
-        const response = await api.post(`/${prefix}/famille/conjoint`, conjointData);
-        return response.data;
-    },
-
-    // Ajouter un enfant
-    addEnfant: async (enfantData) => {
-        const prefix = familleService._getUserPrefix();
-        const response = await api.post(`/${prefix}/famille/enfants`, enfantData);
-        return response.data;
-    },
-
-    // Modifier un enfant
-    updateEnfant: async (enfantId, enfantData) => {
-        const prefix = familleService._getUserPrefix();
-        const response = await api.put(`/${prefix}/famille/enfants/${enfantId}`, enfantData);
-        return response.data;
-    },
-
-    // Supprimer un enfant
-    deleteEnfant: async (enfantId) => {
-        const prefix = familleService._getUserPrefix();
-        const response = await api.delete(`/${prefix}/famille/enfants/${enfantId}`);
-        return response.data;
+  // Obtenir la grappe familiale complète
+  getGrappeFamiliale: () => {
+    const userType = localStorage.getItem('user_type');
+    console.log('Type utilisateur:', userType); // Debug
+    
+    // ✅ CORRECTION : Utiliser la bonne route selon l'API
+    if (userType === 'retraite') {
+      return api.get('/retraites/famille'); // ✅ Route correcte
+    } else {
+      return api.get('/actifs/famille'); // ✅ Route correcte  
     }
+  },
+  
+  // Gestion du conjoint
+  saveConjoint: (data) => {
+    const userType = localStorage.getItem('user_type');
+    const endpoint = userType === 'retraite' ? '/retraites/famille/conjoint' : '/actifs/famille/conjoint';
+    return api.post(endpoint, data);
+  },
+  
+  // Gestion des enfants
+  addEnfant: (data) => {
+    const userType = localStorage.getItem('user_type');
+    const endpoint = userType === 'retraite' ? '/retraites/famille/enfants' : '/actifs/famille/enfants';
+    return api.post(endpoint, data);
+  },
+  
+  updateEnfant: (id, data) => {
+    const userType = localStorage.getItem('user_type');
+    const endpoint = userType === 'retraite' ? `/retraites/famille/enfants/${id}` : `/actifs/famille/enfants/${id}`;
+    return api.put(endpoint, data);
+  },
+  
+  deleteEnfant: (id) => {
+    const userType = localStorage.getItem('user_type');
+    const endpoint = userType === 'retraite' ? `/retraites/famille/enfants/${id}` : `/actifs/famille/enfants/${id}`;
+    return api.delete(endpoint);
+  }
 };
 
 // Utilitaires
