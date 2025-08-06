@@ -36,6 +36,16 @@ class FamilleController extends Controller
     {
         try {
             $user = $request->user();
+
+            // ✅ DEBUG AMÉLIORÉ
+        Log::info('🔍 DEBUG Grappe Familiale - Début', [
+            'user_id' => $user->id ?? 'NULL',
+            'user_class' => get_class($user),
+            'user_table' => method_exists($user, 'getTable') ? $user->getTable() : 'UNKNOWN',
+            'is_agent' => $user instanceof \App\Models\Agent,
+            'is_retraite' => $user instanceof \App\Models\Retraite,
+            'user_attributes_keys' => array_keys($user->getAttributes()),
+        ]);
             
             $checkResult = $this->checkUserAccess($user);
             if ($checkResult) return $checkResult;
@@ -43,16 +53,45 @@ class FamilleController extends Controller
             // Déterminer le type d'utilisateur et l'ID approprié
             $isAgent = $user instanceof Agent;
             $userType = $isAgent ? 'actif' : 'retraite';
+
+             Log::info('✅ Type utilisateur déterminé', [
+            'userType' => $userType,
+            'isAgent' => $isAgent,
+            'user_id' => $user->id
+        ]);
+
+             // ✅ CORRECTION : Ajout de logs pour le debug des relations
+            Log::info('🔍 Recherche conjoint', [
+            'user_type' => $userType,
+            'user_id' => $user->id,
+            'query_type' => $isAgent ? 'agent_id' : 'retraite_id'
+            ]);
             
             // Récupérer le conjoint actif selon le type d'utilisateur
             $conjoint = $isAgent 
                 ? Conjoint::where('agent_id', $user->id)->where('statut', 'ACTIF')->first()
                 : Conjoint::where('retraite_id', $user->id)->where('statut', 'ACTIF')->first();
 
+                Log::info('📋 Résultat recherche conjoint', [
+            'conjoint_found' => $conjoint ? 'OUI' : 'NON',
+            'conjoint_id' => $conjoint->id ?? null
+        ]);
+
+         Log::info('🔍 Recherche enfants', [
+            'user_type' => $userType,
+            'user_id' => $user->id,
+            'query_type' => $isAgent ? 'agent_id' : 'retraite_id'
+        ]);
+
             // Récupérer les enfants actifs selon le type d'utilisateur  
-            $enfants = $isAgent
-                ? Enfant::where('agent_id', $user->id)->where('actif', true)->orderBy('date_naissance', 'desc')->get()
-                : Enfant::where('retraite_id', $user->id)->where('actif', true)->orderBy('date_naissance', 'desc')->get();
+        $enfants = $isAgent
+            ? \App\Models\Enfant::where('agent_id', $user->id)->where('actif', true)->orderBy('date_naissance', 'desc')->get()
+            : \App\Models\Enfant::where('retraite_id', $user->id)->where('actif', true)->orderBy('date_naissance', 'desc')->get();
+
+        Log::info('📋 Résultat recherche enfants', [
+            'enfants_count' => $enfants->count(),
+            'enfants_ids' => $enfants->pluck('id')->toArray()
+        ]);
 
             // Statistiques famille
             $stats = [
@@ -105,6 +144,12 @@ class FamilleController extends Controller
                 ];
             });
 
+
+            // ✅ CORRECTION : Ajout du sexe par défaut pour les retraités
+            $userSexe = $user->sexe ?? 'M'; // Valeur par défaut si pas défini
+            $userSituation = $user->situation_matrimoniale ?? 'Non spécifiée';
+
+
             // Données de l'agent/retraité adaptées
             $agentData = [
                 'id' => $user->id,
@@ -115,6 +160,12 @@ class FamilleController extends Controller
                 'type' => $userType
             ];
 
+            Log::info('✅ Données grappe familiale assemblées', [
+            'agent_data' => $agentData,
+            'conjoint_presente' => $stats['conjoint_presente'],
+            'nombre_enfants' => $stats['nombre_enfants'],
+            'stats' => $stats
+        ]);
             return response()->json([
                 'success' => true,
                 'grappe_familiale' => [
@@ -125,12 +176,15 @@ class FamilleController extends Controller
                 ]
             ]);
 
-        } catch (\Exception $e) {
-            Log::error('Erreur récupération grappe familiale:', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'user_id' => $request->user()->id ?? 'unknown'
-            ]);
+       } catch (\Exception $e) {
+        Log::error('❌ Erreur récupération grappe familiale:', [
+            'message' => $e->getMessage(),
+            'line' => $e->getLine(),
+            'file' => $e->getFile(),
+            'trace' => $e->getTraceAsString(),
+            'user_id' => $request->user()->id ?? 'unknown',
+            'user_class' => get_class($request->user())
+        ]);
 
             return response()->json([
                 'success' => false,

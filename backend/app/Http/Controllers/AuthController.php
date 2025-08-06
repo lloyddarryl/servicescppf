@@ -238,32 +238,45 @@ class AuthController extends Controller
         $user->verification_code = $verificationCode;
         $user->verification_code_expires_at = now()->addMinutes(15);
         $user->save();
+
+         Log::info('Code SMS généré pour setup', [
+            'user_type' => $userType,
+            'user_id' => $user->id,
+            'phone' => $user->telephone,
+            'code' => $verificationCode
+        ]);
+
         $smsService = new \App\Services\SmsServices(); // Assurez-vous que le namespace est correct
         $result = $smsService->sendVerificationCode($user->telephone, $verificationCode);
         if (!$result['success']) {
-            \Illuminate\Support\Facades\Log::error('Échec envoi SMS initial après setupProfile', [
+            Log::error('Échec envoi SMS setup', [
+                'user_type' => $userType,
                 'user_id' => $user->id,
                 'sms_error' => $result['message']
             ]);
-            // Vous pouvez choisir de renvoyer une erreur ici ou de laisser le processus continuer
-            // et laisser l'utilisateur utiliser le bouton de renvoi.
-            // Pour l'instant, nous allons juste logger l'erreur.
+        } else {
+            Log::info('SMS setup envoyé avec succès', [
+                'user_type' => $userType,
+                'user_id' => $user->id
+            ]);
         }   
     } catch (\Exception $e) {
-        \Illuminate\Support\Facades\Log::error('Erreur lors de la génération/envoi du code SMS après setupProfile', [
+        Log::error('Erreur génération/envoi SMS setup', [
+            'user_type' => $userType,
             'user_id' => $user->id,
             'message' => $e->getMessage(),
             'trace' => $e->getTraceAsString()
         ]);
     }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Profil configuré avec succès',
-            'next_step' => 'phone_verification',
-            'phone' => $telephone
-        ]);
-    }
+    return response()->json([
+        'success' => true,
+        'message' => 'Profil configuré avec succès',
+        'next_step' => 'phone_verification',
+        'phone' => $telephone
+    ]);
+}
+
 
     /**
      * Connexion standard (après configuration initiale)
@@ -459,6 +472,9 @@ class AuthController extends Controller
 
         $user = $accessToken->tokenable;
 
+        // ✅ CORRECTION : Supporter Agent ET Retraite
+        $userType = $user instanceof Agent ? 'actif' : 'retraite';
+
         Log::debug('Début resendVerificationSetup', [
             'user_id' => $user->id,
             'user_type' => get_class($user),
@@ -563,6 +579,9 @@ class AuthController extends Controller
             $user = $accessToken->tokenable;
             $code = $request->verification_code;
 
+            $userType = $user instanceof Agent ? 'actif' : 'retraite';
+
+
             Log::debug('Vérification du code', [
                 'user_id' => $user->id,
                 'provided_code' => $code,
@@ -615,4 +634,3 @@ class AuthController extends Controller
         }
     }
 }
-    

@@ -28,7 +28,9 @@ class Retraite extends Authenticatable
         'first_login',
         'password_changed',
         'status',
-        'is_active'
+        'is_active',
+        'verification_code',
+        'verification_code_expires_at'
     ];
 
     protected $hidden = [

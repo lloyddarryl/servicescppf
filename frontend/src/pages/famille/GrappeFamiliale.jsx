@@ -15,7 +15,7 @@ const GrappeFamiliale = () => {
   const [showConjointForm, setShowConjointForm] = useState(false);
   const [showEnfantForm, setShowEnfantForm] = useState(false);
   const [editingEnfant, setEditingEnfant] = useState(null);
-  const [userType, setUserType] = useState('actif'); // ✅ État pour le type d'utilisateur
+  const [userType, setUserType] = useState('actif');
 
   // États des formulaires
   const [conjointForm, setConjointForm] = useState({
@@ -234,7 +234,7 @@ const calculateAge = (birthDate) => {
 
   // ✅ Fonction pour obtenir le titre de la page selon le type d'utilisateur
   const getPageTitle = () => {
-    return userType === 'retraite' ? 'Ma Grappe Familiale - Retraité' : 'Ma Grappe Familiale - Agent Actif';
+    return userType === 'retraite' ? 'Ma Grappe Familiale - Agent Retraité' : 'Ma Grappe Familiale - Agent Actif';
   };
 
   // ✅ Fonction pour déterminer le bouton de retour selon le type d'utilisateur
@@ -290,7 +290,7 @@ const calculateAge = (birthDate) => {
               {grappeFamiliale && (
                 <div className="user-welcome">
                   {getTitle(grappeFamiliale.agent.sexe, grappeFamiliale.agent.situation_matrimoniale)} {grappeFamiliale.agent.nom_complet}
-                  {userType === 'retraite' && <span className="badge-retraite"> • Retraité</span>}
+                  {userType === 'retraite' && <span className="badge-retraite"> • Agent Retraité</span>}
                 </div>
               )}
               <p className="famille-subtitle">
@@ -432,8 +432,7 @@ const calculateAge = (birthDate) => {
                       ) : (
                         <div className="membre-famille no-conjoint">
                           <div className="membre-info">
-                            <div className="membre-nom">Aucun conjoint déclaré</div>
-                            
+                            <div className="membre-nom">Aucun conjoint déclaré</div> 
                             <button 
                               className="btn-add-small"
                               onClick={() => {
@@ -497,24 +496,7 @@ const calculateAge = (birthDate) => {
                   <div className="conjoint-card">
                     <div className="card-header">
                       <h3> Informations du Conjoint</h3>
-                      <button 
-                        className="btn-edit"
-                        onClick={() => {
-                          setConjointForm({
-                            nom: grappeFamiliale.conjoint.nom,
-                            prenoms: grappeFamiliale.conjoint.prenoms,
-                            sexe: grappeFamiliale.conjoint.sexe,
-                            date_naissance: grappeFamiliale.conjoint.date_naissance,
-                            date_mariage: grappeFamiliale.conjoint.date_mariage || '',
-                            matricule_conjoint: grappeFamiliale.conjoint.travaille ? grappeFamiliale.conjoint.identifiant || '' : '',
-                            nag_conjoint: !grappeFamiliale.conjoint.travaille ? grappeFamiliale.conjoint.identifiant || '' : '',
-                            profession: grappeFamiliale.conjoint.profession || ''
-                          });
-                          setShowConjointForm(true);
-                        }}
-                      >
-                         Modifier
-                      </button>
+                      
                     </div>
                     <div className="card-content">
                       <div className="profile-grid">
@@ -729,20 +711,6 @@ const calculateAge = (birthDate) => {
                             <div>Né(e) le: {new Date(enfant.date_naissance).toLocaleDateString('fr-FR')}</div>
                             {enfant.niveau_scolaire && <div>Niveau: {enfant.niveau_scolaire}</div>}
                           </div>
-                        </div>
-                        <div className="enfant-actions">
-                          <button 
-                            className="btn-edit"
-                            onClick={() => handleEditEnfant(enfant)}
-                          >
-                             Modifier
-                          </button>
-                          <button 
-                            className="btn-delete"
-                            onClick={() => handleDeleteEnfant(enfant.id)}
-                          >
-                             Supprimer
-                          </button>
                         </div>
                       </div>
                     ))}
