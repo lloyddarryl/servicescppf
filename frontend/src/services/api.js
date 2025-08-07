@@ -105,18 +105,16 @@ export const retraiteService = {
   getHistorique: () => api.get('/retraites/historique'),
 };
 
-// ✅ NOUVEAU (CORRECT) :
 export const familleService = {
   // Obtenir la grappe familiale complète
   getGrappeFamiliale: () => {
     const userType = localStorage.getItem('user_type');
     console.log('Type utilisateur:', userType); // Debug
     
-    // ✅ CORRECTION : Utiliser la bonne route selon l'API
     if (userType === 'retraite') {
-      return api.get('/retraites/famille'); // ✅ Route correcte
+      return api.get('/retraites/famille'); 
     } else {
-      return api.get('/actifs/famille'); // ✅ Route correcte  
+      return api.get('/actifs/famille'); 
     }
   },
   

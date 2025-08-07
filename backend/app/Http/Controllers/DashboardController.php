@@ -101,8 +101,15 @@ class DashboardController extends Controller
             'icon' => 'calendar',
             'available' => true,
             'color' => 'orange'
-        ]
-           
+        ],
+        [
+            'id' => 'reclamations',
+            'name' => 'Réclamations',
+            'description' => 'Gérer vos réclamations et demandes',
+            'icon' => 'reclamation',
+            'available' => true,
+            'color' => 'red'
+        ]           
         ];
 
         return response()->json([

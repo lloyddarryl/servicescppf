@@ -32,7 +32,7 @@ const SetupProfile = () => {
     }
 
     setUserData(storedUserData);
- // ✅ NOUVEAU : Vérifier si l'utilisateur avait commencé la configuration
+ // Vérifier si l'utilisateur avait commencé la configuration
   const hasStartedSetup = localStorage.getItem('setup_started');
   if (hasStartedSetup && !storedUserData.phone_verified) {
     // L'utilisateur avait commencé mais n'a pas terminé
@@ -158,7 +158,7 @@ const SetupProfile = () => {
 
     try {
 
-      // ✅ NOUVEAU : Marquer que la configuration a commencé
+      // Marquer que la configuration a commencé
       localStorage.setItem('setup_started', 'true');
 
       const setupData = {
@@ -209,7 +209,7 @@ const SetupProfile = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      // CORRECTION : Utiliser la route setup pour la vérification
+      //Utiliser la route setup pour la vérification
       const response = await authService.verifyPhone({
         verification_code: formData.verification_code
       });
@@ -243,7 +243,7 @@ const SetupProfile = () => {
   };
 
 
-  // Méthode resendCode corrigée
+  // Méthode resendCode 
   const resendCode = async () => {
     setLoading(true);
     setMessage({ type: '', text: '' });
@@ -257,7 +257,7 @@ const SetupProfile = () => {
       console.log('🔑 Setup token:', setupToken ? 'Présent' : 'Absent');
       console.log('🔑 Auth token:', authToken ? 'Présent' : 'Absent');
       
-      // CORRECTION : Utiliser la nouvelle méthode pour le setup
+      // Utiliser la méthode pour le setup
       const response = await authService.resendVerification();
       console.log('✅ Réponse API reçue:', response.data);
       

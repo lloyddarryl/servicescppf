@@ -53,7 +53,7 @@ const GrappeFamiliale = () => {
     console.log('📋 Status:', response.status);
     console.log('📋 Data:', response.data);
     
-    // ✅ AMÉLIORATION : Vérification plus robuste de la réponse
+    //Vérification plus robuste de la réponse
     if (response && response.data) {
       if (response.data.success) {
         console.log('✅ Données chargées avec succès');
@@ -69,7 +69,7 @@ const GrappeFamiliale = () => {
   } catch (error) {
     console.error('❌ Erreur lors du chargement de la famille:', error);
     
-    // ✅ AMÉLIORATION : Gestion d'erreur plus détaillée
+    // Gestion d'erreur plus détaillée
     if (error.response) {
       // Le serveur a répondu avec un code d'erreur
       console.error('📡 Response status:', error.response.status);
@@ -99,7 +99,7 @@ const GrappeFamiliale = () => {
   }
 }, []);
 
-// ✅ AMÉLIORATION : Ajout de logs dans useEffect
+//  Ajout de logs dans useEffect
 useEffect(() => {
   console.log('🚀 Initialisation du composant GrappeFamiliale');
   
@@ -171,6 +171,7 @@ useEffect(() => {
     }
   };
 
+  // eslint-disable-next-line no-unused-vars
   const handleDeleteEnfant = async (enfantId) => {
     if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet enfant ?')) {
       return;
@@ -190,6 +191,7 @@ useEffect(() => {
     }
   };
 
+// eslint-disable-next-line no-unused-vars
   const handleEditEnfant = (enfant) => {
     setEditingEnfant(enfant);
     setEnfantForm({

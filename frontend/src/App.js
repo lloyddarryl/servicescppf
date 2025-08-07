@@ -12,6 +12,7 @@ import Dashboard from './pages/dashboard/Dashboard';
 import EditProfile from './pages/dashboard/edit_profile/EditProfile';
 import SimulateurPension from './pages/simulateur/SimulateurPension';
 import GrappeFamiliale from './pages/famille/GrappeFamiliale';
+
 import './App.css';
 
 function App() {
@@ -101,6 +102,15 @@ function App() {
             <ProtectedRoute requiredUserType="actif">
               <div style={{padding: '6rem 2rem', textAlign: 'center'}}>
                 <h1>Prise de Rendez-vous</h1>
+                <p>Module en développement</p>
+              </div>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/actifs/reclamations" element={
+            <ProtectedRoute requiredUserType="actif">
+              <div style={{padding: '6rem 2rem', textAlign: 'center'}}>
+                <h1>Réclamations</h1>
                 <p>Module en développement</p>
               </div>
             </ProtectedRoute>

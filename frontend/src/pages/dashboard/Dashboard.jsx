@@ -71,7 +71,8 @@ const Dashboard = () => {
       cotisations: '/actifs/cotisations',
       prise_rdv: '/actifs/rendez-vous',
       attestations: '/actifs/attestations',
-      profil: '/actifs/profil'
+      profil: '/actifs/profil',
+      reclamations: '/actifs/reclamations',
       },
      retraite: {
       pension: '/retraites/pension',
@@ -121,6 +122,25 @@ const Dashboard = () => {
       'file-alt': '📑',
       'certificate': '📜',
       'calendar': '📅',
+      'phone': '📞',
+      'envelope': '✉️',
+      'shield': '🛡️',
+      'heart': '❤️',
+      'star': '⭐',
+      'home': '🏠',
+      'info': 'ℹ️',
+      'question': '❓',
+      'check': '✔️',
+      'times': '❌',
+      'exclamation': '❗',
+      'plus': '➕',
+      'minus': '➖',
+      'arrow-right': '➡️',
+      'arrow-left': '⬅️',
+      'arrow-up': '⬆️',
+      'arrow-down': '⬇️',
+      'search': '🔍',
+      'reclamation': '📢',
     };
     return icons[iconName] || '📌';
   };

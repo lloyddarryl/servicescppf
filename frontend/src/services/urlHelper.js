@@ -1,4 +1,5 @@
 // services/urlHelper.js
+
 export const urlHelper = {
   // Obtenir le type d'utilisateur depuis le token ou localStorage
   getUserType: () => {
@@ -15,7 +16,7 @@ export const urlHelper = {
     const commonRoutes = [
       '/auth/',
       '/profile/',
-      '/dashboard' // route générale qui redirige
+      '/dashboard' 
     ];
     
     // Vérifier si c'est une route commune
