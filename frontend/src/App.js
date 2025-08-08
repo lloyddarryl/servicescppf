@@ -1,4 +1,4 @@
-// Mise à jour du fichier frontend/src/App.js pour inclure le simulateur
+// Mise à jour du fichier frontend/src/App.js pour inclure la route des réclamations
 
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
@@ -12,6 +12,7 @@ import Dashboard from './pages/dashboard/Dashboard';
 import EditProfile from './pages/dashboard/edit_profile/EditProfile';
 import SimulateurPension from './pages/simulateur/SimulateurPension';
 import GrappeFamiliale from './pages/famille/GrappeFamiliale';
+import Reclamations from './pages/reclamations/Reclamations'; // ✅ Nouvelle importation
 
 import './App.css';
 
@@ -62,10 +63,17 @@ function App() {
             </ProtectedRoute>
           } />
           
-          {/* ✅ NOUVEAU : Route pour le simulateur de pension (actifs uniquement) */}
+          {/* ✅ Route pour le simulateur de pension (actifs uniquement) */}
           <Route path="/actifs/simulateur-pension" element={
             <ProtectedRoute requiredUserType="actif">
               <SimulateurPension />
+            </ProtectedRoute>
+          } />
+          
+          {/* ✅ NOUVEAU : Route pour les réclamations (actifs uniquement) */}
+          <Route path="/actifs/reclamations" element={
+            <ProtectedRoute requiredUserType="actif">
+              <Reclamations />
             </ProtectedRoute>
           } />
           
@@ -88,29 +96,19 @@ function App() {
             </ProtectedRoute>
           } />
           
-              {/* ✅ Redirection vers la vraie page Grappe Familiale */}
-                <Route path="/actifs/grappe-familiale" element={
-                <ProtectedRoute requiredUserType="actif">
-                  <GrappeFamiliale />
-                </ProtectedRoute>
-                } />
+          {/* ✅ Redirection vers la vraie page Grappe Familiale */}
+          <Route path="/actifs/grappe-familiale" element={
+            <ProtectedRoute requiredUserType="actif">
+              <GrappeFamiliale />
+            </ProtectedRoute>
+          } />
           
           <Route path="/actifs/famille" element={<GrappeFamiliale />} />
-
 
           <Route path="/actifs/rendez-vous" element={
             <ProtectedRoute requiredUserType="actif">
               <div style={{padding: '6rem 2rem', textAlign: 'center'}}>
                 <h1>Prise de Rendez-vous</h1>
-                <p>Module en développement</p>
-              </div>
-            </ProtectedRoute>
-          } />
-
-          <Route path="/actifs/reclamations" element={
-            <ProtectedRoute requiredUserType="actif">
-              <div style={{padding: '6rem 2rem', textAlign: 'center'}}>
-                <h1>Réclamations</h1>
                 <p>Module en développement</p>
               </div>
             </ProtectedRoute>
@@ -122,7 +120,13 @@ function App() {
               <EditProfile userType="retraite" />
             </ProtectedRoute>
           } />
-        
+
+          {/* ✅ NOUVEAU : Route pour les réclamations (retraités) */}
+          <Route path="/retraites/reclamations" element={
+            <ProtectedRoute requiredUserType="retraite">
+              <Reclamations />
+            </ProtectedRoute>
+          } />
           
           <Route path="/retraites/historique" element={
             <ProtectedRoute requiredUserType="retraite">
@@ -135,11 +139,9 @@ function App() {
           
           <Route path="/retraites/grappe-familiale" element={
             <ProtectedRoute requiredUserType="retraite">
-            <GrappeFamiliale />
-           </ProtectedRoute>
-            } />
-
-            
+              <GrappeFamiliale />
+            </ProtectedRoute>
+          } />
 
           {/* ✅ Route de compatibilité */}
           <Route path="/dashboard/documents" element={

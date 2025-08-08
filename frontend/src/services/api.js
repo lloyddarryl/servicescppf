@@ -145,6 +145,126 @@ export const familleService = {
   }
 };
 
+// Services pour les réclamations (universels actifs/retraités)
+export const reclamationService = {
+  // Obtenir les types de réclamations disponibles
+  getTypes: () => {
+    const userType = localStorage.getItem('user_type');
+    const endpoint = userType === 'retraite' ? '/retraites/reclamations/types' : '/actifs/reclamations/types';
+    return api.get(endpoint);
+  },
+
+  // Obtenir toutes les réclamations de l'utilisateur
+  getAll: (params = {}) => {
+    const userType = localStorage.getItem('user_type');
+    const endpoint = userType === 'retraite' ? '/retraites/reclamations' : '/actifs/reclamations';
+    
+    const queryParams = new URLSearchParams(params).toString();
+    const url = queryParams ? `${endpoint}?${queryParams}` : endpoint;
+    
+    return api.get(url);
+  },
+
+  // Créer une nouvelle réclamation
+  create: (formData) => {
+    const userType = localStorage.getItem('user_type');
+    const endpoint = userType === 'retraite' ? '/retraites/reclamations' : '/actifs/reclamations';
+    
+    return api.post(endpoint, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  },
+
+  // Obtenir une réclamation spécifique
+  getById: (id) => {
+    const userType = localStorage.getItem('user_type');
+    const endpoint = userType === 'retraite' ? `/retraites/reclamations/${id}` : `/actifs/reclamations/${id}`;
+    return api.get(endpoint);
+  },
+
+  // Télécharger un document de réclamation
+  downloadDocument: (reclamationId, documentIndex) => {
+    const userType = localStorage.getItem('user_type');
+    const endpoint = userType === 'retraite' 
+      ? `/retraites/reclamations/${reclamationId}/documents/${documentIndex}` 
+      : `/actifs/reclamations/${reclamationId}/documents/${documentIndex}`;
+    
+    return api.get(endpoint, {
+      responseType: 'blob'
+    });
+  },
+
+  // Utilitaires pour les réclamations
+  utils: {
+    // Formater la taille des fichiers
+    formatFileSize: (bytes) => {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    },
+
+    validateFile: (file, maxSize = 5 * 1024 * 1024) => {
+      const allowedTypes = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'];
+      const extension = file.name.split('.').pop().toLowerCase();
+      
+      const errors = [];
+      
+      if (!allowedTypes.includes(extension)) {
+        errors.push('Type de fichier non autorisé');
+      }
+      
+      if (file.size > maxSize) {
+        errors.push('Fichier trop volumineux (max 5MB)');
+      }
+      
+      return {
+        isValid: errors.length === 0,
+        errors
+      };
+    },
+
+    getReclamationIcon: (type) => {
+      const icons = {
+        'cotisation': '💰',
+        'prestation': '🎁',
+        'pension': '💵',
+        'attestation': '📄',
+        'compte': '👤',
+        'service_client': '📞',
+        'technique': '⚙️',
+        'autre': '❓'
+      };
+      return icons[type] || '📋';
+    },
+
+    getStatusColor: (statut) => {
+      const colors = {
+        'en_attente': '#F59E0B',
+        'en_cours': '#3B82F6',
+        'en_revision': '#8B5CF6',
+        'resolu': '#10B981',
+        'ferme': '#6B7280',
+        'rejete': '#EF4444'
+      };
+      return colors[statut] || '#6B7280';
+    },
+
+    getPriorityColor: (priorite) => {
+      const colors = {
+        'basse': '#10B981',
+        'normale': '#3B82F6',
+        'haute': '#F59E0B',
+        'urgente': '#EF4444'
+      };
+      return colors[priorite] || '#3B82F6';
+    }
+  }
+};
+
 // Utilitaires
 export const utils = {
   formatValidationErrors: (errors) => {
@@ -224,6 +344,83 @@ export const utils = {
     }
     
     return age;
+  },
+
+  // Ajoutez ces nouvelles méthodes à l'objet utils existant
+  generateReclamationReference: () => {
+    const now = new Date();
+    const prefix = `REC-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+    const suffix = Math.random().toString(36).substr(2, 6).toUpperCase();
+    return `${prefix}-${suffix}`;
+  },
+
+  formatDateReclamation: (date) => {
+    if (!date) return '';
+    const dateObj = new Date(date);
+    return dateObj.toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  },
+
+  getTimeElapsed: (date) => {
+    if (!date) return '';
+    const now = new Date();
+    const past = new Date(date);
+    const diffMs = now - past;
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+    if (diffDays > 0) {
+      return `Il y a ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
+    } else if (diffHours > 0) {
+      return `Il y a ${diffHours} heure${diffHours > 1 ? 's' : ''}`;
+    } else if (diffMinutes > 0) {
+      return `Il y a ${diffMinutes} minute${diffMinutes > 1 ? 's' : ''}`;
+    } else {
+      return 'À l\'instant';
+    }
+  },
+
+  validateReclamationDescription: (description) => {
+    const errors = [];
+    
+    if (!description || !description.trim()) {
+      errors.push('La description est obligatoire');
+    } else {
+      if (description.trim().length < 10) {
+        errors.push('La description doit contenir au moins 10 caractères');
+      }
+      if (description.trim().length > 2000) {
+        errors.push('La description ne peut pas dépasser 2000 caractères');
+      }
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  },
+
+  getReclamationNotificationMessage: (action, data = {}) => {
+    switch (action) {
+      case 'created':
+        return `Réclamation créée avec succès ! N° ${data.numero || 'N/A'}`;
+      case 'updated':
+        return 'Réclamation mise à jour avec succès';
+      case 'status_changed':
+        return `Statut de votre réclamation changé : ${data.statut || 'Mis à jour'}`;
+      case 'document_uploaded':
+        return 'Document ajouté avec succès';
+      case 'error':
+        return data.message || 'Une erreur est survenue';
+      default:
+        return 'Action effectuée avec succès';
+    }
   }
 };
 

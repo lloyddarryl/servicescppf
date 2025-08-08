@@ -126,6 +126,15 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/historique', [PensionSimulatorController::class, 'getSimulationHistory']);
             Route::get('/parametres', [PensionSimulatorController::class, 'getParameters']);
         });
+
+        // ✅ RÉCLAMATIONS - Routes pour les agents actifs
+        Route::prefix('reclamations')->group(function () {
+            Route::get('/types', [ReclamationController::class, 'getTypesReclamations']);
+            Route::get('/', [ReclamationController::class, 'index']);
+            Route::post('/', [ReclamationController::class, 'store']);
+            Route::get('/{id}', [ReclamationController::class, 'show']);
+            Route::get('/{id}/documents/{documentIndex}', [ReclamationController::class, 'downloadDocument']);
+        });
     });
 
     // Routes spécifiques aux retraités avec préfixe /retraites
@@ -172,6 +181,14 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/enfants', [FamilleController::class, 'addEnfant']);
             Route::put('/enfants/{id}', [FamilleController::class, 'updateEnfant']);
             Route::delete('/enfants/{id}', [FamilleController::class, 'deleteEnfant']);
+        });
+         // ✅ RÉCLAMATIONS - Routes pour les retraités
+        Route::prefix('reclamations')->group(function () {
+            Route::get('/types', [ReclamationController::class, 'getTypesReclamations']);
+            Route::get('/', [ReclamationController::class, 'index']);
+            Route::post('/', [ReclamationController::class, 'store']);
+            Route::get('/{id}', [ReclamationController::class, 'show']);
+            Route::get('/{id}/documents/{documentIndex}', [ReclamationController::class, 'downloadDocument']);
         });
     });
 

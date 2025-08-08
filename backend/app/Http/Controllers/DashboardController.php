@@ -25,47 +25,25 @@ class DashboardController extends Controller
      * Dashboard pour agents actifs
      */
     public function agentDashboard(Request $request)
-    {
-        $agent = $request->user();
-        
-        // Calculer les statistiques
-        $anneesService = Carbon::parse($agent->date_prise_service)->diffInYears(now());
-        $moisService = Carbon::parse($agent->date_prise_service)->diffInMonths(now()) % 12;
-        
-        // Données simulées pour les statistiques
-        $stats = [
-            'cotisations_totales' => rand(50, 200) * 10000,
-            'prestations_recues' => rand(5, 25) * 10000,
-            'attestations_demandees' => rand(3, 12),
-            'dossiers_en_cours' => rand(0, 5),
-        ];
-        
-        // Dernières activités simulées
-        $activites = [
-            [
-                'id' => 1,
-                'type' => 'attestation',
-                'description' => 'Attestation de cotisations générée',
-                'date' => now()->subDays(5),
-                'status' => 'completed'
-            ],
-            [
-                'id' => 2,
-                'type' => 'prestation',
-                'description' => 'Allocation rentrée scolaire versée',
-                'date' => now()->subDays(12),
-                'status' => 'completed'
-            ],
-            [
-                'id' => 3,
-                'type' => 'cotisation',
-                'description' => 'Cotisation mensuelle prélevée',
-                'date' => now()->subDays(25),
-                'status' => 'completed'
-            ]
-        ];
-        
-       // Services disponibles mis à jour avec Article 94
+{
+    $agent = $request->user();
+    
+    // Calculer les statistiques
+    $anneesService = Carbon::parse($agent->date_prise_service)->diffInYears(now());
+    $moisService = Carbon::parse($agent->date_prise_service)->diffInMonths(now()) % 12;
+    
+    // Données statistiques (améliorer avec de vraies données)
+    $stats = [
+        'cotisations_totales' => $this->calculerCotisationsTotales($agent),
+        'prestations_recues' => $this->calculerPrestationsRecues($agent),
+        'attestations_demandees' => $this->compterAttestationsDemandees($agent),
+        'dossiers_en_cours' => $this->compterDossiersEnCours($agent),
+    ];
+    
+    // Activités récentes dynamiques
+    $activites = $this->getActivitesRecentesAgent($agent);
+    
+    // Services disponibles mis à jour avec Article 94
     $services = [
         [
             'id' => 'simulateur_pension',
@@ -110,33 +88,33 @@ class DashboardController extends Controller
             'available' => true,
             'color' => 'red'
         ]           
-        ];
+    ];
 
-        return response()->json([
-            'success' => true,
-            'user_type' => 'actif',
-            'user' => [
-                'id' => $agent->id,
-                'matricule_solde' => $agent->matricule_solde,
-                'nom_complet' => $agent->prenoms . ' ' . $agent->nom,
-                'nom' => $agent->nom,
-                'prenoms' => $agent->prenoms,
-                'sexe' => $agent->sexe,
-                'poste' => $agent->poste,
-                'direction' => $agent->direction,
-                'grade' => $agent->grade,
-                'email' => $agent->email,
-                'telephone' => $agent->telephone,
-                'date_prise_service' => $agent->date_prise_service,
-                'annees_service' => $anneesService,
-                'mois_service' => $moisService,
-                'status' => $agent->status,
-                'email_verified' => !is_null($agent->email_verified_at),
-                'phone_verified' => !is_null($agent->phone_verified_at),
-            ],
-            'dashboard' => [
+    return response()->json([
+        'success' => true,
+        'user_type' => 'actif',
+        'user' => [
+            'id' => $agent->id,
+            'matricule_solde' => $agent->matricule_solde,
+            'nom_complet' => $agent->prenoms . ' ' . $agent->nom,
+            'nom' => $agent->nom,
+            'prenoms' => $agent->prenoms,
+            'sexe' => $agent->sexe,
+            'poste' => $agent->poste,
+            'direction' => $agent->direction,
+            'grade' => $agent->grade,
+            'email' => $agent->email,
+            'telephone' => $agent->telephone,
+            'date_prise_service' => $agent->date_prise_service,
+            'annees_service' => $anneesService,
+            'mois_service' => $moisService,
+            'status' => $agent->status,
+            'email_verified' => !is_null($agent->email_verified_at),
+            'phone_verified' => !is_null($agent->phone_verified_at),
+        ],
+        'dashboard' => [
             'stats' => $stats,
-            'activites_recentes' => $activites,
+            'activites_recentes' => $activites, // ✅ Maintenant dynamiques
             'services_disponibles' => $services,
             'info_article94' => [
                 'titre' => 'Nouvelle Réglementation Article 94',
@@ -156,112 +134,137 @@ class DashboardController extends Controller
      * Dashboard pour retraités
      */
     public function retraiteDashboard(Request $request)
-    {
-        $retraite = $request->user();
-        
-        // Calculer les statistiques
-        $anneesRetraite = Carbon::parse($retraite->date_retraite)->diffInYears(now());
-        $moisRetraite = Carbon::parse($retraite->date_retraite)->diffInMonths(now()) % 12;
-        $age = Carbon::parse($retraite->date_naissance)->age;
-        
-        // Données simulées pour les statistiques
-        $stats = [
-            'pension_mensuelle' => $retraite->montant_pension,
-            'pensions_recues' => $anneesRetraite * 12 + $moisRetraite,
-            'total_percu' => ($anneesRetraite * 12 + $moisRetraite) * $retraite->montant_pension,
-            'certificats_valides' => rand(1, 3),
-        ];
-        
-        // Dernières activités
-        $activites = [
-            [
-                'id' => 1,
-                'type' => 'pension',
-                'description' => 'Pension mensuelle versée - ' . number_format($retraite->montant_pension, 0, ',', ' ') . ' FCFA',
-                'date' => now()->subDays(5),
-                'status' => 'completed'
-            ],
-            [
-                'id' => 2,
-                'type' => 'certificat',
-                'description' => 'Certificat de vie soumis et validé',
-                'date' => now()->subDays(45),
-                'status' => 'completed'
-            ],
-            [
-                'id' => 3,
-                'type' => 'document',
-                'description' => 'Attestation de pension générée',
-                'date' => now()->subDays(60),
-                'status' => 'completed'
-            ]
-        ];
-        
-        // Services disponibles
-        $services = [
-            [
-                'id' => 'pension',
-                'name' => 'Suivi Pension',
-                'description' => 'Consulter vos versements de pension',
-                'icon' => 'banknotes',
-                'available' => true
-            ],
-            [
-                'id' => 'grappe_familiale',
-                'name' => 'Grappe Familiale',
-                'description' => 'Gérer vos informations familiales',
-                'icon' => 'document-check',
-                'available' => true
-            ],
-            [
-                'id' => 'historique',
-                'name' => 'Historique de paiements',
-                'description' => 'Consulter votre historique de paiement',
-                'icon' => 'pencil',
-                'available' => true
-            ],
-            [
-                'id' => 'Mes Documents',
-                'name' => "Mes Documents",
-                'description' => 'Gérer vos documents et attestations',
-                'icon' => 'document',
-                'available' => true
-            ]
-        ];
+{
+    $retraite = $request->user();
+    
+    // Calculer les statistiques
+    $anneesRetraite = Carbon::parse($retraite->date_retraite)->diffInYears(now());
+    $moisRetraite = Carbon::parse($retraite->date_retraite)->diffInMonths(now()) % 12;
+    $age = Carbon::parse($retraite->date_naissance)->age;
+    
+    // Données statistiques améliorées
+    $stats = [
+        'pension_mensuelle' => $retraite->montant_pension,
+        'pensions_recues' => $anneesRetraite * 12 + $moisRetraite,
+        'total_percu' => ($anneesRetraite * 12 + $moisRetraite) * $retraite->montant_pension,
+        'certificats_valides' => $this->compterCertificatsValides($retraite),
+    ];
+    
+    // Activités récentes dynamiques
+    $activites = $this->getActivitesRecentesRetraite($retraite);
+    
+    // Services disponibles
+    $services = [
+        [
+            'id' => 'pension',
+            'name' => 'Suivi Pension',
+            'description' => 'Consulter vos versements de pension',
+            'icon' => 'banknotes',
+            'available' => true
+        ],
+        [
+            'id' => 'grappe_familiale',
+            'name' => 'Grappe Familiale',
+            'description' => 'Gérer vos informations familiales',
+            'icon' => 'document-check',
+            'available' => true
+        ],
+        [
+            'id' => 'historique',
+            'name' => 'Historique de paiements',
+            'description' => 'Consulter votre historique de paiement',
+            'icon' => 'pencil',
+            'available' => true
+        ],
+        [
+            'id' => 'Mes Documents',
+            'name' => "Mes Documents",
+            'description' => 'Gérer vos documents et attestations',
+            'icon' => 'document',
+            'available' => true
+        ],
+        [
+            'id' => 'reclamations',
+            'name' => 'Réclamations',
+            'description' => 'Gérer vos réclamations et demandes',
+            'icon' => 'reclamation',
+            'available' => true
+        ]
+    ];
 
-        return response()->json([
-            'success' => true,
-            'user_type' => 'retraite',
-            'user' => [
-                'id' => $retraite->id,
-                'numero_pension' => $retraite->numero_pension,
-                'nom_complet' => $retraite->prenoms . ' ' . $retraite->nom,
-                'nom' => $retraite->nom,
-                'prenoms' => $retraite->prenoms,
-                'sexe' => $retraite->sexe,
-                'age' => $age,
-                'ancien_poste' => $retraite->ancien_poste,
-                'ancienne_direction' => $retraite->ancienne_direction,
-                'date_naissance' => $retraite->date_naissance,
-                'date_retraite' => $retraite->date_retraite,
-                'montant_pension' => $retraite->montant_pension,
-                'email' => $retraite->email,
-                'telephone' => $retraite->telephone,
-                'annees_retraite' => $anneesRetraite,
-                'mois_retraite' => $moisRetraite,
-                'parcours_professionnel' => $retraite->parcours_professionnel,
-                'status' => $retraite->status,
-                'email_verified' => !is_null($retraite->email_verified_at),
-                'phone_verified' => !is_null($retraite->phone_verified_at),
-            ],
-            'dashboard' => [
-                'stats' => $stats,
-                'activites_recentes' => $activites,
-                'services_disponibles' => $services,
-                
-            ]
-        ]);
+    return response()->json([
+        'success' => true,
+        'user_type' => 'retraite',
+        'user' => [
+            'id' => $retraite->id,
+            'numero_pension' => $retraite->numero_pension,
+            'nom_complet' => $retraite->prenoms . ' ' . $retraite->nom,
+            'nom' => $retraite->nom,
+            'prenoms' => $retraite->prenoms,
+            'sexe' => $retraite->sexe,
+            'age' => $age,
+            'ancien_poste' => $retraite->ancien_poste,
+            'ancienne_direction' => $retraite->ancienne_direction,
+            'date_naissance' => $retraite->date_naissance,
+            'date_retraite' => $retraite->date_retraite,
+            'montant_pension' => $retraite->montant_pension,
+            'email' => $retraite->email,
+            'telephone' => $retraite->telephone,
+            'annees_retraite' => $anneesRetraite,
+            'mois_retraite' => $moisRetraite,
+            'parcours_professionnel' => $retraite->parcours_professionnel,
+            'status' => $retraite->status,
+            'email_verified' => !is_null($retraite->email_verified_at),
+            'phone_verified' => !is_null($retraite->phone_verified_at),
+        ],
+        'dashboard' => [
+            'stats' => $stats,
+            'activites_recentes' => $activites, // ✅ Maintenant dynamiques
+            'services_disponibles' => $services,
+        ]
+    ]);
+}
+// Méthodes utilitaires pour les statistiques
+private function calculerCotisationsTotales($agent)
+{
+    // TODO: Implémenter avec de vraies données
+    $dureeServiceMois = Carbon::parse($agent->date_prise_service)->diffInMonths(now());
+    return $dureeServiceMois * 45000; // Cotisation moyenne
+}
+
+private function calculerPrestationsRecues($agent)
+{
+    // TODO: Implémenter avec de vraies données
+    return rand(5, 25) * 10000;
+}
+
+private function compterAttestationsDemandees($agent)
+{
+    // TODO: Implémenter avec de vraies données
+    return rand(3, 12);
+}
+
+private function compterDossiersEnCours($agent)
+{
+    $dossiers = 0;
+    
+    // Compter les réclamations en cours
+    try {
+        $dossiers += \App\Models\Reclamation::pourUtilisateur($agent->id, 'agent')
+                                          ->enCours()
+                                          ->count();
+    } catch (\Exception $e) {
+        // Ignorer si la table n'existe pas encore
     }
+    
+    return $dossiers;
+}
+
+private function compterCertificatsValides($retraite)
+{
+    // TODO: Implémenter avec de vraies données
+    return rand(1, 3);
+}
 
     /**
      * Obtenir les attestations (agents actifs)
@@ -1067,6 +1070,215 @@ private function calculateTauxLiquidationArticle94($dureeService)
 {
     if ($dureeService < 15) return 0;
     return $dureeService * 1.8;
+}
+
+// Mise à jour du DashboardController pour rendre les activités récentes dynamiques
+
+// Ajouter ces méthodes dans app/Http/Controllers/DashboardController.php
+
+/**
+ * Obtenir les activités récentes dynamiques pour agents actifs
+ */
+private function getActivitesRecentesAgent($agent)
+{
+    $activites = collect();
+    
+    try {
+        // Activités des réclamations
+        $reclamationsRecentes = \App\Models\Reclamation::pourUtilisateur($agent->id, 'agent')
+                                                      ->with('historique')
+                                                      ->orderBy('created_at', 'desc')
+                                                      ->limit(3)
+                                                      ->get();
+        
+        foreach ($reclamationsRecentes as $reclamation) {
+            $activites->push([
+                'id' => 'reclamation_' . $reclamation->id,
+                'type' => 'reclamation',
+                'description' => $this->getDescriptionActiviteReclamation($reclamation),
+                'date' => $reclamation->created_at,
+                'status' => $this->mapStatutReclamationToStatus($reclamation->statut),
+                'metadata' => [
+                    'numero_reclamation' => $reclamation->numero_reclamation,
+                    'type_reclamation' => $reclamation->type_reclamation,
+                    'statut' => $reclamation->statut
+                ]
+            ]);
+        }
+        
+        // Activités des simulations de pension (si disponibles)
+        if (class_exists('\App\Models\SimulationPension')) {
+            $simulationsRecentes = \App\Models\SimulationPension::where('agent_id', $agent->id)
+                                                               ->orderBy('created_at', 'desc')
+                                                               ->limit(2)
+                                                               ->get();
+            
+            foreach ($simulationsRecentes as $simulation) {
+                $activites->push([
+                    'id' => 'simulation_' . $simulation->id,
+                    'type' => 'simulation',
+                    'description' => "Simulation de pension réalisée - Pension estimée: " . 
+                                   number_format($simulation->pension_estimee, 0, ',', ' ') . ' FCFA',
+                    'date' => $simulation->created_at,
+                    'status' => 'completed',
+                    'metadata' => [
+                        'pension_estimee' => $simulation->pension_estimee,
+                        'duree_service' => $simulation->duree_service
+                    ]
+                ]);
+            }
+        }
+        
+    } catch (\Exception $e) {
+        \Log::error('Erreur récupération activités agent:', [
+            'agent_id' => $agent->id,
+            'error' => $e->getMessage()
+        ]);
+    }
+    
+    // Ajouter des activités simulées si pas assez d'activités réelles
+    if ($activites->count() < 3) {
+        $activites = $activites->merge($this->getActivitesSimuleesAgent($agent));
+    }
+    
+    return $activites->sortByDesc('date')->take(5)->values()->toArray();
+}
+
+/**
+ * Obtenir les activités récentes dynamiques pour retraités
+ */
+private function getActivitesRecentesRetraite($retraite)
+{
+    $activites = collect();
+    
+    try {
+        // Activités des réclamations
+        $reclamationsRecentes = \App\Models\Reclamation::pourUtilisateur($retraite->id, 'retraite')
+                                                      ->with('historique')
+                                                      ->orderBy('created_at', 'desc')
+                                                      ->limit(3)
+                                                      ->get();
+        
+        foreach ($reclamationsRecentes as $reclamation) {
+            $activites->push([
+                'id' => 'reclamation_' . $reclamation->id,
+                'type' => 'reclamation',
+                'description' => $this->getDescriptionActiviteReclamation($reclamation),
+                'date' => $reclamation->created_at,
+                'status' => $this->mapStatutReclamationToStatus($reclamation->statut),
+                'metadata' => [
+                    'numero_reclamation' => $reclamation->numero_reclamation,
+                    'type_reclamation' => $reclamation->type_reclamation,
+                    'statut' => $reclamation->statut
+                ]
+            ]);
+        }
+        
+    } catch (\Exception $e) {
+        \Log::error('Erreur récupération activités retraité:', [
+            'retraite_id' => $retraite->id,
+            'error' => $e->getMessage()
+        ]);
+    }
+    
+    // Ajouter des activités simulées si pas assez d'activités réelles
+    if ($activites->count() < 3) {
+        $activites = $activites->merge($this->getActivitesSimuleesRetraite($retraite));
+    }
+    
+    return $activites->sortByDesc('date')->take(5)->values()->toArray();
+}
+
+/**
+ * Générer la description d'une activité de réclamation
+ */
+private function getDescriptionActiviteReclamation($reclamation)
+{
+    $typeNom = \App\Models\Reclamation::$typesReclamations[$reclamation->type_reclamation]['nom'] ?? 'Réclamation';
+    
+    switch ($reclamation->statut) {
+        case 'en_attente':
+            return "Réclamation déposée: {$typeNom} (N° {$reclamation->numero_reclamation})";
+        case 'en_cours':
+            return "Réclamation en cours de traitement: {$typeNom}";
+        case 'en_revision':
+            return "Réclamation en révision: {$typeNom}";
+        case 'resolu':
+            return "Réclamation résolue: {$typeNom}";
+        case 'ferme':
+            return "Réclamation fermée: {$typeNom}";
+        case 'rejete':
+            return "Réclamation rejetée: {$typeNom}";
+        default:
+            return "Réclamation: {$typeNom}";
+    }
+}
+
+/**
+ * Mapper le statut de réclamation vers le statut d'activité
+ */
+private function mapStatutReclamationToStatus($statut)
+{
+    switch ($statut) {
+        case 'en_attente':
+            return 'pending';
+        case 'en_cours':
+        case 'en_revision':
+            return 'in_progress';
+        case 'resolu':
+        case 'ferme':
+            return 'completed';
+        case 'rejete':
+            return 'warning';
+        default:
+            return 'pending';
+    }
+}
+
+/**
+ * Activités simulées pour agents (fallback)
+ */
+private function getActivitesSimuleesAgent($agent)
+{
+    return collect([
+        [
+            'id' => 'cotisation_auto',
+            'type' => 'cotisation',
+            'description' => 'Cotisation mensuelle prélevée - ' . number_format(45000, 0, ',', ' ') . ' FCFA',
+            'date' => now()->subDays(rand(5, 15)),
+            'status' => 'completed'
+        ],
+        [
+            'id' => 'prestation_auto',
+            'type' => 'prestation',
+            'description' => 'Allocation familiale versée - ' . number_format(15000, 0, ',', ' ') . ' FCFA',
+            'date' => now()->subDays(rand(20, 30)),
+            'status' => 'completed'
+        ]
+    ]);
+}
+
+/**
+ * Activités simulées pour retraités (fallback)
+ */
+private function getActivitesSimuleesRetraite($retraite)
+{
+    return collect([
+        [
+            'id' => 'pension_auto',
+            'type' => 'pension',
+            'description' => 'Pension mensuelle versée - ' . number_format($retraite->montant_pension, 0, ',', ' ') . ' FCFA',
+            'date' => now()->subDays(rand(1, 5)),
+            'status' => 'completed'
+        ],
+        [
+            'id' => 'certificat_auto',
+            'type' => 'certificat',
+            'description' => 'Certificat de vie validé',
+            'date' => now()->subDays(rand(30, 60)),
+            'status' => 'completed'
+        ]
+    ]);
 }
 
 

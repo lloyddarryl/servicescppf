@@ -123,4 +123,26 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+     /*
+    |--------------------------------------------------------------------------
+    | Email de réception des réclamations
+    |--------------------------------------------------------------------------
+    |
+    | Cette adresse email recevra toutes les nouvelles réclamations
+    | et notifications de suppression.
+    |
+    */
+    'reclamation_email' => env('RECLAMATION_EMAIL', 'nguidjoldarryl@gmail.com'),
+    
+    /*
+    |--------------------------------------------------------------------------
+    | URL du Frontend
+    |--------------------------------------------------------------------------
+    |
+    | URL de base du frontend pour les liens dans les emails
+    |
+    */
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'),
+    
+
 ];
