@@ -1,0 +1,369 @@
+/* Setup Profile Page Styles */
+.setup-profile {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%);
+}
+
+.setup-profile__main {
+  padding-top: 6rem;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+}
+
+.setup-profile__container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+.setup-profile__content {
+  background: white;
+  border-radius: 1.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+/* Progress Steps */
+.setup-profile__progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+.setup-profile__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.setup-profile__step--active {
+  opacity: 1;
+}
+
+.setup-profile__step-number {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: #e5e7eb;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.125rem;
+  margin-bottom: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.setup-profile__step--active .setup-profile__step-number {
+  background: linear-gradient(135deg, #10b913 0%, #f5e90b 50%, #0b31ad 100%);
+  color: white;
+}
+
+.setup-profile__step-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.setup-profile__step--active .setup-profile__step-text {
+  color: #1f2937;
+}
+
+.setup-profile__step-line {
+  flex: 1;
+  height: 2px;
+  background: #e5e7eb;
+  margin: 0 1rem;
+  position: relative;
+  top: -1rem;
+}
+
+/* Welcome Section */
+.setup-profile__welcome {
+  padding: 2rem;
+  text-align: center;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.setup-profile__title {
+  font-size: 1.875rem;
+  font-weight: bold;
+  color: #1E3A8A;
+  margin-bottom: 0.5rem;
+}
+
+.setup-profile__subtitle {
+  font-size: 1rem;
+  color: #059669;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.setup-profile__description {
+  font-size: 1rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Form Container */
+.setup-profile__form-container {
+  padding: 2rem;
+}
+
+.setup-profile__form {
+  width: 100%;
+}
+
+.setup-profile__form-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #1f2937;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.setup-profile__verification-text {
+  text-align: center;
+  color: #6b7280;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+/* Form Groups */
+.setup-profile__form-group {
+  margin-bottom: 1.5rem;
+}
+
+.setup-profile__label {
+  display: block;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.setup-profile__input {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.setup-profile__input:focus {
+  outline: none;
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.setup-profile__input--error {
+  border-color: #EF4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.setup-profile__input--center {
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: 0.5rem;
+}
+
+/* Phone Input */
+.setup-profile__phone-input {
+  display: flex;
+  align-items: center;
+  border: 2px solid #e5e7eb;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  transition: border-color 0.3s ease;
+}
+
+.setup-profile__phone-input:focus-within {
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.setup-profile__phone-prefix {
+  background: #f8fafc;
+  padding: 0.875rem 1rem;
+  color: #6b7280;
+  font-weight: 600;
+  border-right: 1px solid #e5e7eb;
+}
+
+.setup-profile__phone-input .setup-profile__input {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.setup-profile__phone-input .setup-profile__input:focus {
+  border: none;
+  box-shadow: none;
+}
+
+/* Error Messages */
+.setup-profile__error {
+  color: #EF4444;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  font-weight: 500;
+}
+
+/* Help Text */
+.setup-profile__help {
+  margin-top: 0.25rem;
+}
+
+.setup-profile__help small {
+  color: #6b7280;
+  font-size: 0.75rem;
+}
+
+/* Button */
+.setup-profile__button {
+  width: 100%;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, #10b92f 0%, #f5e90b 50%, #0d35b7 100%);
+  color: white;
+  border: none;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  transform: scale(1);
+  margin-top: 1rem;
+}
+
+.setup-profile__button:hover:not(:disabled) {
+  transform: scale(1.02);
+  box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.3);
+}
+
+.setup-profile__button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: scale(1);
+}
+
+/* Loading State */
+.setup-profile__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.setup-profile__spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Messages */
+.setup-profile__message {
+  padding: 1rem;
+  border-radius: 0.75rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.setup-profile__message--success {
+  background: #D1FAE5;
+  color: #065F46;
+  border: 1px solid #A7F3D0;
+}
+
+.setup-profile__message--error {
+  background: #FEE2E2;
+  color: #991B1B;
+  border: 1px solid #FECACA;
+}
+
+.setup-profile__message--info {
+  background: #DBEAFE;
+  color: #1E40AF;
+  border: 1px solid #93C5FD;
+}
+
+/* Resend Section */
+.setup-profile__resend {
+  text-align: center;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.setup-profile__resend p {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.setup-profile__resend-button {
+  background: none;
+  border: none;
+  color: #3B82F6;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.3s ease;
+}
+
+.setup-profile__resend-button:hover {
+  color: #1E40AF;
+}
+
+.setup-profile__resend-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 767px) {
+  .setup-profile__main {
+    padding-top: 5rem;
+    padding-bottom: 2rem;
+  }
+  
+  .setup-profile__container {
+    padding: 1rem;
+  }
+  
+  .setup-profile__progress {
+    padding: 1.5rem;
+  }
+  
+  .setup-profile__welcome,
+  .setup-profile__form-container {
+    padding: 1.5rem;
+  }
+  
+  .setup-profile__title {
+    font-size: 1.5rem;
+  }
+  
+  .setup-profile__step-line {
+    margin: 0 0.5rem;
+  }
+}
