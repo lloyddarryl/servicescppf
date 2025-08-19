@@ -1,0 +1,5 @@
+# Ignorer les dépendances Node.js
+node_modules/
+
+# Ignorer les dépendances de Laravel
+vendor/
