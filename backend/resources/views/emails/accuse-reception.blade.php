@@ -1,3 +1,8 @@
+<?php
+// ================================================================
+// 1. accuse-reception.blade.php - MISE À JOUR
+// ================================================================
+?>
 <!DOCTYPE html>
 <html>
 <head>
@@ -28,12 +33,12 @@
         </div>
 
         <div class="info-box">
-            <h3> Bonjour {{ $user->prenoms }} {{ $user->nom }},</h3>
+            <h3> Bonjour {{ $user->sexe && strtoupper($user->sexe) === 'M' ? 'M.' : ($user->situation_matrimoniale && in_array(strtolower($user->situation_matrimoniale), ['mariee', 'marie']) ? 'Mme' : 'Mlle') }} {{ $user->nom }},</h3>
             <p>Nous accusons réception de votre réclamation soumise via la plateforme e-Services CPPF.</p>
         </div>
 
         <div class="info-box">
-            <h3>📋 Détails de votre réclamation</h3>
+            <h3> Détails de votre réclamation</h3>
             <p><strong>Numéro de référence :</strong> <span class="badge badge-success">{{ $reclamation->numero_reclamation }}</span></p>
             <p><strong>Type :</strong> {{ $typeReclamation['nom'] ?? $reclamation->type_reclamation }}</p>
             @if($reclamation->sujet_personnalise)
@@ -42,6 +47,32 @@
             <p><strong>Priorité :</strong> <span class="badge badge-priority">{{ strtoupper($prioriteInfo['nom'] ?? $reclamation->priorite) }}</span></p>
             <p><strong>Date de soumission :</strong> {{ $reclamation->date_soumission->format('d/m/Y à H:i') }}</p>
             <p><strong>Statut actuel :</strong> <span class="badge badge-success">En attente de traitement</span></p>
+        </div>
+
+        {{-- ✅ NOUVELLE SECTION : Informations personnelles avec civilité --}}
+        <div class="info-box">
+            <h3> Vos informations</h3>
+            <p><strong>Identité :</strong> 
+                {{ $user->sexe && strtoupper($user->sexe) === 'M' ? 'M.' : ($user->situation_matrimoniale && in_array(strtolower($user->situation_matrimoniale), ['mariee', 'marie']) ? 'Mme' : 'Mlle') }} 
+                {{ $user->prenoms }} {{ $user->nom }}
+            </p>
+            @if($user->sexe)
+                <p><strong>Sexe :</strong> {{ strtoupper($user->sexe) === 'M' || strtoupper($user->sexe) === 'MASCULIN' ? 'Masculin' : 'Féminin' }}</p>
+            @endif
+            @if($user->situation_matrimoniale)
+                <p><strong>Situation matrimoniale :</strong> 
+                    @switch(strtolower($user->situation_matrimoniale))
+                        @case('celibataire') Célibataire @break
+                        @case('marie') @case('mariee') Marié(e) @break
+                        @case('divorce') @case('divorcee') Divorcé(e) @break
+                        @case('veuf') @case('veuve') Veuf/Veuve @break
+                        @case('concubinage') En concubinage @break
+                        @case('separe') @case('separee') Séparé(e) @break
+                        @default {{ ucfirst($user->situation_matrimoniale) }}
+                    @endswitch
+                </p>
+            @endif
+            <p><strong>Type de compte :</strong> {{ $reclamation->user_type === 'agent' ? 'Agent actif' : 'Retraité' }}</p>
         </div>
 
         <div class="attachment-notice">
@@ -93,7 +124,7 @@
         <div class="footer">
             <p><strong>Merci de votre confiance</strong></p>
             <p style="font-size: 0.9em;">
-                <strong>CAISSE DE PENSION DU PERSONNEL DE LA FONCTION PUBLIQUE</strong><br>
+                <strong>CAISSE DES PENSIONS ET DES PRESTATIONS FAMILIALES DES AGENTS DE L'ETAT</strong><br>
                 e-Services | Libreville, Gabon<br>
                 Email: contact@cppf.ga | Web: www.cppf.ga
             </p>
@@ -106,3 +137,4 @@
     </div>
 </body>
 </html>
+

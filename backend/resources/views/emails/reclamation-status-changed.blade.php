@@ -1,3 +1,8 @@
+<?php
+// ================================================================
+// 3. reclamation-status-changed.blade.php - MISE À JOUR
+// ================================================================
+?>
 <!DOCTYPE html>
 <html>
 <head>
@@ -16,12 +21,16 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1> Mise à jour de votre réclamation</h1>
+            <h1>🔄 Mise à jour de votre réclamation</h1>
             <p>Le statut de votre réclamation a été modifié</p>
         </div>
 
         <div class="info-box">
-            <h3>Réclamation N° {{ $reclamation->numero_reclamation }}</h3>
+            <h3>👋 Bonjour {{ $user->sexe && strtoupper($user->sexe) === 'M' ? 'M.' : ($user->situation_matrimoniale && in_array(strtolower($user->situation_matrimoniale), ['mariee', 'marie']) ? 'Mme' : 'Mlle') }} {{ $user->nom }},</h3>
+        </div>
+
+        <div class="info-box">
+            <h3> Réclamation N° {{ $reclamation->numero_reclamation }}</h3>
             <p><strong>Type :</strong> {{ $reclamation->type_reclamation_info['nom'] ?? $reclamation->type_reclamation }}</p>
             @if($reclamation->sujet_personnalise)
                 <p><strong>Sujet :</strong> {{ $reclamation->sujet_personnalise }}</p>
@@ -29,7 +38,7 @@
         </div>
 
         <div class="status-change">
-            <h3> Changement de statut</h3>
+            <h3>🔄 Changement de statut</h3>
             @if($ancienStatut)
                 <p><strong>Ancien statut :</strong> <span style="color: #666;">{{ $ancienStatut }}</span></p>
                 <p style="font-size: 1.5em;">⬇️</p>
@@ -52,3 +61,4 @@
     </div>
 </body>
 </html>
+

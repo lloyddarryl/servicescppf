@@ -47,6 +47,62 @@ const Reclamations = () => {
   // Réclamation sélectionnée pour les détails
   const [reclamationSelectionnee, setReclamationSelectionnee] = useState(null);
 
+  // ✅ NOUVELLE FONCTION : Obtenir la civilité selon le sexe et situation matrimoniale
+  const getCivilite = (user) => {
+    if (!user) return '';
+    
+    const sexe = user.sexe?.toUpperCase();
+    const situationMatrimoniale = user.situation_matrimoniale?.toLowerCase();
+    
+    // Si c'est un homme, toujours M.
+    if (sexe === 'M' || sexe === 'MASCULIN') {
+      return 'M.';
+    } 
+    // Si c'est une femme
+    else if (sexe === 'F' || sexe === 'FEMININ') {
+      // Si mariée, Mme, sinon Mlle
+      if (['mariee', 'marie', 'marié', 'mariée'].includes(situationMatrimoniale)) {
+        return 'Mme';
+      } else {
+        return 'Mlle';
+      }
+    }
+    
+    // Fallback si pas d'info
+    return '';
+  };
+
+  // ✅ NOUVELLE FONCTION : Obtenir l'identité complète avec civilité
+  const getIdentiteComplete = (user) => {
+    if (!user) return '';
+    
+    const civilite = getCivilite(user);
+    const nomComplet = `${user.prenoms || ''} ${user.nom || ''}`.trim();
+    
+    return civilite ? `${civilite} ${nomComplet}` : nomComplet;
+  };
+
+  // ✅ NOUVELLE FONCTION : Obtenir le libellé de la situation matrimoniale
+  const getSituationMatrimonialeLibelle = (situationMatrimoniale) => {
+    if (!situationMatrimoniale) return 'Non spécifiée';
+    
+    const situations = {
+      'celibataire': 'Célibataire',
+      'marie': 'Marié(e)',
+      'mariee': 'Mariée',
+      'divorce': 'Divorcé(e)',
+      'divorcee': 'Divorcée',
+      'veuf': 'Veuf/Veuve',
+      'veuve': 'Veuve',
+      'concubinage': 'En concubinage',
+      'separe': 'Séparé(e)',
+      'separee': 'Séparée'
+    };
+    
+    const key = situationMatrimoniale.toLowerCase();
+    return situations[key] || situationMatrimoniale.charAt(0).toUpperCase() + situationMatrimoniale.slice(1);
+  };
+
   // Fonction pour afficher les notifications (memoized) - DOIT être en premier
   const afficherNotification = useCallback((message, type = 'info') => {
     setNotification({ message, type });
@@ -464,19 +520,30 @@ const Reclamations = () => {
       <main className="reclamations__main">
         <div className="reclamations__container">
           
-          {/* ✅ SECTION DE BIENVENUE CORRIGÉE */}
+          {/* ✅ SECTION DE BIENVENUE MISE À JOUR avec civilité et situation matrimoniale */}
           {userInfo && (
             <div className="reclamations__welcome">
               <div className="reclamations__welcome-content">
                 <h1 className="reclamations__welcome-title">
-                  📋 Réclamations
+                  Vos Réclamations
                 </h1>
                 <p className="reclamations__welcome-subtitle">
                   <span className="reclamations__welcome-user">
-                    👋 {userInfo.nom_complet}
+                    👋 {getIdentiteComplete(userInfo)}
                   </span>
                   <span className="reclamations__welcome-badge">
                     {userInfo.type_compte}
+                    {/* ✅ NOUVEAU : Affichage optionnel du sexe et situation matrimoniale */}
+                    {userInfo.sexe && (
+                      <span style={{ marginLeft: '8px', fontSize: '0.85em', opacity: '0.8' }}>
+                        • {userInfo.sexe.toUpperCase() === 'M' || userInfo.sexe.toUpperCase() === 'MASCULIN' ? 'Masculin' : 'Féminin'}
+                      </span>
+                    )}
+                    {userInfo.situation_matrimoniale && (
+                      <span style={{ marginLeft: '8px', fontSize: '0.85em', opacity: '0.8' }}>
+                        • {getSituationMatrimonialeLibelle(userInfo.situation_matrimoniale)}
+                      </span>
+                    )}
                   </span>
                   Gérez vos réclamations et suivez leur traitement en temps réel
                 </p>
@@ -487,11 +554,9 @@ const Reclamations = () => {
                   className="reclamations__dashboard-btn"
                   title="Retour au tableau de bord"
                 >
-                  🏠 Tableau de bord
+                 ← Retour au tableau de bord
                 </button>
-                <div className="reclamations__welcome-icon">
-                  📋
-                </div>
+                
               </div>
             </div>
           )}
@@ -546,6 +611,7 @@ const Reclamations = () => {
             </button>
           </div>
 
+          {/* Le reste du composant reste inchangé... */}
           {/* Contenu des onglets */}
           <div className="reclamations__content">
             
@@ -591,7 +657,7 @@ const Reclamations = () => {
                         </span>
                         {typesReclamations[formData.type_reclamation].necessite_document && (
                           <span className="reclamations__document-required">
-                            📎 Document justificatif requis
+                            🔎 Document justificatif requis
                           </span>
                         )}
                       </div>
@@ -791,7 +857,7 @@ const Reclamations = () => {
                   </div>
                 ) : reclamations.length === 0 ? (
                   <div className="reclamations__empty">
-                    <div className="reclamations__empty-icon">📝</div>
+                    <div className="reclamations__empty-icon">📄</div>
                     <h3>Aucune réclamation</h3>
                     <p>Vous n'avez pas encore déposé de réclamation</p>
                     <button 
@@ -1024,7 +1090,7 @@ const Reclamations = () => {
                                 {document.nom_original}
                               </span>
                               <span className="reclamations__document-meta">
-                                {formatTaillefichier(document.taille)} • 
+                                {formatTaillefichier(document.taille)} •
                                 {document.type.toUpperCase()} •
                                 {new Date(document.date_upload).toLocaleDateString('fr-FR')}
                               </span>

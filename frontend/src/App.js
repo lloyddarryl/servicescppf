@@ -12,7 +12,9 @@ import Dashboard from './pages/dashboard/Dashboard';
 import EditProfile from './pages/dashboard/edit_profile/EditProfile';
 import SimulateurPension from './pages/simulateur/SimulateurPension';
 import GrappeFamiliale from './pages/famille/GrappeFamiliale';
-import Reclamations from './pages/reclamations/Reclamations'; // ✅ Nouvelle importation
+import Reclamations from './pages/reclamations/Reclamations'; 
+import PriseRendezVous from './pages/rendez_vous/PriseRendezVous';
+
 
 import './App.css';
 
@@ -70,6 +72,14 @@ function App() {
             </ProtectedRoute>
           } />
           
+
+          {/* ✅ NOUVEAU : Routes pour la prise de rendez-vous (actifs) */}
+          <Route path="/actifs/rendez-vous" element={
+          <ProtectedRoute requiredUserType="actif">
+          <PriseRendezVous />
+          </ProtectedRoute>
+            } />
+
           {/* ✅ NOUVEAU : Route pour les réclamations (actifs uniquement) */}
           <Route path="/actifs/reclamations" element={
             <ProtectedRoute requiredUserType="actif">
@@ -149,6 +159,15 @@ function App() {
               <EditProfile />
             </ProtectedRoute>
           } />
+
+
+          {/* ✅ NOUVEAU : Routes pour la prise de rendez-vous (actifs) */}
+          <Route path="/actifs/rendez-vous" element={
+          <ProtectedRoute requiredUserType="retraite">
+          <PriseRendezVous />
+          </ProtectedRoute>
+          } />
+
 
           {/* ✅ Route catch-all pour les URLs invalides */}
           <Route path="*" element={<HomeServices />} />

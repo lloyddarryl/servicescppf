@@ -50,139 +50,156 @@ class ReclamationController extends Controller
      * Obtenir les réclamations de l'utilisateur
      */
     public function index(Request $request)
-    {
-        try {
-            $user = $request->user();
-            $userType = $user instanceof Agent ? 'agent' : 'retraite';
+{
+    try {
+        $user = $request->user();
+        $userType = $user instanceof Agent ? 'agent' : 'retraite';
 
-            Log::info('🔍 [BACKEND] Récupération réclamations:', [
-                'user_id' => $user->id,
-                'user_type' => $userType,
-                'user_class' => get_class($user),
-                'filtres' => $request->all()
-            ]);
+        Log::info('🔍 [BACKEND] Récupération réclamations:', [
+            'user_id' => $user->id,
+            'user_type' => $userType,
+            'user_class' => get_class($user),
+            'filtres' => $request->all()
+        ]);
 
-            // ✅ FILTRES CORRIGÉS - Ne pas appliquer si vide
-            $query = Reclamation::where('user_id', $user->id)
-                               ->where('user_type', $userType)
-                               ->orderBy('date_soumission', 'desc');
+        // ✅ FILTRES CORRIGÉS - Ne pas appliquer si vide
+        $query = Reclamation::where('user_id', $user->id)
+                           ->where('user_type', $userType)
+                           ->orderBy('date_soumission', 'desc');
 
-            // ✅ Filtre statut : seulement si non vide ET différent de "Tous"
-            if ($request->has('statut') && $request->statut !== '' && $request->statut !== 'Tous') {
-                $query->where('statut', $request->statut);
-                Log::info('📋 Filtre statut appliqué:', ['statut' => $request->statut]);
-            }
-
-            // ✅ Filtre type : seulement si non vide ET différent de "Tous" 
-            if ($request->has('type') && $request->type !== '' && $request->type !== 'Tous') {
-                $query->where('type_reclamation', $request->type);
-                Log::info('📋 Filtre type appliqué:', ['type' => $request->type]);
-            }
-
-            // Debug AVANT exécution
-            Log::info('🔍 [SQL] Requête avant exécution:', [
-                'sql' => $query->toSql(),
-                'bindings' => $query->getBindings(),
-                'request_statut' => $request->statut,
-                'request_type' => $request->type,
-                'has_statut' => $request->has('statut'),
-                'has_type' => $request->has('type')
-            ]);
-
-            $reclamations = $query->paginate(10);
-
-            Log::info('📊 [BACKEND] Réclamations trouvées:', [
-                'count_collection' => $reclamations->count(),
-                'total' => $reclamations->total(),
-                'current_page' => $reclamations->currentPage(),
-                'per_page' => $reclamations->perPage(),
-                'last_page' => $reclamations->lastPage()
-            ]);
-
-            // ✅ TRANSFORMATION SIMPLIFIÉE avec accusé de réception
-            $reclamationsFormatted = [];
-            
-            foreach ($reclamations->items() as $reclamation) {
-                try {
-                    $formatted = [
-                        'id' => $reclamation->id,
-                        'numero_reclamation' => $reclamation->numero_reclamation,
-                        'type_reclamation' => $reclamation->type_reclamation,
-                        'type_reclamation_info' => $reclamation->type_reclamation_info,
-                        'sujet_personnalise' => $reclamation->sujet_personnalise,
-                        'description' => $reclamation->description,
-                        'statut' => $reclamation->statut,
-                        'statut_libelle' => $reclamation->statut_libelle,
-                        'couleur_statut' => $reclamation->couleur_statut,
-                        'priorite' => $reclamation->priorite,
-                        'priorite_info' => $reclamation->priorite_info,
-                        'documents' => $reclamation->documents ?? [],
-                        'date_soumission' => $reclamation->date_soumission->format('Y-m-d H:i:s'),
-                        'date_soumission_formatee' => $reclamation->date_soumission->format('d/m/Y à H:i'),
-                        'temps_ecoule' => $reclamation->temps_ecoule,
-                        'en_cours' => $reclamation->en_cours,
-                        'peut_supprimer' => $this->peutSupprimer($reclamation),
-                        'peut_telecharger_accuse' => true, // ✅ Toujours possible de télécharger l'accusé
-                        'historique' => [] // Temporairement vide pour éviter les erreurs
-                    ];
-                    
-                    $reclamationsFormatted[] = $formatted;
-                    
-                    Log::info("✅ [BACKEND] Réclamation formatée: {$reclamation->numero_reclamation}");
-                    
-                } catch (\Exception $e) {
-                    Log::error("❌ [BACKEND] Erreur formatage réclamation {$reclamation->id}:", [
-                        'error' => $e->getMessage()
-                    ]);
-                }
-            }
-
-            $statistiques = $this->getStatistiques($user->id, $userType);
-
-            Log::info('📊 [BACKEND] Statistiques calculées:', $statistiques);
-            Log::info('📋 [BACKEND] Nombre final réclamations formatées:', ['count' => count($reclamationsFormatted)]);
-
-            $response = [
-                'success' => true,
-                'reclamations' => $reclamationsFormatted,
-                'pagination' => [
-                    'current_page' => $reclamations->currentPage(),
-                    'last_page' => $reclamations->lastPage(),
-                    'per_page' => $reclamations->perPage(),
-                    'total' => $reclamations->total()
-                ],
-                'statistiques' => $statistiques,
-                'user_info' => [ // ✅ Ajout des infos utilisateur pour la section de bienvenue
-                    'nom_complet' => $user->prenoms . ' ' . $user->nom,
-                    'type_compte' => $userType === 'agent' ? 'Agent actif' : 'Retraité'
-                ]
-            ];
-
-            Log::info('🎯 [BACKEND] Réponse finale:', [
-                'success' => $response['success'],
-                'reclamations_count' => count($response['reclamations']),
-                'pagination' => $response['pagination'],
-                'statistiques' => $response['statistiques']
-            ]);
-
-            return response()->json($response);
-
-        } catch (\Exception $e) {
-            Log::error('💥 [BACKEND] Erreur lors de la récupération des réclamations:', [
-                'user_id' => $request->user()?->id,
-                'error_message' => $e->getMessage(),
-                'error_file' => $e->getFile(),
-                'error_line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors du chargement des réclamations',
-                'error' => $e->getMessage()
-            ], 500);
+        // ✅ Filtre statut : seulement si non vide ET différent de "Tous"
+        if ($request->has('statut') && $request->statut !== '' && $request->statut !== 'Tous') {
+            $query->where('statut', $request->statut);
+            Log::info('📋 Filtre statut appliqué:', ['statut' => $request->statut]);
         }
+
+        // ✅ Filtre type : seulement si non vide ET différent de "Tous" 
+        if ($request->has('type') && $request->type !== '' && $request->type !== 'Tous') {
+            $query->where('type_reclamation', $request->type);
+            Log::info('📋 Filtre type appliqué:', ['type' => $request->type]);
+        }
+
+        // Debug AVANT exécution
+        Log::info('🔍 [SQL] Requête avant exécution:', [
+            'sql' => $query->toSql(),
+            'bindings' => $query->getBindings(),
+            'request_statut' => $request->statut,
+            'request_type' => $request->type,
+            'has_statut' => $request->has('statut'),
+            'has_type' => $request->has('type')
+        ]);
+
+        $reclamations = $query->paginate(10);
+
+        Log::info('📊 [BACKEND] Réclamations trouvées:', [
+            'count_collection' => $reclamations->count(),
+            'total' => $reclamations->total(),
+            'current_page' => $reclamations->currentPage(),
+            'per_page' => $reclamations->perPage(),
+            'last_page' => $reclamations->lastPage()
+        ]);
+
+        // ✅ TRANSFORMATION SIMPLIFIÉE avec accusé de réception
+        $reclamationsFormatted = [];
+        
+        foreach ($reclamations->items() as $reclamation) {
+            try {
+                $formatted = [
+                    'id' => $reclamation->id,
+                    'numero_reclamation' => $reclamation->numero_reclamation,
+                    'type_reclamation' => $reclamation->type_reclamation,
+                    'type_reclamation_info' => $reclamation->type_reclamation_info,
+                    'sujet_personnalise' => $reclamation->sujet_personnalise,
+                    'description' => $reclamation->description,
+                    'statut' => $reclamation->statut,
+                    'statut_libelle' => $reclamation->statut_libelle,
+                    'couleur_statut' => $reclamation->couleur_statut,
+                    'priorite' => $reclamation->priorite,
+                    'priorite_info' => $reclamation->priorite_info,
+                    'documents' => $reclamation->documents ?? [],
+                    'date_soumission' => $reclamation->date_soumission->format('Y-m-d H:i:s'),
+                    'date_soumission_formatee' => $reclamation->date_soumission->format('d/m/Y à H:i'),
+                    'temps_ecoule' => $reclamation->temps_ecoule,
+                    'en_cours' => $reclamation->en_cours,
+                    'peut_supprimer' => $this->peutSupprimer($reclamation),
+                    'peut_telecharger_accuse' => true, // ✅ Toujours possible de télécharger l'accusé
+                    'historique' => [] // Temporairement vide pour éviter les erreurs
+                ];
+                
+                $reclamationsFormatted[] = $formatted;
+                
+                Log::info("✅ [BACKEND] Réclamation formatée: {$reclamation->numero_reclamation}");
+                
+            } catch (\Exception $e) {
+                Log::error("❌ [BACKEND] Erreur formatage réclamation {$reclamation->id}:", [
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+
+        $statistiques = $this->getStatistiques($user->id, $userType);
+
+        Log::info('📊 [BACKEND] Statistiques calculées:', $statistiques);
+        Log::info('📋 [BACKEND] Nombre final réclamations formatées:', ['count' => count($reclamationsFormatted)]);
+
+        // ✅ MISE À JOUR : Infos utilisateur avec sexe et situation matrimoniale
+        $userInfo = [
+            'nom_complet' => $user->prenoms . ' ' . $user->nom,
+            'type_compte' => $userType === 'agent' ? 'Agent actif' : 'Retraité',
+            // ✅ NOUVEAU : Ajouter le sexe et la situation matrimoniale
+            'sexe' => $user->sexe ?? null,
+            'situation_matrimoniale' => $user->situation_matrimoniale ?? null,
+            // ✅ NOUVEAU : Infos supplémentaires pour debug
+            'prenoms' => $user->prenoms ?? '',
+            'nom' => $user->nom ?? '',
+            'email' => $user->email ?? ''
+        ];
+
+        // ✅ DEBUG : Log des infos utilisateur
+        Log::info('👤 [BACKEND] Infos utilisateur générées:', [
+            'user_info' => $userInfo,
+            'user_attributes' => $user->getAttributes() // Pour voir tous les champs disponibles
+        ]);
+
+        $response = [
+            'success' => true,
+            'reclamations' => $reclamationsFormatted,
+            'pagination' => [
+                'current_page' => $reclamations->currentPage(),
+                'last_page' => $reclamations->lastPage(),
+                'per_page' => $reclamations->perPage(),
+                'total' => $reclamations->total()
+            ],
+            'statistiques' => $statistiques,
+            'user_info' => $userInfo // ✅ Infos utilisateur mises à jour
+        ];
+
+        Log::info('🎯 [BACKEND] Réponse finale:', [
+            'success' => $response['success'],
+            'reclamations_count' => count($response['reclamations']),
+            'pagination' => $response['pagination'],
+            'statistiques' => $response['statistiques'],
+            'user_info' => $response['user_info'] // ✅ Log des infos utilisateur dans la réponse
+        ]);
+
+        return response()->json($response);
+
+    } catch (\Exception $e) {
+        Log::error('💥 [BACKEND] Erreur lors de la récupération des réclamations:', [
+            'user_id' => $request->user()?->id,
+            'error_message' => $e->getMessage(),
+            'error_file' => $e->getFile(),
+            'error_line' => $e->getLine(),
+            'trace' => $e->getTraceAsString()
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Erreur lors du chargement des réclamations',
+            'error' => $e->getMessage()
+        ], 500);
     }
+}
 
     /**
      * Créer une nouvelle réclamation

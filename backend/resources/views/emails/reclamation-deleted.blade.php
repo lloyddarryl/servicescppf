@@ -1,3 +1,8 @@
+<?php
+// ================================================================
+// 4. reclamation-deleted.blade.php - MISE À JOUR
+// ================================================================
+?>
 <!DOCTYPE html>
 <html>
 <head>
@@ -20,21 +25,40 @@
         </div>
 
         <div class="info-box">
-            <h3>Réclamation supprimée</h3>
+            <h3> Réclamation supprimée</h3>
             <p><strong>Numéro :</strong> {{ $numeroReclamation }}</p>
             <p><strong>Type :</strong> {{ $typeReclamation }}</p>
             <p><strong>Date de suppression :</strong> {{ now()->format('d/m/Y à H:i') }}</p>
         </div>
 
         <div class="info-box">
-            <h3>Utilisateur</h3>
-            <p><strong>Nom :</strong> {{ $user->prenoms }} {{ $user->nom }}</p>
+            <h3>👤 Utilisateur</h3>
+            <p><strong>Identité :</strong> 
+                {{ $user->sexe && strtoupper($user->sexe) === 'M' ? 'M.' : ($user->situation_matrimoniale && in_array(strtolower($user->situation_matrimoniale), ['mariee', 'marie']) ? 'Mme' : 'Mlle') }} 
+                {{ $user->prenoms }} {{ $user->nom }}
+            </p>
             <p><strong>Email :</strong> {{ $user->email }}</p>
+            @if($user->sexe)
+                <p><strong>Sexe :</strong> {{ strtoupper($user->sexe) === 'M' || strtoupper($user->sexe) === 'MASCULIN' ? 'Masculin' : 'Féminin' }}</p>
+            @endif
+            @if($user->situation_matrimoniale)
+                <p><strong>Situation matrimoniale :</strong> 
+                    @switch(strtolower($user->situation_matrimoniale))
+                        @case('celibataire') Célibataire @break
+                        @case('marie') @case('mariee') Marié(e) @break
+                        @case('divorce') @case('divorcee') Divorcé(e) @break
+                        @case('veuf') @case('veuve') Veuf/Veuve @break
+                        @case('concubinage') En concubinage @break
+                        @case('separe') @case('separee') Séparé(e) @break
+                        @default {{ ucfirst($user->situation_matrimoniale) }}
+                    @endswitch
+                </p>
+            @endif
         </div>
 
         @if($motifSuppression)
             <div class="info-box">
-                <h3>Motif de suppression</h3>
+                <h3> Motif de suppression</h3>
                 <p style="white-space: pre-wrap; background: white; padding: 10px; border-radius: 4px;">{{ $motifSuppression }}</p>
             </div>
         @endif

@@ -8,6 +8,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PensionSimulatorController;
 use App\Http\Controllers\FamilleController;
 use App\Http\Controllers\ReclamationController; 
+use App\Http\Controllers\RendezVousController;
 
 /*
 |--------------------------------------------------------------------------
@@ -140,6 +141,16 @@ Route::middleware('auth:sanctum')->group(function () {
             // Route pour télécharger les documents joints
             Route::get('/{id}/documents/{documentIndex}', [ReclamationController::class, 'downloadDocument']);
         });
+        Route::prefix('rendez-vous')->group(function () {
+            Route::get('/', [RendezVousController::class, 'index']);
+            Route::get('/creneaux-disponibles/{date}', [RendezVousController::class, 'getCreneauxDisponibles']);
+            Route::post('/', [RendezVousController::class, 'store']);
+            Route::get('/historique', [RendezVousController::class, 'historique']);
+            Route::get('/{id}', [RendezVousController::class, 'show']);
+            Route::put('/{id}/annuler', [RendezVousController::class, 'annuler']);
+        });
+
+
     });
 
     // Routes spécifiques aux retraités avec préfixe /retraites
@@ -195,10 +206,20 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/', [ReclamationController::class, 'store']);
             Route::get('/{id}', [ReclamationController::class, 'show']);
             Route::delete('/{id}', [ReclamationController::class, 'destroy']);
+            
             // ✅ NOUVELLE ROUTE : Télécharger l'accusé de réception
             Route::get('/{id}/accuse-reception', [ReclamationController::class, 'telechargerAccuseReception']);
             // Route pour télécharger les documents joints
             Route::get('/{id}/documents/{documentIndex}', [ReclamationController::class, 'downloadDocument']);
+        });
+
+        Route::prefix('rendez-vous')->group(function () {
+            Route::get('/', [RendezVousController::class, 'index']);
+            Route::get('/creneaux-disponibles/{date}', [RendezVousController::class, 'getCreneauxDisponibles']);
+            Route::post('/', [RendezVousController::class, 'store']);
+            Route::get('/historique', [RendezVousController::class, 'historique']);
+            Route::get('/{id}', [RendezVousController::class, 'show']);
+            Route::put('/{id}/annuler', [RendezVousController::class, 'annuler']);
         });
     });
 
@@ -239,3 +260,9 @@ Route::fallback(function(){
         'error' => 'La route demandée n\'existe pas'
     ], 404);
 });
+
+// ✅ NOUVEAU : Routes d'administration pour les rendez-vous (optionnel)
+    Route::prefix('admin/rendez-vous')->group(function () {
+        Route::get('/statistiques', [RendezVousController::class, 'statistiquesAdmin']);
+        Route::put('/{id}/statut', [RendezVousController::class, 'changerStatut']);
+    });

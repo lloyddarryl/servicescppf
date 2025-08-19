@@ -20,12 +20,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
-  color: white;
+  color: #252525;
   padding: 2rem;
   border-radius: 1.5rem;
   margin-bottom: 3rem;
-  box-shadow: 0 10px 25px -5px rgba(30, 58, 138, 0.3);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
   position: relative;
   overflow: hidden;
 }
@@ -37,7 +36,7 @@
   right: -20%;
   width: 200px;
   height: 200px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(107, 86, 86, 0.1);
   border-radius: 50%;
   z-index: 0;
 }
@@ -52,7 +51,7 @@
   font-size: 1.5rem;
   font-weight: bold;
   margin: 0 0 0.5rem 0;
-  background: rgba(255, 255, 255, 0.95);
+  background: #1E3A8A;
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -70,17 +69,17 @@
 .reclamations__welcome-user {
   font-size: 1.25rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
+  color: #1E3A8A;
 }
 
 .reclamations__welcome-badge {
   display: inline-block;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(44, 84, 193, 0.95);
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
   font-size: 0.875rem;
   font-weight: 600;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(131, 39, 39, 0.3);
   width: fit-content;
   backdrop-filter: blur(10px);
 }
@@ -94,7 +93,7 @@
 }
 
 .reclamations__dashboard-btn {
-  background: rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, #bebebe 0%, #999b9e 100%);
   border: 1px solid rgba(255, 255, 255, 0.3);
   color: white;
   padding: 0.75rem 1.5rem;
@@ -110,9 +109,9 @@
 }
 
 .reclamations__dashboard-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background:  #6b7280;
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px -5px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 20px -5px rgba(41, 39, 39, 0.2);
 }
 
 .reclamations__welcome-icon {
@@ -744,12 +743,6 @@
     gap: 1.5rem;
   }
 
-
-
-  .reclamations__welcome-user {
-    font-size: 1.125rem;
-  }
-
   .reclamations__welcome-subtitle {
     align-items: center;
   }
@@ -771,10 +764,6 @@
   .reclamations__stats {
     grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
-  }
-  
-  .reclamations__stat-card {
-    padding: 1rem;
   }
   
   .reclamations__stat-value {
@@ -1157,10 +1146,6 @@
     gap: 1rem;
   }
   
-  .reclamations__stat-card {
-    padding: 1rem;
-  }
-  
   .reclamations__stat-value {
     font-size: 1.5rem;
   }
@@ -1337,7 +1322,6 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
   transition: height 0.3s ease;
 }
 

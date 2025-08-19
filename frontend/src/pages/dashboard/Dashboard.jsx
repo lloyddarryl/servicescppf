@@ -73,6 +73,8 @@ const Dashboard = () => {
       attestations: '/actifs/attestations',
       profil: '/actifs/profil',
       reclamations: '/actifs/reclamations',
+      prise_rdv: '/actifs/rendez-vous', // ✅ AJOUTÉ
+      rendez_vous: '/actifs/rendez-vous', // ✅ AJOUTÉ (variante)
       },
      retraite: {
       pension: '/retraites/pension',
@@ -80,7 +82,11 @@ const Dashboard = () => {
       certificats: '/retraites/certificats-vie',
       historique: '/retraites/historique',
       attestations: '/retraites/attestations',
-      profil: '/retraites/profil'
+      profil: '/retraites/profil',
+      reclamations: '/retraites/reclamations', // ✅ AJOUTÉ : Pour les retraités
+      rendez_vous: '/retraites/rendez-vous', // ✅ AJOUTÉ
+      prise_rdv: '/retraites/rendez-vous', // ✅ AJOUTÉ (variante)
+
       }
     };
 

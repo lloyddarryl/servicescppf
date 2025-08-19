@@ -155,42 +155,51 @@ class DashboardController extends Controller
     
     // Services disponibles
     $services = [
-        [
-            'id' => 'pension',
-            'name' => 'Suivi Pension',
-            'description' => 'Consulter vos versements de pension',
-            'icon' => 'banknotes',
-            'available' => true
-        ],
-        [
-            'id' => 'grappe_familiale',
-            'name' => 'Grappe Familiale',
-            'description' => 'Gérer vos informations familiales',
-            'icon' => 'document-check',
-            'available' => true
-        ],
-        [
-            'id' => 'historique',
-            'name' => 'Historique de paiements',
-            'description' => 'Consulter votre historique de paiement',
-            'icon' => 'pencil',
-            'available' => true
-        ],
-        [
-            'id' => 'Mes Documents',
-            'name' => "Mes Documents",
-            'description' => 'Gérer vos documents et attestations',
-            'icon' => 'document',
-            'available' => true
-        ],
-        [
-            'id' => 'reclamations',
-            'name' => 'Réclamations',
-            'description' => 'Gérer vos réclamations et demandes',
-            'icon' => 'reclamation',
-            'available' => true
-        ]
-    ];
+    [
+        'id' => 'pension',
+        'name' => 'Suivi Pension',
+        'description' => 'Consulter vos versements de pension',
+        'icon' => 'banknotes',
+        'available' => true
+    ],
+    [
+        'id' => 'grappe_familiale',
+        'name' => 'Grappe Familiale',
+        'description' => 'Gérer vos informations familiales',
+        'icon' => 'users', 
+        'available' => true
+    ],
+    [
+        'id' => 'historique',
+        'name' => 'Historique de paiements',
+        'description' => 'Consulter votre historique de paiement',
+        'icon' => 'pencil',
+        'available' => true
+    ],
+    [
+        'id' => 'documents', // ✅ CORRECTION : documents au lieu de 'Mes Documents'
+        'name' => 'Mes Documents',
+        'description' => 'Gérer vos documents et attestations',
+        'icon' => 'document',
+        'available' => true
+    ],
+    [
+        'id' => 'reclamations', // ✅ AJOUTÉ : Service réclamations
+        'name' => 'Réclamations',
+        'description' => 'Gérer vos réclamations et demandes',
+        'icon' => 'reclamation',
+        'available' => true,
+        'color' => 'red'
+    ],
+    [
+        'id' => 'certificats', // ✅ AJOUTÉ : Certificats de vie
+        'name' => 'Certificats de Vie',
+        'description' => 'Gérer vos certificats de vie',
+        'icon' => 'document-check',
+        'available' => true,
+        'color' => 'blue'
+    ]
+];
 
     return response()->json([
         'success' => true,

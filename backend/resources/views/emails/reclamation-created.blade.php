@@ -1,3 +1,8 @@
+<?php
+// ================================================================
+// 2. reclamation-created.blade.php - MISE À JOUR POUR L'ADMIN
+// ================================================================
+?>
 <!DOCTYPE html>
 <html>
 <head>
@@ -34,11 +39,33 @@
 
         <div class="info-box">
             <h3> Informations du demandeur</h3>
-            <p><strong>Nom :</strong> {{ $user->prenoms }} {{ $user->nom }}</p>
+            <p><strong>Identité complète :</strong> 
+                {{ $user->sexe && strtoupper($user->sexe) === 'M' ? 'M.' : ($user->situation_matrimoniale && in_array(strtolower($user->situation_matrimoniale), ['mariee', 'marie']) ? 'Mme' : 'Mlle') }} 
+                {{ $user->prenoms }} {{ $user->nom }}
+            </p>
             <p><strong>Email :</strong> {{ $user->email }}</p>
             @if($user->telephone)
                 <p><strong>Téléphone :</strong> {{ $user->telephone }}</p>
             @endif
+            
+            {{-- ✅ NOUVEAU : Informations de civilité --}}
+            @if($user->sexe)
+                <p><strong>Sexe :</strong> {{ strtoupper($user->sexe) === 'M' || strtoupper($user->sexe) === 'MASCULIN' ? 'Masculin' : 'Féminin' }}</p>
+            @endif
+            @if($user->situation_matrimoniale)
+                <p><strong>Situation matrimoniale :</strong> 
+                    @switch(strtolower($user->situation_matrimoniale))
+                        @case('celibataire') Célibataire @break
+                        @case('marie') @case('mariee') Marié(e) @break
+                        @case('divorce') @case('divorcee') Divorcé(e) @break
+                        @case('veuf') @case('veuve') Veuf/Veuve @break
+                        @case('concubinage') En concubinage @break
+                        @case('separe') @case('separee') Séparé(e) @break
+                        @default {{ ucfirst($user->situation_matrimoniale) }}
+                    @endswitch
+                </p>
+            @endif
+            
             <p><strong>Type de compte :</strong> {{ $reclamation->user_type === 'agent' ? 'Agent actif' : 'Retraité' }}</p>
             @if($reclamation->user_type === 'agent' && isset($user->matricule_solde))
                 <p><strong>Matricule :</strong> {{ $user->matricule_solde }}</p>
@@ -66,7 +93,7 @@
                     </p>
                 @endforeach
                 <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
-                     Les documents sont disponibles dans l'interface d'administration pour traitement.
+                    📎 Les documents sont disponibles dans l'interface d'administration pour traitement.
                 </p>
             </div>
         @endif
@@ -82,3 +109,4 @@
     </div>
 </body>
 </html>
+

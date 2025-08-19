@@ -1,5 +1,5 @@
 <?php
-// app/Services/AccuseReceptionService.php
+// app/Services/AccuseReceptionService.php - MISE À JOUR avec sexe et situation matrimoniale
 
 namespace App\Services;
 
@@ -26,12 +26,69 @@ class AccuseReceptionService
     }
 
     /**
+     * ✅ NOUVELLE FONCTION : Obtenir la civilité selon le sexe et la situation matrimoniale
+     */
+    private function getCivilite($user)
+    {
+        $sexe = $user->sexe ?? '';
+        $situationMatrimoniale = $user->situation_matrimoniale ?? '';
+        
+        // Si on a le sexe, on utilise la logique de civilité
+        if (strtoupper($sexe) === 'M' || strtoupper($sexe) === 'MASCULIN') {
+            return 'M.';
+        } elseif (strtoupper($sexe) === 'F' || strtoupper($sexe) === 'FEMININ') {
+            // Pour les femmes, on regarde la situation matrimoniale
+            if (in_array(strtoupper($situationMatrimoniale), ['MARIEE', 'MARIE', 'MARIÉ', 'MARIÉE'])) {
+                return 'Mme';
+            } else {
+                return 'Mlle';
+            }
+        }
+        
+        // Fallback si pas d'info
+        return '';
+    }
+
+    /**
+     * ✅ NOUVELLE FONCTION : Formater le nom complet avec civilité
+     */
+    private function getIdentiteComplete($user)
+    {
+        $civilite = $this->getCivilite($user);
+        $nomComplet = trim($user->prenoms . ' ' . $user->nom);
+        
+        return $civilite ? $civilite . ' ' . $nomComplet : $nomComplet;
+    }
+
+    /**
+     * ✅ NOUVELLE FONCTION : Obtenir le libellé de la situation matrimoniale
+     */
+    private function getSituationMatrimonialeLibelle($situationMatrimoniale)
+    {
+        $situations = [
+            'celibataire' => 'Célibataire',
+            'marie' => 'Marié(e)',
+            'mariee' => 'Mariée',
+            'divorce' => 'Divorcé(e)',
+            'divorcee' => 'Divorcée',
+            'veuf' => 'Veuf/Veuve',
+            'veuve' => 'Veuve',
+            'concubinage' => 'En concubinage',
+            'separe' => 'Séparé(e)',
+            'separee' => 'Séparée'
+        ];
+        
+        $key = strtolower($situationMatrimoniale ?? '');
+        return $situations[$key] ?? ucfirst($situationMatrimoniale ?? 'Non spécifiée');
+    }
+
+    /**
      * Générer l'accusé de réception PDF
      */
     public function genererAccuseReception(Reclamation $reclamation, $user)
     {
         try {
-            Log::info('🔄 Génération accusé de réception:', [
+            Log::info('📄 Génération accusé de réception:', [
                 'reclamation_id' => $reclamation->id,
                 'numero' => $reclamation->numero_reclamation,
                 'user_id' => $user->id
@@ -128,7 +185,7 @@ class AccuseReceptionService
     }
 
     /**
-     * Générer le contenu HTML de l'accusé
+     * ✅ MISE À JOUR : Générer le contenu HTML de l'accusé avec sexe et situation matrimoniale
      */
     private function genererHTML(Reclamation $reclamation, $user)
     {
@@ -141,8 +198,9 @@ class AccuseReceptionService
             $logoBase64 = 'data:image/png;base64,' . $logoData;
         }
 
-        // Informations utilisateur selon le type
+        // ✅ NOUVEAU : Informations utilisateur avec civilité et situation matrimoniale
         $infoUtilisateur = $this->getInfoUtilisateur($user, $reclamation->user_type);
+        $identiteComplete = $this->getIdentiteComplete($user);
         
         // Informations de la réclamation
         $typeInfo = $reclamation->type_reclamation_info;
@@ -368,20 +426,20 @@ class AccuseReceptionService
                 <div class='header'>
                     " . ($logoBase64 ? "<img src='{$logoBase64}' alt='Logo CPPF' class='logo'>" : "") . "
                     <div class='header-content'>
-                        <h1>CAISSE DE PENSION DU PERSONNEL DE LA FONCTION PUBLIQUE</h1>
+                        <h1>CAISSE DES PENSIONS ET DES PRESTATIONS FAMILIALES DES AGENTS DE L'ETAT</h1>
                         <h2>e-Services - Gestion des Réclamations</h2>
-                        <p>République Gabonaise - Union, Travail, Justice</p>
+                        <p>République Gabonaise -  Union - Travail - Justice</p>
                     </div>
                 </div>
                 
                 <!-- Titre de l'accusé -->
                 <div class='accuse-title'>
-                     ACCUSÉ DE RÉCEPTION DE RÉCLAMATION
+                    ACCUSÉ DE RÉCEPTION DE RÉCLAMATION
                 </div>
                 
                 <!-- Informations de la réclamation -->
                 <div class='info-section'>
-                    <h3> Informations de la réclamation</h3>
+                    <h3>Informations de la réclamation</h3>
                     <div class='info-grid'>
                         <div class='info-row'>
                             <div class='info-label'>Numéro de réclamation :</div>
@@ -416,13 +474,13 @@ class AccuseReceptionService
                     </div>
                 </div>
                 
-                <!-- Informations du demandeur -->
+                <!-- ✅ NOUVEAU : Informations du demandeur avec civilité et situation matrimoniale -->
                 <div class='info-section'>
-                    <h3> Informations du demandeur</h3>
+                    <h3>Informations du demandeur</h3>
                     <div class='info-grid'>
                         <div class='info-row'>
-                            <div class='info-label'>Nom complet :</div>
-                            <div class='info-value'>{$user->prenoms} {$user->nom}</div>
+                            <div class='info-label'>Identité complète :</div>
+                            <div class='info-value'><strong>{$identiteComplete}</strong></div>
                         </div>
                         <div class='info-row'>
                             <div class='info-label'>Email :</div>
@@ -432,6 +490,18 @@ class AccuseReceptionService
                         <div class='info-row'>
                             <div class='info-label'>Téléphone :</div>
                             <div class='info-value'>{$user->telephone}</div>
+                        </div>
+                        " : "") . "
+                        " . ($user->sexe ? "
+                        <div class='info-row'>
+                            <div class='info-label'>Sexe :</div>
+                            <div class='info-value'>" . (strtoupper($user->sexe) === 'M' || strtoupper($user->sexe) === 'MASCULIN' ? 'Masculin' : 'Féminin') . "</div>
+                        </div>
+                        " : "") . "
+                        " . ($user->situation_matrimoniale ? "
+                        <div class='info-row'>
+                            <div class='info-label'>Situation matrimoniale :</div>
+                            <div class='info-value'>" . $this->getSituationMatrimonialeLibelle($user->situation_matrimoniale) . "</div>
                         </div>
                         " : "") . "
                         <div class='info-row'>
@@ -444,14 +514,14 @@ class AccuseReceptionService
                 
                 <!-- Description -->
                 <div class='info-section'>
-                    <h3> Description du problème</h3>
+                    <h3>Description du problème</h3>
                     <div class='description-box'>{$reclamation->description}</div>
                 </div>
                 
                 " . ($reclamation->documents && count($reclamation->documents) > 0 ? "
                 <!-- Documents joints -->
                 <div class='info-section'>
-                    <h3>📎 Documents joints (" . count($reclamation->documents) . " fichier(s))</h3>
+                    <h3>Documents joints (" . count($reclamation->documents) . " fichier(s))</h3>
                     <div class='documents-list'>
                         " . $this->genererListeDocuments($reclamation->documents) . "
                     </div>
@@ -460,7 +530,7 @@ class AccuseReceptionService
                 
                 <!-- Notice importante -->
                 <div class='important-notice'>
-                    <strong> Important :</strong><br>
+                    <strong>Important :</strong><br>
                     • Votre réclamation a été enregistrée avec succès dans notre système.<br>
                     • Un accusé de traitement vous sera envoyé dès qu'un agent prendra en charge votre dossier.<br>
                     • Vous pouvez suivre l'évolution de votre réclamation en vous connectant à votre espace e-Services.<br>
@@ -469,7 +539,7 @@ class AccuseReceptionService
                 
                 <!-- Pied de page -->
                 <div class='footer'>
-                    <p><strong>CAISSE DE PENSION DU PERSONNEL DE LA FONCTION PUBLIQUE</strong></p>
+                    <p><strong>CAISSE DES PENSIONS ET DES PRESTATIONS FAMILIALES DES AGENTS DE L'ETAT</strong></p>
                     <p>Service e-Services | Email: contact@cppf.ga | Tél: +241 01 XX XX XX</p>
                     <p>Siège social : Libreville, Gabon</p>
                 </div>
@@ -484,7 +554,7 @@ class AccuseReceptionService
     }
 
     /**
-     * Obtenir les informations utilisateur selon le type
+     * ✅ MISE À JOUR : Obtenir les informations utilisateur selon le type avec champs étendus
      */
     private function getInfoUtilisateur($user, $userType)
     {

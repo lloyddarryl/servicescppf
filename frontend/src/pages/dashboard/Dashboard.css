@@ -77,7 +77,7 @@
 }
 
 .dashboard__title {
-  font-size: 2rem;
+  font-size: 1.65rem;
   font-weight: bold;
   color: #1E3A8A;
   margin-bottom: 0.5rem;
@@ -453,10 +453,6 @@
   
   .dashboard__welcome {
     padding: 1.5rem;
-  }
-  
-  .dashboard__title {
-    font-size: 2rem;
   }
   
   .dashboard__stats-grid {

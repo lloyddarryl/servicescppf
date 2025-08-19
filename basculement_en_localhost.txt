@@ -1,0 +1,58 @@
+#!/bin/bash
+
+echo "🔄 Basculement vers localhost..."
+
+# Backend Laravel .env
+cat > .env << 'EOF'
+APP_NAME=Laravel
+APP_ENV=local
+APP_KEY=base64:ynfDMQLQuaX5zl2ne2Afor4tzKz/BQsUnRBJ5NNKvTw=
+APP_DEBUG=true
+APP_URL=http://localhost:8000
+FRONTEND_URL=http://localhost:3000
+
+# Configuration SMS
+SMS_API_URL=https://api.wirepick.com/httpsms/send
+SMS_API_CLIENT=cppfsms
+SMS_API_PASSWORD=API_Sapbd@Passer24
+SMS_API_FROM=CPPF
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=cppf_e_services
+DB_USERNAME=root
+DB_PASSWORD=
+
+# Email config
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=nguidjoldarryl@gmail.com
+MAIL_PASSWORD=dsrxrpfdkfqmpkxc
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS=nguidjoldarryl@gmail.com
+MAIL_FROM_NAME="CPPF e-Services"
+
+# Sanctum localhost
+SANCTUM_STATEFUL_DOMAINS=localhost,localhost:3000,127.0.0.1,127.0.0.1:8000
+SESSION_DRIVER=cookie
+SESSION_DOMAIN=localhost
+
+RECLAMATION_EMAIL=nguidjoldarryl@gmail.com
+APP_RECLAMATION_EMAIL=nguidjoldarryl@gmail.com
+EOF
+
+# Frontend React .env  
+cd frontend # Adapte le chemin de ton dossier React
+cat > .env << 'EOF'
+REACT_APP_API_URL=http://localhost:8000/api
+EOF
+
+echo "✅ Configuration localhost appliquée!"
+echo "🔧 Clearing Laravel cache..."
+php artisan config:clear
+echo "🚀 Lance maintenant:"
+echo "   Backend: php artisan serve"
+echo "   Frontend: npm start"
+echo "📱 Teste sur: http://localhost:3000"
