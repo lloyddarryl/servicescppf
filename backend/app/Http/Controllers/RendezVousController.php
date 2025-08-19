@@ -94,42 +94,48 @@ class RendezVousController extends Controller
     /**
      * Obtenir les créneaux disponibles pour une date
      */
-    public function getCreneauxDisponibles(Request $request, $date)
-    {
-        try {
-            $validator = Validator::make(['date' => $date], [
-                'date' => 'required|date|after:tomorrow'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Date invalide',
-                    'errors' => $validator->errors()
-                ], 422);
+/**
+ * Obtenir les créneaux disponibles pour une date
+ */
+public static function getCreneauxDisponibles($date)
+{
+    $creneaux = [];
+    
+    // Vérifier que c'est un jour ouvrable
+    $dateCarbon = Carbon::parse($date);
+    if ($dateCarbon->isWeekend()) {
+        return [];
+    }
+    
+    // Vérifier que c'est au moins 48h à l'avance
+    if ($dateCarbon->diffInHours(now()) < 48) {
+        return [];
+    }
+    
+    // Générer les créneaux de 9h à 15h30 (par tranches de 30 minutes)
+    for ($heure = 9; $heure < 16; $heure++) {
+        for ($minute = 0; $minute < 60; $minute += 30) {
+            $heureFormatee = sprintf('%02d:%02d', $heure, $minute);
+            
+            // Vérifier si ce créneau est disponible (pas déjà pris)
+            // CORRECTION : Chercher avec différents formats possibles
+            $dejaReserve = self::where('date_demandee', $date)
+                              ->where(function($query) use ($heureFormatee) {
+                                  $query->where('heure_demandee', $heureFormatee)
+                                        ->orWhere('heure_demandee', $heureFormatee . ':00');
+                              })
+                              ->whereIn('statut', ['en_attente', 'accepte'])
+                              ->exists();
+            
+            if (!$dejaReserve) {
+                $creneaux[] = $heureFormatee;
             }
-
-            $creneaux = RendezVousDemande::getCreneauxDisponibles($date);
-
-            return response()->json([
-                'success' => true,
-                'date' => $date,
-                'creneaux' => $creneaux,
-                'total_creneaux' => count($creneaux)
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('💥 Erreur récupération créneaux:', [
-                'date' => $date,
-                'error' => $e->getMessage()
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors de la récupération des créneaux'
-            ], 500);
         }
     }
+    
+    return $creneaux;
+}
+
 
     /**
      * Créer une nouvelle demande de rendez-vous

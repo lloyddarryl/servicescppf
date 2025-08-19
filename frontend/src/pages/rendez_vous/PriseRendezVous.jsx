@@ -107,15 +107,26 @@ const PriseRendezVous = () => {
       return;
     }
 
+    // Vérifier si c'est un jour ouvrable
+    if (!estJourOuvrable(date)) {
+      setCreneauxDisponibles([]);
+      return;
+    }
+
     try {
       setLoadingCreneaux(true);
       const response = await rendezVousService.getCreneauxDisponibles(date);
       
+      console.log('Réponse créneaux:', response.data);
+      
       if (response.data.success) {
-        setCreneauxDisponibles(response.data.creneaux);
+        setCreneauxDisponibles(response.data.creneaux || []);
+        if (response.data.creneaux && response.data.creneaux.length === 0) {
+          afficherNotification('Aucun créneau disponible pour cette date', 'warning');
+        }
       } else {
         setCreneauxDisponibles([]);
-        afficherNotification('Aucun créneau disponible pour cette date', 'warning');
+        afficherNotification(response.data.message || 'Aucun créneau disponible pour cette date', 'warning');
       }
     } catch (error) {
       console.error('Erreur chargement créneaux:', error);
@@ -283,11 +294,11 @@ const PriseRendezVous = () => {
     }
   };
 
-  // Obtenir la date minimale (48h à l'avance)
+  // Obtenir la date minimale (24h à l'avance)
   const getDateMin = () => {
-    const dans48h = new Date();
-    dans48h.setHours(dans48h.getHours() + 48);
-    return dans48h.toISOString().split('T')[0];
+    const demain = new Date();
+    demain.setDate(demain.getDate() + 1);
+    return demain.toISOString().split('T')[0];
   };
 
   // Obtenir la date maximale (1 mois à l'avance)
@@ -348,7 +359,7 @@ const PriseRendezVous = () => {
             <div className="prise-rdv__header">
               <div className="prise-rdv__header-content">
                 <div className="prise-rdv__title-section">
-                  <h1 className="prise-rdv__title">Prise de Rendez-vous</h1>
+                  <h1 className="prise-rdv__title">Prise de Rendez-vous - Agent Actif</h1>
                   <div className="prise-rdv__user-welcome">
                     Bienvenue {getIdentiteComplete(pageInfo.user_info)}
                   </div>
@@ -356,7 +367,14 @@ const PriseRendezVous = () => {
                     Gérez vos demandes de rendez-vous et planifiez vos rencontres avec nos conseillers
                   </p>
                 </div>
-                
+                <div className="prise-rdv__user-info">
+                  <div className="prise-rdv__user-name">
+                    {getIdentiteComplete(pageInfo.user_info)}
+                  </div>
+                  <div className="prise-rdv__user-details">
+                    {pageInfo.user_info.type_compte} • Matricule: {pageInfo.user_info.matricule || 'N/A'}
+                  </div>
+                </div>
                 <div className="prise-rdv__header-actions">
                   <button 
                     onClick={() => window.location.href = '/dashboard'}
@@ -530,17 +548,29 @@ const PriseRendezVous = () => {
                       <option value="">Sélectionnez une heure</option>
                       {creneauxDisponibles.map(creneau => (
                         <option key={creneau} value={creneau}>
-                          {creneau.substring(0, 5)}
+                          {creneau}
                         </option>
                       ))}
                     </select>
                     {formErrors.heure_demandee && (
                       <span className="prise-rdv__error">{formErrors.heure_demandee}</span>
                     )}
+                    {formData.date_demandee && !estJourOuvrable(formData.date_demandee) && (
+                      <span className="prise-rdv__warning">
+                        Les rendez-vous ne sont disponibles que du lundi au vendredi
+                      </span>
+                    )}
                     {formData.date_demandee && estJourOuvrable(formData.date_demandee) && creneauxDisponibles.length === 0 && !loadingCreneaux && (
                       <span className="prise-rdv__warning">
-                        Aucun créneau disponible pour cette date
+                        Aucun créneau disponible pour cette date. Essayez une autre date.
                       </span>
+                    )}
+                    {creneauxDisponibles.length > 0 && (
+                      <div className="prise-rdv__motif-info">
+                        <span className="prise-rdv__motif-description">
+                          {creneauxDisponibles.length} créneau{creneauxDisponibles.length > 1 ? 'x' : ''} disponible{creneauxDisponibles.length > 1 ? 's' : ''} (créneaux de 30 minutes entre 9h et 16h)
+                        </span>
+                      </div>
                     )}
                   </div>
 
@@ -630,6 +660,7 @@ const PriseRendezVous = () => {
                       ) : (
                         <>
                           <span className="prise-rdv__submit-icon">Soumettre</span>
+                          Soumettre la demande
                         </>
                       )}
                     </button>

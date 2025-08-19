@@ -37,7 +37,7 @@ class RendezVousDemande extends Model
 
     protected $casts = [
         'date_demandee' => 'date',
-        'heure_demandee' => 'datetime:H:i',
+        'heure_demandee' => 'string', // Changé de 'datetime:H:i' à 'string'
         'date_soumission' => 'datetime',
         'date_reponse' => 'datetime',
         'date_rdv_confirme' => 'datetime',
@@ -175,13 +175,17 @@ class RendezVousDemande extends Model
     }
 
     /**
-     * Obtenir la date et heure formatées
-     */
-    public function getDateHeureFormatteeAttribute()
-    {
-        return $this->date_demandee->format('d/m/Y') . ' à ' . 
-               Carbon::createFromFormat('H:i:s', $this->heure_demandee)->format('H:i');
-    }
+ * Obtenir la date et heure formatées
+ */
+public function getDateHeureFormatteeAttribute()
+{
+    // Traiter heure_demandee comme une chaîne HH:MM
+    $heure = is_string($this->heure_demandee) 
+        ? $this->heure_demandee 
+        : Carbon::parse($this->heure_demandee)->format('H:i');
+        
+    return $this->date_demandee->format('d/m/Y') . ' à ' . substr($heure, 0, 5);
+}
 
     /**
      * Obtenir le temps écoulé depuis la soumission
@@ -265,48 +269,78 @@ class RendezVousDemande extends Model
         return $this;
     }
 
-    /**
-     * Validation des créneaux disponibles
-     */
-    public static function estCreneauDisponible($date, $heure)
-    {
-        // Vérifier que c'est un jour ouvrable (lundi à vendredi)
-        $dateCarbon = Carbon::parse($date);
-        if ($dateCarbon->isWeekend()) {
-            return false;
-        }
-        
-        // Vérifier que l'heure est dans les créneaux (9h-16h)
-        $heureCarbon = Carbon::createFromFormat('H:i', $heure);
-        if ($heureCarbon->hour < 9 || $heureCarbon->hour >= 16) {
-            return false;
-        }
-        
-        // Vérifier que c'est dans le futur avec au moins 48h de préavis
-        $dateTimeComplete = Carbon::createFromFormat(
-            'Y-m-d H:i',
-            $dateCarbon->format('Y-m-d') . ' ' . $heure
-        );
-        
-        if ($dateTimeComplete->diffInHours(now()) < 48) {
-            return false;
-        }
-        
-        return true;
+    // Dans backend/app/Models/RendezVousDemande.php
+/**
+ * Obtenir les créneaux disponibles pour une date
+ */
+public static function getCreneauxDisponibles($date)
+{
+    $creneaux = [];
+    
+    // Vérifier que c'est un jour ouvrable
+    $dateCarbon = Carbon::parse($date);
+    if ($dateCarbon->isWeekend()) {
+        return [];
     }
-
-    /**
-     * Obtenir les créneaux disponibles pour une date
-     */
-    public static function getCreneauxDisponibles($date)
-    {
-        $creneaux = [];
-        for ($heure = 9; $heure < 16; $heure++) {
-            $heureFormatee = str_pad($heure, 2, '0', STR_PAD_LEFT) . ':00';
-            if (self::estCreneauDisponible($date, $heureFormatee)) {
+    
+    // Vérifier que c'est au moins 48h à l'avance
+    if ($dateCarbon->diffInHours(now()) < 48) {
+        return [];
+    }
+    
+    // Générer les créneaux de 9h à 16h (par tranches de 30 minutes)
+    for ($heure = 9; $heure < 16; $heure++) {
+        for ($minute = 0; $minute < 60; $minute += 30) {
+            $heureFormatee = sprintf('%02d:%02d', $heure, $minute);
+            
+            // Vérifier si ce créneau est disponible (pas déjà pris)
+            $dejaReserve = self::where('date_demandee', $date)
+                              ->where('heure_demandee', $heureFormatee . ':00')
+                              ->whereIn('statut', ['en_attente', 'accepte'])
+                              ->exists();
+            
+            if (!$dejaReserve) {
                 $creneaux[] = $heureFormatee;
             }
         }
-        return $creneaux;
+    }
+    
+    return $creneaux;
+}
+
+/**
+ * Validation des créneaux disponibles
+ */
+public static function estCreneauDisponible($date, $heure)
+{
+    // Vérifier que c'est un jour ouvrable (lundi à vendredi)
+    $dateCarbon = Carbon::parse($date);
+    if ($dateCarbon->isWeekend()) {
+        return false;
+    }
+    
+    // Vérifier que l'heure est dans les créneaux (9h-16h)
+    $heureCarbon = Carbon::createFromFormat('H:i', $heure);
+    if ($heureCarbon->hour < 9 || $heureCarbon->hour >= 16) {
+        return false;
+    }
+    
+    // Vérifier que c'est dans le futur avec au moins 48h de préavis
+    $dateTimeComplete = Carbon::createFromFormat(
+        'Y-m-d H:i',
+        $dateCarbon->format('Y-m-d') . ' ' . $heure
+    );
+    
+    if ($dateTimeComplete->diffInHours(now()) < 48) {
+        return false;
+    }
+    
+    // Vérifier que le créneau n'est pas déjà réservé
+    $dejaReserve = self::where('date_demandee', $date)
+                      ->where('heure_demandee', $heure . ':00')
+                      ->whereIn('statut', ['en_attente', 'accepte'])
+                      ->exists();
+    
+    return !$dejaReserve;
     }
 }
