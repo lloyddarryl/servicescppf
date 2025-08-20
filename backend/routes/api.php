@@ -1,5 +1,5 @@
 <?php
-// File: backend/routes/api.php - Version avec accusés de réception
+// File: backend/routes/api.php - Version corrigée pour les rendez-vous
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
@@ -7,7 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PensionSimulatorController;
 use App\Http\Controllers\FamilleController;
-use App\Http\Controllers\ReclamationController; 
+use App\Http\Controllers\ReclamationController;
 use App\Http\Controllers\RendezVousController;
 
 /*
@@ -24,13 +24,13 @@ Route::prefix('auth')->group(function () {
     // Première connexion
     Route::post('/first-login/actifs', [AuthController::class, 'firstLoginActifs']);
     Route::post('/first-login/retraites', [AuthController::class, 'firstLoginRetraites']);
-    
+
     // Connexion standard
     Route::post('/standard-login', [AuthController::class, 'standardLogin']);
-    
+
     // Configuration du profil après première connexion
     Route::post('/setup-profile', [AuthController::class, 'setupProfile']);
-    
+
     // Routes de vérification pour le setup (avec token bearer)
     Route::post('/verify-phone-setup', [AuthController::class, 'verifyPhoneSetup']);
     Route::post('/resend-verification-setup', [AuthController::class, 'resendVerificationSetup']);
@@ -38,12 +38,12 @@ Route::prefix('auth')->group(function () {
 
 // Routes protégées par authentification Sanctum
 Route::middleware('auth:sanctum')->group(function () {
-    
+
     // ✅ ROUTE DE TEST FAMILLE
     Route::get('/test-famille', function (Request $request) {
         try {
             $user = $request->user();
-            
+
             return response()->json([
                 'success' => true,
                 'debug' => [
@@ -85,18 +85,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('actifs')->group(function () {
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'agentDashboard']);
-        
+
         // Attestations
         Route::get('/attestations', [DashboardController::class, 'getAttestations']);
         Route::post('/attestations', [DashboardController::class, 'requestAttestation']);
-        
+
         // Prestations
         Route::get('/prestations', [DashboardController::class, 'getPrestations']);
-        
+
         // Cotisations et gestion de carrière
         Route::get('/cotisations', [DashboardController::class, 'getCotisations']);
         Route::get('/carriere', [DashboardController::class, 'getCarriere']);
-        
+
         // Routes de profil
         Route::get('/profil', [ProfileController::class, 'show']);
         Route::put('/profil', [ProfileController::class, 'update']);
@@ -107,11 +107,11 @@ Route::middleware('auth:sanctum')->group(function () {
         // Documents et certificats
         Route::get('/documents', [DashboardController::class, 'getDocuments']);
         Route::post('/documents', [DashboardController::class, 'uploadDocument']);
-        
+
         // Notifications
         Route::get('/notifications', [DashboardController::class, 'getNotifications']);
         Route::put('/notifications/{id}/read', [DashboardController::class, 'markNotificationRead']);
-        
+
         // ✅ FAMILLE - Routes pour les agents actifs
         Route::prefix('famille')->group(function () {
             Route::get('/', [FamilleController::class, 'getGrappeFamiliale']);
@@ -129,63 +129,61 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/parametres', [PensionSimulatorController::class, 'getParameters']);
         });
 
-        // ✅ RÉCLAMATIONS - Routes pour les agents actifs (MISES À JOUR)
+        // ✅ RÉCLAMATIONS - Routes pour les agents actifs
         Route::prefix('reclamations')->group(function () {
             Route::get('/types', [ReclamationController::class, 'getTypesReclamations']);
             Route::get('/', [ReclamationController::class, 'index']);
             Route::post('/', [ReclamationController::class, 'store']);
             Route::get('/{id}', [ReclamationController::class, 'show']);
             Route::delete('/{id}', [ReclamationController::class, 'destroy']);
-            // ✅ NOUVELLE ROUTE : Télécharger l'accusé de réception
             Route::get('/{id}/accuse-reception', [ReclamationController::class, 'telechargerAccuseReception']);
-            // Route pour télécharger les documents joints
             Route::get('/{id}/documents/{documentIndex}', [ReclamationController::class, 'downloadDocument']);
         });
+
+        // ✅ RENDEZ-VOUS - Routes corrigées pour les agents actifs
         Route::prefix('rendez-vous')->group(function () {
             Route::get('/', [RendezVousController::class, 'index']);
-            Route::get('/creneaux-disponibles/{date}', [RendezVousController::class, 'getCreneauxDisponibles']);
             Route::post('/', [RendezVousController::class, 'store']);
             Route::get('/historique', [RendezVousController::class, 'historique']);
+            Route::get('/creneaux-disponibles/{date}', [RendezVousController::class, 'getCreneauxDisponibles']);
             Route::get('/{id}', [RendezVousController::class, 'show']);
             Route::put('/{id}/annuler', [RendezVousController::class, 'annuler']);
         });
-
-
     });
 
     // Routes spécifiques aux retraités avec préfixe /retraites
     Route::prefix('retraites')->group(function () {
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'retraiteDashboard']);
-        
+
         // Pension
         Route::get('/pension', [DashboardController::class, 'getPensionInfo']);
         Route::get('/pension/historique', [DashboardController::class, 'getPensionHistorique']);
-        
+
         // Certificats de vie
         Route::get('/certificats-vie', [DashboardController::class, 'getCertificatsVie']);
         Route::post('/certificats-vie', [DashboardController::class, 'submitCertificatVie']);
         Route::get('/certificats-vie/{id}/status', [DashboardController::class, 'getCertificatStatus']);
-        
+
         // Attestations spécifiques retraités
         Route::get('/attestations', [DashboardController::class, 'getAttestationsRetraite']);
         Route::post('/attestations', [DashboardController::class, 'requestAttestationRetraite']);
-        
+
         // Historique et suivi
         Route::get('/historique', [DashboardController::class, 'getHistorique']);
         Route::get('/suivi-paiements', [DashboardController::class, 'getSuiviPaiements']);
-        
+
         // Routes de profil
         Route::get('/profil', [ProfileController::class, 'show']);
         Route::put('/profil', [ProfileController::class, 'update']);
         Route::put('/profil/password', [ProfileController::class, 'changePassword']);
         Route::post('/profil/verify-phone', [ProfileController::class, 'verifyPhone']);
         Route::post('/profil/resend-verification', [ProfileController::class, 'resendVerification']);
-        
+
         // Documents
         Route::get('/documents', [DashboardController::class, 'getDocumentsRetraite']);
         Route::post('/documents', [DashboardController::class, 'uploadDocumentRetraite']);
-        
+
         // Notifications
         Route::get('/notifications', [DashboardController::class, 'getNotificationsRetraite']);
         Route::put('/notifications/{id}/read', [DashboardController::class, 'markNotificationReadRetraite']);
@@ -198,26 +196,24 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/enfants/{id}', [FamilleController::class, 'updateEnfant']);
             Route::delete('/enfants/{id}', [FamilleController::class, 'deleteEnfant']);
         });
-        
-        // ✅ RÉCLAMATIONS - Routes pour les retraités (MISES À JOUR)
+
+        // ✅ RÉCLAMATIONS - Routes pour les retraités
         Route::prefix('reclamations')->group(function () {
             Route::get('/types', [ReclamationController::class, 'getTypesReclamations']);
             Route::get('/', [ReclamationController::class, 'index']);
             Route::post('/', [ReclamationController::class, 'store']);
             Route::get('/{id}', [ReclamationController::class, 'show']);
             Route::delete('/{id}', [ReclamationController::class, 'destroy']);
-            
-            // ✅ NOUVELLE ROUTE : Télécharger l'accusé de réception
             Route::get('/{id}/accuse-reception', [ReclamationController::class, 'telechargerAccuseReception']);
-            // Route pour télécharger les documents joints
             Route::get('/{id}/documents/{documentIndex}', [ReclamationController::class, 'downloadDocument']);
         });
 
+        // ✅ RENDEZ-VOUS - Routes corrigées pour les retraités
         Route::prefix('rendez-vous')->group(function () {
             Route::get('/', [RendezVousController::class, 'index']);
-            Route::get('/creneaux-disponibles/{date}', [RendezVousController::class, 'getCreneauxDisponibles']);
             Route::post('/', [RendezVousController::class, 'store']);
             Route::get('/historique', [RendezVousController::class, 'historique']);
+            Route::get('/creneaux-disponibles/{date}', [RendezVousController::class, 'getCreneauxDisponibles']);
             Route::get('/{id}', [RendezVousController::class, 'show']);
             Route::put('/{id}/annuler', [RendezVousController::class, 'annuler']);
         });
@@ -230,12 +226,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/test/pension/diagnostic', [App\Http\Controllers\PensionTestController::class, 'diagnostic']);
     Route::post('/test/pension/init', [App\Http\Controllers\PensionTestController::class, 'initTestData']);
     Route::delete('/test/pension/cleanup', [App\Http\Controllers\PensionTestController::class, 'cleanup']);
-    
+
     // Route de test générale
     Route::get('/test-profile', function (Illuminate\Http\Request $request) {
         try {
             $user = $request->user();
-            
+
             return response()->json([
                 'success' => true,
                 'user_type' => get_class($user),
@@ -250,19 +246,25 @@ Route::middleware('auth:sanctum')->group(function () {
             ], 500);
         }
     });
+
+    // ✅ NOUVEAU : Routes d'administration pour les rendez-vous
+    Route::prefix('admin/rendez-vous')->group(function () {
+        Route::get('/', [RendezVousController::class, 'indexAdmin']);
+        Route::get('/statistiques', [RendezVousController::class, 'statistiquesAdmin']);
+        Route::put('/{id}/statut', [RendezVousController::class, 'changerStatut']);
+        Route::get('/export', [RendezVousController::class, 'export']);
+        Route::get('/creneaux-occupes/{date}', [RendezVousController::class, 'getCreneauxOccupes']);
+        Route::get('/rechercher', [RendezVousController::class, 'rechercher']);
+        Route::delete('/{id}', [RendezVousController::class, 'destroy']);
+        Route::get('/rapport', [RendezVousController::class, 'rapport']);
+    });
 });
 
 // ✅ Route de fallback pour API
-Route::fallback(function(){
+Route::fallback(function () {
     return response()->json([
         'success' => false,
         'message' => 'Route non trouvée',
         'error' => 'La route demandée n\'existe pas'
     ], 404);
 });
-
-// ✅ NOUVEAU : Routes d'administration pour les rendez-vous (optionnel)
-    Route::prefix('admin/rendez-vous')->group(function () {
-        Route::get('/statistiques', [RendezVousController::class, 'statistiquesAdmin']);
-        Route::put('/{id}/statut', [RendezVousController::class, 'changerStatut']);
-    });

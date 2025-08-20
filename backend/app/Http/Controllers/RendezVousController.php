@@ -46,18 +46,18 @@ class RendezVousController extends Controller
                 'en_attente' => RendezVousDemande::pourUtilisateur($user->id, $userType)->enAttente()->count(),
                 'acceptees' => RendezVousDemande::pourUtilisateur($user->id, $userType)->where('statut', 'accepte')->count(),
                 'ce_mois' => RendezVousDemande::pourUtilisateur($user->id, $userType)
-                                             ->whereMonth('date_soumission', now()->month)
-                                             ->whereYear('date_soumission', now()->year)
-                                             ->count()
+                    ->whereMonth('date_soumission', now()->month)
+                    ->whereYear('date_soumission', now()->year)
+                    ->count()
             ];
 
             // Prochains RDV confirmés
             $prochainsRdv = RendezVousDemande::pourUtilisateur($user->id, $userType)
-                                            ->confirmes()
-                                            ->where('date_rdv_confirme', '>=', now())
-                                            ->orderBy('date_rdv_confirme')
-                                            ->limit(3)
-                                            ->get();
+                ->confirmes()
+                ->where('date_rdv_confirme', '>=', now())
+                ->orderBy('date_rdv_confirme')
+                ->limit(3)
+                ->get();
 
             return response()->json([
                 'success' => true,
@@ -92,53 +92,156 @@ class RendezVousController extends Controller
     }
 
     /**
-     * Obtenir les créneaux disponibles pour une date
+     * ✅ CORRECTION FINALE : Obtenir les créneaux disponibles pour une date
      */
-/**
- * Obtenir les créneaux disponibles pour une date
- */
-public static function getCreneauxDisponibles($date)
-{
-    $creneaux = [];
-    
-    // Vérifier que c'est un jour ouvrable
-    $dateCarbon = Carbon::parse($date);
-    if ($dateCarbon->isWeekend()) {
-        return [];
-    }
-    
-    // Vérifier que c'est au moins 48h à l'avance
-    if ($dateCarbon->diffInHours(now()) < 48) {
-        return [];
-    }
-    
-    // Générer les créneaux de 9h à 15h30 (par tranches de 30 minutes)
-    for ($heure = 9; $heure < 16; $heure++) {
-        for ($minute = 0; $minute < 60; $minute += 30) {
-            $heureFormatee = sprintf('%02d:%02d', $heure, $minute);
-            
-            // Vérifier si ce créneau est disponible (pas déjà pris)
-            // CORRECTION : Chercher avec différents formats possibles
-            $dejaReserve = self::where('date_demandee', $date)
-                              ->where(function($query) use ($heureFormatee) {
-                                  $query->where('heure_demandee', $heureFormatee)
-                                        ->orWhere('heure_demandee', $heureFormatee . ':00');
-                              })
-                              ->whereIn('statut', ['en_attente', 'accepte'])
-                              ->exists();
-            
-            if (!$dejaReserve) {
-                $creneaux[] = $heureFormatee;
+    public function getCreneauxDisponibles($date)
+    {
+        try {
+            Log::info('🔍 [RDV] Récupération créneaux pour date: ' . $date);
+
+            // Validation basique de la date
+            $validator = Validator::make(['date' => $date], [
+                'date' => 'required|date'
+            ]);
+
+            if ($validator->fails()) {
+                Log::error('❌ [RDV] Date invalide: ' . $date);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Format de date invalide',
+                    'creneaux' => []
+                ], 422);
             }
+
+            $dateCarbon = Carbon::parse($date);
+            $maintenant = Carbon::now();
+
+            Log::info('🕐 [RDV] Calcul temporel:', [
+                'date_demandee' => $dateCarbon->format('Y-m-d H:i:s'),
+                'maintenant' => $maintenant->format('Y-m-d H:i:s'),
+                'jour_semaine' => $dateCarbon->dayOfWeek
+            ]);
+
+            // Vérifier que c'est un jour ouvrable (1=lundi, 5=vendredi)
+            if ($dateCarbon->isWeekend()) {
+                Log::info('❌ [RDV] Weekend détecté: ' . $dateCarbon->format('l'));
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Les rendez-vous ne sont disponibles que du lundi au vendredi',
+                    'creneaux' => []
+                ]);
+            }
+
+            // Calculer le délai en heures de manière précise
+            $dateDemandeDebut = $dateCarbon->copy()->startOfDay(); // 00:00:00 du jour demandé
+            $dansCombienHeures = $maintenant->diffInHours($dateDemandeDebut, false);
+
+            Log::info('⏰ [RDV] Calcul délai:', [
+                'maintenant' => $maintenant->format('Y-m-d H:i:s'),
+                'debut_jour_demande' => $dateDemandeDebut->format('Y-m-d H:i:s'),
+                'heures_avant' => $dansCombienHeures,
+                'delai_suffisant' => $dansCombienHeures >= 48
+            ]);
+
+            // Vérifier le délai de 48h minimum
+            if ($dansCombienHeures < 48) {
+                Log::info('❌ [RDV] Délai insuffisant: ' . $dansCombienHeures . 'h (minimum 48h)');
+                return response()->json([
+                    'success' => false,
+                    'message' => "La date doit être au moins 48h à l'avance (actuellement {$dansCombienHeures}h)",
+                    'creneaux' => []
+                ]);
+            }
+
+            // Générer tous les créneaux possibles de 9h à 15h30 (par tranches de 30 minutes)
+            $creneauxPossibles = [];
+            for ($heure = 9; $heure < 16; $heure++) {
+                for ($minute = 0; $minute < 60; $minute += 30) {
+                    $creneauxPossibles[] = sprintf('%02d:%02d', $heure, $minute);
+                }
+            }
+
+            Log::info('📋 [RDV] Créneaux possibles générés:', [
+                'total' => count($creneauxPossibles),
+                'premier' => $creneauxPossibles[0] ?? 'aucun',
+                'dernier' => end($creneauxPossibles) ?: 'aucun'
+            ]);
+
+            // Récupérer les créneaux déjà réservés
+            $reservations = RendezVousDemande::where('date_demandee', $date)
+                ->whereIn('statut', ['en_attente', 'accepte'])
+                ->get(['heure_demandee', 'statut', 'numero_demande']);
+
+            $creneauxReserves = $reservations->map(function ($rdv) {
+                // Normaliser l'heure (enlever les secondes si présentes)
+                $heure = $rdv->heure_demandee;
+                if (strlen($heure) > 5) {
+                    $heure = substr($heure, 0, 5); // HH:MM
+                }
+                return $heure;
+            })->toArray();
+
+            Log::info('🚫 [RDV] Créneaux réservés:', [
+                'reservations_trouvees' => $reservations->count(),
+                'creneaux_reserves' => $creneauxReserves,
+                'details' => $reservations->map(fn($r) => [
+                    'heure' => $r->heure_demandee,
+                    'statut' => $r->statut,
+                    'numero' => $r->numero_demande
+                ])->toArray()
+            ]);
+
+            // Calculer les créneaux disponibles
+            $creneauxDisponibles = array_values(array_diff($creneauxPossibles, $creneauxReserves));
+
+            Log::info('✅ [RDV] Créneaux disponibles calculés:', [
+                'total_possibles' => count($creneauxPossibles),
+                'total_reserves' => count($creneauxReserves),
+                'total_disponibles' => count($creneauxDisponibles),
+                'creneaux_disponibles' => $creneauxDisponibles
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'date' => $date,
+                'creneaux' => $creneauxDisponibles,
+                'total_creneaux' => count($creneauxDisponibles),
+                'message' => count($creneauxDisponibles) > 0
+                    ? count($creneauxDisponibles) . ' créneaux disponibles'
+                    : 'Aucun créneau disponible pour cette date',
+                'debug' => [
+                    'jour_semaine' => $dateCarbon->format('l'),
+                    'est_weekend' => $dateCarbon->isWeekend(),
+                    'heures_avant' => $dansCombienHeures,
+                    'delai_ok' => $dansCombienHeures >= 48,
+                    'creneaux_possibles' => count($creneauxPossibles),
+                    'creneaux_reserves' => count($creneauxReserves),
+                    'reservations_existantes' => $reservations->map(fn($r) => [
+                        'heure' => $r->heure_demandee,
+                        'statut' => $r->statut
+                    ])->toArray()
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('💥 [RDV] Erreur récupération créneaux:', [
+                'date' => $date,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur technique lors de la récupération des créneaux',
+                'creneaux' => [],
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
-    
-    return $creneaux;
-}
 
 
     /**
-     * Créer une nouvelle demande de rendez-vous
+     * ✅ CORRECTION : Créer une nouvelle demande de rendez-vous
      */
     public function store(Request $request)
     {
@@ -152,25 +255,32 @@ public static function getCreneauxDisponibles($date)
                 'form_data' => $request->except(['documents'])
             ]);
 
-            // Validation
+            // ✅ VALIDATION CORRIGÉE - Plus de "after:tomorrow"
             $validator = Validator::make($request->all(), [
-                'date_demandee' => 'required|date|after:tomorrow',
+                'date_demandee' => 'required|date',
                 'heure_demandee' => 'required|date_format:H:i',
                 'motif' => 'required|in:' . implode(',', array_keys(RendezVousDemande::$motifs)),
-                'motif_autre' => 'required_if:motif,autre|string|max:255',
+                'motif_autre' => 'nullable|string|max:255|required_if:motif,autre', // ✅ nullable en premier
                 'commentaires' => 'nullable|string|max:1000'
             ], [
                 'date_demandee.required' => 'La date est obligatoire',
-                'date_demandee.after' => 'La date doit être au moins 48h à l\'avance',
+                'date_demandee.date' => 'Format de date invalide',
                 'heure_demandee.required' => 'L\'heure est obligatoire',
-                'heure_demandee.date_format' => 'Format d\'heure invalide',
+                'heure_demandee.date_format' => 'Format d\'heure invalide (HH:MM attendu)',
                 'motif.required' => 'Le motif est obligatoire',
                 'motif.in' => 'Motif invalide',
-                'motif_autre.required_if' => 'Veuillez préciser le motif',
+                'motif_autre.required_if' => 'Veuillez préciser le motif quand vous sélectionnez "Autre"',
+                'motif_autre.string' => 'Le motif autre doit être une chaîne de caractères',
+                'motif_autre.max' => 'Le motif autre ne peut pas dépasser 255 caractères',
                 'commentaires.max' => 'Les commentaires ne peuvent pas dépasser 1000 caractères'
             ]);
 
             if ($validator->fails()) {
+                Log::error('❌ [RDV] Erreurs de validation:', [
+                    'errors' => $validator->errors()->toArray(),
+                    'input_data' => $request->all()
+                ]);
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Erreurs de validation',
@@ -178,15 +288,72 @@ public static function getCreneauxDisponibles($date)
                 ], 422);
             }
 
-            // Vérifier la disponibilité du créneau
-            if (!RendezVousDemande::estCreneauDisponible($request->date_demandee, $request->heure_demandee)) {
+            // ✅ VALIDATION MÉTIER PERSONNALISÉE (plus précise que Laravel)
+            $dateCarbon = Carbon::parse($request->date_demandee);
+            $maintenant = Carbon::now();
+
+            // Vérifier jour ouvrable
+            if ($dateCarbon->isWeekend()) {
+                Log::info('❌ [RDV] Weekend rejeté:', [
+                    'date' => $request->date_demandee,
+                    'jour' => $dateCarbon->format('l')
+                ]);
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Ce créneau n\'est pas disponible'
+                    'message' => 'Les rendez-vous ne sont disponibles que du lundi au vendredi',
+                    'errors' => ['date_demandee' => ['Les rendez-vous ne sont disponibles que du lundi au vendredi']]
                 ], 422);
             }
 
-            // Créer la demande
+            // Vérifier délai 48h
+            $heuresRestantes = $maintenant->diffInHours($dateCarbon->startOfDay(), false);
+            if ($heuresRestantes < 48) {
+                Log::info('❌ [RDV] Délai insuffisant:', [
+                    'date' => $request->date_demandee,
+                    'heures_restantes' => $heuresRestantes
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => "La date doit être au moins 48h à l'avance (actuellement {$heuresRestantes}h)",
+                    'errors' => ['date_demandee' => ["La date doit être au moins 48h à l'avance"]]
+                ], 422);
+            }
+
+            // Vérifier heure dans les créneaux (9h-15h30)
+            $heureNum = (int) explode(':', $request->heure_demandee)[0];
+            $minuteNum = (int) explode(':', $request->heure_demandee)[1];
+
+            if ($heureNum < 9 || $heureNum >= 16 || ($heureNum == 15 && $minuteNum > 30)) {
+                Log::info('❌ [RDV] Heure hors créneaux:', [
+                    'heure_demandee' => $request->heure_demandee,
+                    'heure_num' => $heureNum,
+                    'minute_num' => $minuteNum
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'L\'heure doit être entre 9h00 et 15h30',
+                    'errors' => ['heure_demandee' => ['L\'heure doit être entre 9h00 et 15h30']]
+                ], 422);
+            }
+
+            // ✅ VÉRIFICATION FINALE : Créneau encore disponible ?
+            if (!RendezVousDemande::estCreneauDisponible($request->date_demandee, $request->heure_demandee)) {
+                Log::warning('⚠️ [RDV] Créneau plus disponible au moment de la soumission:', [
+                    'date' => $request->date_demandee,
+                    'heure' => $request->heure_demandee
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ce créneau n\'est plus disponible. Veuillez en choisir un autre.',
+                    'errors' => ['heure_demandee' => ['Ce créneau n\'est plus disponible']]
+                ], 422);
+            }
+
+            // ✅ CRÉATION DE LA DEMANDE
             $demande = new RendezVousDemande([
                 'user_id' => $user->id,
                 'user_type' => $userType,
@@ -206,20 +373,21 @@ public static function getCreneauxDisponibles($date)
 
             $demande->save();
 
-            Log::info('✅ Demande RDV créée:', [
+            Log::info('✅ [RDV] Demande créée avec succès:', [
                 'rdv_id' => $demande->id,
-                'numero' => $demande->numero_demande
+                'numero' => $demande->numero_demande,
+                'date_heure' => $demande->date_demandee->format('Y-m-d') . ' ' . $demande->heure_demandee
             ]);
 
             // Envoyer email à l'admin
             try {
                 $destinataireAdmin = env('APP_RECLAMATION_EMAIL', 'nguidjoldarryl@gmail.com');
                 Mail::to($destinataireAdmin)->send(new RendezVousDemandeAdminMail($demande, $user));
-                
+
                 $demande->update(['email_admin_envoye' => true]);
-                Log::info('📧 Email admin RDV envoyé');
+                Log::info('📧 [RDV] Email admin envoyé avec succès');
             } catch (\Exception $e) {
-                Log::error('❌ Erreur envoi email admin RDV:', [
+                Log::error('⚠️ [RDV] Erreur envoi email admin (demande créée quand même):', [
                     'rdv_id' => $demande->id,
                     'error' => $e->getMessage()
                 ]);
@@ -239,15 +407,16 @@ public static function getCreneauxDisponibles($date)
             ]);
 
         } catch (\Exception $e) {
-            Log::error('💥 Erreur création demande RDV:', [
+            Log::error('💥 [RDV] Erreur création demande:', [
                 'user_id' => $request->user()->id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
+                'input_data' => $request->all()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Erreur lors de la soumission de votre demande'
+                'message' => 'Erreur technique lors de la soumission de votre demande'
             ], 500);
         }
     }
@@ -256,78 +425,104 @@ public static function getCreneauxDisponibles($date)
      * Obtenir l'historique des demandes
      */
     public function historique(Request $request)
-    {
-        try {
-            $user = $request->user();
-            $userType = $user instanceof Agent ? 'agent' : 'retraite';
+{
+    try {
+        $user = $request->user();
+        $userType = $user instanceof Agent ? 'agent' : 'retraite';
 
-            Log::info('📋 Récupération historique RDV:', [
-                'user_id' => $user->id,
-                'user_type' => $userType
-            ]);
+        Log::info('📋 Récupération historique RDV:', [
+            'user_id' => $user->id,
+            'user_type' => $userType
+        ]);
 
-            // Filtres
-            $query = RendezVousDemande::pourUtilisateur($user->id, $userType)
-                                    ->orderBy('date_soumission', 'desc');
+        // Filtres
+        $query = RendezVousDemande::pourUtilisateur($user->id, $userType)
+                                ->orderBy('date_soumission', 'desc');
 
-            if ($request->has('statut') && $request->statut !== '' && $request->statut !== 'tous') {
-                $query->where('statut', $request->statut);
-            }
-
-            if ($request->has('motif') && $request->motif !== '' && $request->motif !== 'tous') {
-                $query->where('motif', $request->motif);
-            }
-
-            $demandes = $query->paginate(10);
-
-            // Formater les demandes
-            $demandesFormatees = [];
-            foreach ($demandes->items() as $demande) {
-                $demandesFormatees[] = [
-                    'id' => $demande->id,
-                    'numero_demande' => $demande->numero_demande,
-                    'date_heure_formatee' => $demande->date_heure_formatee,
-                    'motif_complet' => $demande->motif_complet,
-                    'motif_info' => $demande->motif_info,
-                    'statut' => $demande->statut,
-                    'statut_info' => $demande->statut_info,
-                    'commentaires' => $demande->commentaires,
-                    'reponse_admin' => $demande->reponse_admin,
-                    'date_soumission' => $demande->date_soumission->format('d/m/Y à H:i'),
-                    'temps_ecoule' => $demande->temps_ecoule,
-                    'peut_modifier' => $demande->peut_modifier,
-                    'est_future' => $demande->est_future,
-                    'date_rdv_confirme' => $demande->date_rdv_confirme ? 
-                                         $demande->date_rdv_confirme->format('d/m/Y à H:i') : null,
-                    'lieu_rdv' => $demande->lieu_rdv,
-                    'date_reponse' => $demande->date_reponse ? 
-                                    $demande->date_reponse->format('d/m/Y à H:i') : null
-                ];
-            }
-
-            return response()->json([
-                'success' => true,
-                'demandes' => $demandesFormatees,
-                'pagination' => [
-                    'current_page' => $demandes->currentPage(),
-                    'last_page' => $demandes->lastPage(),
-                    'per_page' => $demandes->perPage(),
-                    'total' => $demandes->total()
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('💥 Erreur récupération historique RDV:', [
-                'user_id' => $request->user()?->id,
-                'error' => $e->getMessage()
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors du chargement de l\'historique'
-            ], 500);
+        if ($request->has('statut') && $request->statut !== '' && $request->statut !== 'tous') {
+            $query->where('statut', $request->statut);
         }
+
+        if ($request->has('motif') && $request->motif !== '' && $request->motif !== 'tous') {
+            $query->where('motif', $request->motif);
+        }
+
+        $demandes = $query->paginate(10);
+
+        // Formater les demandes avec debug
+        $demandesFormatees = [];
+        foreach ($demandes->items() as $demande) {
+    
+    // ✅ FORMATAGE DIRECT (bypass de l'accessor problématique)
+    $dateFormatee = 'Date non disponible';
+    try {
+        if ($demande->date_demandee && $demande->heure_demandee) {
+            $date = $demande->date_demandee instanceof Carbon ? 
+                   $demande->date_demandee : 
+                   Carbon::parse($demande->date_demandee);
+            
+            $heure = substr((string) $demande->heure_demandee, 0, 5);
+            $dateFormatee = $date->format('d/m/Y') . ' à ' . $heure;
+        }
+    } catch (\Exception $e) {
+        Log::error('💥 [CONTROLLER] Erreur formatage direct:', [
+            'demande_id' => $demande->id,
+            'error' => $e->getMessage()
+        ]);
     }
+
+    $demandesFormatees[] = [
+        'id' => $demande->id,
+        'numero_demande' => $demande->numero_demande,
+        'date_heure_formatee' => $dateFormatee, // ✅ Utiliser le formatage direct
+        'motif_complet' => $demande->motif_complet,
+        'motif_info' => $demande->motif_info,
+        'statut' => $demande->statut,
+        'statut_info' => $demande->statut_info,
+        'commentaires' => $demande->commentaires,
+        'reponse_admin' => $demande->reponse_admin,
+        'date_soumission' => $demande->date_soumission->format('d/m/Y à H:i'),
+        'temps_ecoule' => $demande->temps_ecoule,
+        'peut_modifier' => $demande->peut_modifier,
+        'est_future' => $demande->est_future,
+        'date_rdv_confirme' => $demande->date_rdv_confirme ? 
+                             $demande->date_rdv_confirme->format('d/m/Y à H:i') : null,
+        'lieu_rdv' => $demande->lieu_rdv,
+        'date_reponse' => $demande->date_reponse ? 
+                        $demande->date_reponse->format('d/m/Y à H:i') : null,
+        // Debug
+        'debug' => [
+            'date_demandee' => $demande->date_demandee ? $demande->date_demandee->format('Y-m-d') : null,
+            'heure_demandee' => $demande->heure_demandee,
+            'date_heure_formatee_direct' => $dateFormatee
+        ]
+    ];
+}
+
+        return response()->json([
+            'success' => true,
+            'demandes' => $demandesFormatees,
+            'pagination' => [
+                'current_page' => $demandes->currentPage(),
+                'last_page' => $demandes->lastPage(),
+                'per_page' => $demandes->perPage(),
+                'total' => $demandes->total()
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('💥 Erreur récupération historique RDV:', [
+            'user_id' => $request->user()?->id,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Erreur lors du chargement de l\'historique'
+        ], 500);
+    }
+}
 
     /**
      * Obtenir une demande spécifique
@@ -356,11 +551,11 @@ public static function getCreneauxDisponibles($date)
                     'temps_ecoule' => $demande->temps_ecoule,
                     'peut_modifier' => $demande->peut_modifier,
                     'est_future' => $demande->est_future,
-                    'date_rdv_confirme' => $demande->date_rdv_confirme ? 
-                                         $demande->date_rdv_confirme->format('d/m/Y à H:i') : null,
+                    'date_rdv_confirme' => $demande->date_rdv_confirme ?
+                        $demande->date_rdv_confirme->format('d/m/Y à H:i') : null,
                     'lieu_rdv' => $demande->lieu_rdv,
-                    'date_reponse' => $demande->date_reponse ? 
-                                    $demande->date_reponse->format('d/m/Y à H:i') : null
+                    'date_reponse' => $demande->date_reponse ?
+                        $demande->date_reponse->format('d/m/Y à H:i') : null
                 ]
             ]);
 
@@ -465,9 +660,9 @@ public static function getCreneauxDisponibles($date)
 
             // Envoyer email à l'utilisateur
             try {
-                $user = $demande->user_type === 'agent' 
-                       ? Agent::find($demande->user_id)
-                       : Retraite::find($demande->user_id);
+                $user = $demande->user_type === 'agent'
+                    ? Agent::find($demande->user_id)
+                    : Retraite::find($demande->user_id);
 
                 if ($user) {
                     Mail::to($user->email)->send(new RendezVousReponseUserMail($demande, $user));
@@ -511,8 +706,8 @@ public static function getCreneauxDisponibles($date)
                 'acceptees' => RendezVousDemande::where('statut', 'accepte')->count(),
                 'refusees' => RendezVousDemande::where('statut', 'refuse')->count(),
                 'ce_mois' => RendezVousDemande::whereMonth('date_soumission', now()->month)
-                                            ->whereYear('date_soumission', now()->year)
-                                            ->count(),
+                    ->whereYear('date_soumission', now()->year)
+                    ->count(),
                 'cette_semaine' => RendezVousDemande::whereBetween('date_soumission', [
                     now()->startOfWeek(),
                     now()->endOfWeek()
@@ -531,10 +726,10 @@ public static function getCreneauxDisponibles($date)
 
             // Prochains RDV confirmés
             $prochainsConfirmes = RendezVousDemande::where('statut', 'accepte')
-                                                  ->where('date_rdv_confirme', '>=', now())
-                                                  ->orderBy('date_rdv_confirme')
-                                                  ->limit(10)
-                                                  ->get();
+                ->where('date_rdv_confirme', '>=', now())
+                ->orderBy('date_rdv_confirme')
+                ->limit(10)
+                ->get();
 
             return response()->json([
                 'success' => true,
@@ -619,11 +814,11 @@ public static function getCreneauxDisponibles($date)
                     'date_soumission' => $demande->date_soumission->format('d/m/Y à H:i'),
                     'temps_ecoule' => $demande->temps_ecoule,
                     'est_future' => $demande->est_future,
-                    'date_rdv_confirme' => $demande->date_rdv_confirme ? 
-                                         $demande->date_rdv_confirme->format('d/m/Y à H:i') : null,
+                    'date_rdv_confirme' => $demande->date_rdv_confirme ?
+                        $demande->date_rdv_confirme->format('d/m/Y à H:i') : null,
                     'lieu_rdv' => $demande->lieu_rdv,
-                    'date_reponse' => $demande->date_reponse ? 
-                                    $demande->date_reponse->format('d/m/Y à H:i') : null,
+                    'date_reponse' => $demande->date_reponse ?
+                        $demande->date_reponse->format('d/m/Y à H:i') : null,
                     'email_admin_envoye' => $demande->email_admin_envoye,
                     'email_user_reponse_envoye' => $demande->email_user_reponse_envoye
                 ];
@@ -727,11 +922,11 @@ public static function getCreneauxDisponibles($date)
             // Générer le fichier CSV
             $filename = 'rendez_vous_' . now()->format('Y-m-d_H-i-s') . '.csv';
             $handle = fopen('php://temp', 'w+');
-            
+
             foreach ($csvData as $row) {
                 fputcsv($handle, $row, ';'); // Utiliser ';' pour Excel français
             }
-            
+
             rewind($handle);
             $csvContent = stream_get_contents($handle);
             fclose($handle);
@@ -773,9 +968,9 @@ public static function getCreneauxDisponibles($date)
 
             // Récupérer les RDV confirmés pour cette date
             $rdvConfirmes = RendezVousDemande::where('statut', 'accepte')
-                                           ->whereDate('date_rdv_confirme', $date)
-                                           ->orderBy('date_rdv_confirme')
-                                           ->get();
+                ->whereDate('date_rdv_confirme', $date)
+                ->orderBy('date_rdv_confirme')
+                ->get();
 
             return response()->json([
                 'success' => true,
@@ -836,7 +1031,7 @@ public static function getCreneauxDisponibles($date)
                 case 'nom':
                     $query->where(function ($q) use ($terme) {
                         $q->where('user_nom', 'LIKE', "%{$terme}%")
-                          ->orWhere('user_prenoms', 'LIKE', "%{$terme}%");
+                            ->orWhere('user_prenoms', 'LIKE', "%{$terme}%");
                     });
                     break;
                 case 'email':
@@ -844,23 +1039,23 @@ public static function getCreneauxDisponibles($date)
                     break;
                 case 'motif':
                     $query->where('motif_autre', 'LIKE', "%{$terme}%")
-                          ->orWhere('commentaires', 'LIKE', "%{$terme}%");
+                        ->orWhere('commentaires', 'LIKE', "%{$terme}%");
                     break;
                 default: // 'all'
                     $query->where(function ($q) use ($terme) {
                         $q->where('numero_demande', 'LIKE', "%{$terme}%")
-                          ->orWhere('user_nom', 'LIKE', "%{$terme}%")
-                          ->orWhere('user_prenoms', 'LIKE', "%{$terme}%")
-                          ->orWhere('user_email', 'LIKE', "%{$terme}%")
-                          ->orWhere('motif_autre', 'LIKE', "%{$terme}%")
-                          ->orWhere('commentaires', 'LIKE', "%{$terme}%");
+                            ->orWhere('user_nom', 'LIKE', "%{$terme}%")
+                            ->orWhere('user_prenoms', 'LIKE', "%{$terme}%")
+                            ->orWhere('user_email', 'LIKE', "%{$terme}%")
+                            ->orWhere('motif_autre', 'LIKE', "%{$terme}%")
+                            ->orWhere('commentaires', 'LIKE', "%{$terme}%");
                     });
                     break;
             }
 
             $resultats = $query->orderBy('date_soumission', 'desc')
-                              ->limit(20)
-                              ->get();
+                ->limit(20)
+                ->get();
 
             return response()->json([
                 'success' => true,
@@ -972,8 +1167,8 @@ public static function getCreneauxDisponibles($date)
             ];
 
             // Calcul du taux d'acceptation
-            $statsGenerales['taux_acceptation'] = $statsGenerales['total_demandes'] > 0 
-                ? round(($statsGenerales['total_acceptees'] / $statsGenerales['total_demandes']) * 100, 2) 
+            $statsGenerales['taux_acceptation'] = $statsGenerales['total_demandes'] > 0
+                ? round(($statsGenerales['total_acceptees'] / $statsGenerales['total_demandes']) * 100, 2)
                 : 0;
 
             // Répartition par type d'utilisateur
@@ -986,14 +1181,14 @@ public static function getCreneauxDisponibles($date)
             $repartitionMotifs = [];
             foreach (RendezVousDemande::$motifs as $key => $motif) {
                 $count = RendezVousDemande::whereBetween('date_soumission', [$dateDebut, $dateFin])
-                                        ->where('motif', $key)
-                                        ->count();
+                    ->where('motif', $key)
+                    ->count();
                 if ($count > 0) {
                     $repartitionMotifs[] = [
                         'motif' => $motif['nom'],
                         'count' => $count,
-                        'pourcentage' => $statsGenerales['total_demandes'] > 0 
-                            ? round(($count / $statsGenerales['total_demandes']) * 100, 2) 
+                        'pourcentage' => $statsGenerales['total_demandes'] > 0
+                            ? round(($count / $statsGenerales['total_demandes']) * 100, 2)
                             : 0
                     ];
                 }
@@ -1013,8 +1208,8 @@ public static function getCreneauxDisponibles($date)
 
             // Temps de traitement moyen
             $demandesTraitees = RendezVousDemande::whereBetween('date_soumission', [$dateDebut, $dateFin])
-                                               ->whereNotNull('date_reponse')
-                                               ->get();
+                ->whereNotNull('date_reponse')
+                ->get();
 
             $tempsTraitementMoyen = 0;
             if ($demandesTraitees->count() > 0) {
@@ -1051,4 +1246,3 @@ public static function getCreneauxDisponibles($date)
         }
     }
 }
-                

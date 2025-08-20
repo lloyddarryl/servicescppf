@@ -16,7 +16,7 @@ class Enfant extends Model
         'enfant_id',
         'matricule_parent',
         'agent_id',
-        'retraite_id', // ✅ Nouveau champ
+        'retraite_id',
         'nom',
         'prenoms',
         'sexe',

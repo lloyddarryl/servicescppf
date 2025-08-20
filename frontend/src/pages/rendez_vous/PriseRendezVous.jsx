@@ -11,6 +11,24 @@ const PriseRendezVous = () => {
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState(null);
 
+  // ✅ Fonction de debug améliorée
+  const debugDate = (date) => {
+    console.log('🧪 [COMPONENT] DEBUG Date sélectionnée:', {
+      date_string: date,
+      date_object: new Date(date + 'T00:00:00'),
+      jour_semaine: new Date(date + 'T00:00:00').getDay(),
+      jour_nom: ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'][new Date(date + 'T00:00:00').getDay()],
+      est_weekend: new Date(date + 'T00:00:00').getDay() === 0 || new Date(date + 'T00:00:00').getDay() === 6,
+      est_jour_ouvrable: estJourOuvrable(date),
+      date_min_component: getDateMin(),
+      date_max_component: getDateMax()
+    });
+
+    // Test du service
+    rendezVousService.utils.testDate(date);
+  };
+
+
   // États pour le formulaire
   const [formData, setFormData] = useState({
     date_demandee: '',
@@ -53,13 +71,13 @@ const PriseRendezVous = () => {
   // Fonction pour obtenir la civilité selon le sexe et situation matrimoniale
   const getCivilite = (user) => {
     if (!user) return '';
-    
+
     const sexe = user.sexe?.toUpperCase();
     const situationMatrimoniale = user.situation_matrimoniale?.toLowerCase();
-    
+
     if (sexe === 'M' || sexe === 'MASCULIN') {
       return 'M.';
-    } 
+    }
     else if (sexe === 'F' || sexe === 'FEMININ') {
       if (['mariee', 'marie', 'marié', 'mariée'].includes(situationMatrimoniale)) {
         return 'Mme';
@@ -67,17 +85,17 @@ const PriseRendezVous = () => {
         return 'Mlle';
       }
     }
-    
+
     return '';
   };
 
   // Fonction pour obtenir l'identité complète avec civilité
   const getIdentiteComplete = (user) => {
     if (!user) return '';
-    
+
     const civilite = getCivilite(user);
     const nomComplet = `${user.prenoms || ''} ${user.nom || ''}`.trim();
-    
+
     return civilite ? `${civilite} ${nomComplet}` : nomComplet;
   };
 
@@ -86,7 +104,7 @@ const PriseRendezVous = () => {
     try {
       setLoading(true);
       const response = await rendezVousService.getPageInfo();
-      
+
       if (response.data.success) {
         setPageInfo(response.data);
       } else {
@@ -100,36 +118,52 @@ const PriseRendezVous = () => {
     }
   }, [afficherNotification]);
 
-  // Charger les créneaux disponibles pour une date
+  // ✅ CORRECTION : Charger créneaux avec meilleur debug
   const chargerCreneaux = useCallback(async (date) => {
     if (!date) {
+      console.log('🚫 [COMPONENT] Aucune date fournie');
       setCreneauxDisponibles([]);
       return;
     }
 
-    // Vérifier si c'est un jour ouvrable
+    console.log('🔄 [COMPONENT] Début chargement créneaux pour:', date);
+
+    // Vérifier si c'est un jour ouvrable côté client d'abord
     if (!estJourOuvrable(date)) {
+      console.log('❌ [COMPONENT] Weekend détecté côté client');
       setCreneauxDisponibles([]);
+      afficherNotification('Les rendez-vous ne sont disponibles que du lundi au vendredi', 'warning');
       return;
     }
 
     try {
       setLoadingCreneaux(true);
+      console.log('📡 [COMPONENT] Appel API en cours...');
+
       const response = await rendezVousService.getCreneauxDisponibles(date);
-      
-      console.log('Réponse créneaux:', response.data);
-      
-      if (response.data.success) {
-        setCreneauxDisponibles(response.data.creneaux || []);
-        if (response.data.creneaux && response.data.creneaux.length === 0) {
+
+      console.log('📨 [COMPONENT] Réponse reçue:', {
+        success: response.data.success,
+        message: response.data.message,
+        nombre_creneaux: response.data.creneaux?.length || 0,
+        creneaux: response.data.creneaux
+      });
+
+      if (response.data.success && response.data.creneaux) {
+        setCreneauxDisponibles(response.data.creneaux);
+
+        if (response.data.creneaux.length === 0) {
           afficherNotification('Aucun créneau disponible pour cette date', 'warning');
+        } else {
+          console.log('✅ [COMPONENT] Créneaux chargés avec succès:', response.data.creneaux);
+          afficherNotification(`${response.data.creneaux.length} créneaux disponibles`, 'success');
         }
       } else {
         setCreneauxDisponibles([]);
-        afficherNotification(response.data.message || 'Aucun créneau disponible pour cette date', 'warning');
+        afficherNotification(response.data.message || 'Aucun créneau disponible', 'warning');
       }
     } catch (error) {
-      console.error('Erreur chargement créneaux:', error);
+      console.error('💥 [COMPONENT] Erreur chargement créneaux:', error);
       setCreneauxDisponibles([]);
       afficherNotification('Erreur lors du chargement des créneaux', 'error');
     } finally {
@@ -141,7 +175,7 @@ const PriseRendezVous = () => {
   const chargerHistorique = useCallback(async (page = 1) => {
     try {
       setLoading(true);
-      
+
       const cleanFilters = {};
       if (filtres.statut && filtres.statut !== '' && filtres.statut !== 'tous') {
         cleanFilters.statut = filtres.statut;
@@ -156,7 +190,7 @@ const PriseRendezVous = () => {
       };
 
       const response = await rendezVousService.getHistorique(params);
-      
+
       if (response.data.success) {
         setHistorique(response.data.demandes || []);
         if (response.data.pagination) {
@@ -192,19 +226,29 @@ const PriseRendezVous = () => {
     }
   }, [formData.date_demandee, chargerCreneaux]);
 
-  // Gestion des changements du formulaire
+  // ✅ CORRECTION : Gestion des changements avec debug
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+
+    console.log('🔄 [COMPONENT] Changement de champ:', { name, value });
+
     setFormData(prev => ({ ...prev, [name]: value }));
-    
-    // Effacer les erreurs au fur et à mesure
+
+    // Effacer les erreurs
     if (formErrors[name]) {
       setFormErrors(prev => ({ ...prev, [name]: '' }));
     }
 
-    // Réinitialiser l'heure si la date change
-    if (name === 'date_demandee' && formData.heure_demandee) {
-      setFormData(prev => ({ ...prev, heure_demandee: '' }));
+    // Debug et traitement spécial pour la date
+    if (name === 'date_demandee' && value) {
+      console.log('📅 [COMPONENT] Nouvelle date sélectionnée:', value);
+      debugDate(value);
+
+      // Réinitialiser l'heure
+      if (formData.heure_demandee) {
+        console.log('🔄 [COMPONENT] Réinitialisation de l\'heure');
+        setFormData(prev => ({ ...prev, heure_demandee: '' }));
+      }
     }
   };
 
@@ -215,19 +259,30 @@ const PriseRendezVous = () => {
     setFormErrors({});
 
     try {
+      // ✅ CORRECTION : Nettoyer les données avant envoi
+      const dataToSend = {
+        date_demandee: formData.date_demandee,
+        heure_demandee: formData.heure_demandee,
+        motif: formData.motif,
+        motif_autre: formData.motif === 'autre' ? formData.motif_autre || '' : '', // ✅ Toujours string
+        commentaires: formData.commentaires || '' // ✅ Toujours string
+      };
+
+      console.log('📤 [COMPONENT] Données à envoyer:', dataToSend);
+
       // Validation côté client
-      const validation = rendezVousService.utils.validerFormulaire(formData);
+      const validation = rendezVousService.utils.validerFormulaire(dataToSend);
       if (!validation.isValid) {
         setFormErrors(validation.errors);
         setSubmitting(false);
         return;
       }
 
-      const response = await rendezVousService.creerDemande(formData);
-      
+      const response = await rendezVousService.creerDemande(dataToSend);
+
       if (response.data.success) {
         afficherNotification(response.data.message, 'success');
-        
+
         // Réinitialiser le formulaire
         setFormData({
           date_demandee: '',
@@ -237,7 +292,7 @@ const PriseRendezVous = () => {
           commentaires: ''
         });
         setCreneauxDisponibles([]);
-        
+
         // Recharger les informations de la page et basculer vers l'historique
         await chargerPageInfo();
         setActiveTab('historique');
@@ -249,7 +304,7 @@ const PriseRendezVous = () => {
         }
       }
     } catch (error) {
-      console.error('Erreur soumission:', error);
+      console.error('💥 [COMPONENT] Erreur soumission:', error);
       afficherNotification(`Erreur lors de la soumission: ${error.message}`, 'error');
     } finally {
       setSubmitting(false);
@@ -266,20 +321,20 @@ const PriseRendezVous = () => {
   // Exécuter l'annulation
   const executerAnnulation = async () => {
     if (!demandeAAnnuler) return;
-    
+
     setAnnulationEnCours(true);
-    
+
     try {
       const response = await rendezVousService.annuler(demandeAAnnuler.id, motifAnnulation);
-      
+
       if (response.data.success) {
         afficherNotification(response.data.message, 'success');
-        
+
         // Fermer le modal
         setShowAnnulationModal(false);
         setDemandeAAnnuler(null);
         setMotifAnnulation('');
-        
+
         // Recharger l'historique et les infos de page
         await chargerHistorique();
         await chargerPageInfo();
@@ -294,11 +349,12 @@ const PriseRendezVous = () => {
     }
   };
 
-  // Obtenir la date minimale (24h à l'avance)
+  // ✅ CORRECTION : Fonction pour obtenir la date minimale (48h à l'avance)
   const getDateMin = () => {
-    const demain = new Date();
-    demain.setDate(demain.getDate() + 1);
-    return demain.toISOString().split('T')[0];
+    const maintenant = new Date();
+    const dans48h = new Date(maintenant.getTime() + (48 * 60 * 60 * 1000));
+    dans48h.setHours(0, 0, 0, 0); // S'assurer qu'on a une date complète
+    return dans48h.toISOString().split('T')[0];
   };
 
   // Obtenir la date maximale (1 mois à l'avance)
@@ -327,10 +383,12 @@ const PriseRendezVous = () => {
     );
   }
 
+
+
   return (
     <div className="prise-rdv">
       <Header />
-      
+
       {/* Notification */}
       {notification && (
         <div className={`prise-rdv__notification prise-rdv__notification--${notification.type}`}>
@@ -341,7 +399,7 @@ const PriseRendezVous = () => {
             <span className="prise-rdv__notification-message">
               {notification.message}
             </span>
-            <button 
+            <button
               className="prise-rdv__notification-close"
               onClick={() => setNotification(null)}
             >
@@ -353,7 +411,7 @@ const PriseRendezVous = () => {
 
       <main className="prise-rdv__main">
         <div className="prise-rdv__container">
-          
+
           {/* Section Header */}
           {pageInfo?.user_info && (
             <div className="prise-rdv__header">
@@ -367,16 +425,8 @@ const PriseRendezVous = () => {
                     Gérez vos demandes de rendez-vous et planifiez vos rencontres avec nos conseillers
                   </p>
                 </div>
-                <div className="prise-rdv__user-info">
-                  <div className="prise-rdv__user-name">
-                    {getIdentiteComplete(pageInfo.user_info)}
-                  </div>
-                  <div className="prise-rdv__user-details">
-                    {pageInfo.user_info.type_compte} • Matricule: {pageInfo.user_info.matricule || 'N/A'}
-                  </div>
-                </div>
                 <div className="prise-rdv__header-actions">
-                  <button 
+                  <button
                     onClick={() => window.location.href = '/dashboard'}
                     className="prise-rdv__dashboard-btn"
                     title="Retour au tableau de bord"
@@ -391,19 +441,19 @@ const PriseRendezVous = () => {
           {/* Navigation par onglets */}
           <div className="prise-rdv__navigation">
             <div className="prise-rdv__tabs">
-              <button 
+              <button
                 className={`prise-rdv__tab ${activeTab === 'nouveau' ? 'prise-rdv__tab--active' : ''}`}
                 onClick={() => setActiveTab('nouveau')}
               >
                 Nouveau rendez-vous
               </button>
-              <button 
+              <button
                 className={`prise-rdv__tab ${activeTab === 'vue-ensemble' ? 'prise-rdv__tab--active' : ''}`}
                 onClick={() => setActiveTab('vue-ensemble')}
               >
                 Vue d'ensemble
               </button>
-              <button 
+              <button
                 className={`prise-rdv__tab ${activeTab === 'historique' ? 'prise-rdv__tab--active' : ''}`}
                 onClick={() => setActiveTab('historique')}
               >
@@ -419,7 +469,7 @@ const PriseRendezVous = () => {
 
           {/* Contenu des onglets */}
           <div className="prise-rdv__content">
-            
+
             {/* Vue d'ensemble */}
             {activeTab === 'vue-ensemble' && (
               <>
@@ -507,11 +557,11 @@ const PriseRendezVous = () => {
                 </div>
 
                 <form onSubmit={soumettreFormulaire} className="prise-rdv__form">
-                  
+
                   {/* Date souhaitée */}
                   <div className="prise-rdv__form-group">
                     <label className="prise-rdv__label">Date souhaitée *</label>
-                    <input 
+                    <input
                       type="date"
                       name="date_demandee"
                       value={formData.date_demandee}
@@ -538,7 +588,7 @@ const PriseRendezVous = () => {
                         <span className="prise-rdv__loading-text">Chargement des créneaux...</span>
                       )}
                     </label>
-                    <select 
+                    <select
                       name="heure_demandee"
                       value={formData.heure_demandee}
                       onChange={handleInputChange}
@@ -577,7 +627,7 @@ const PriseRendezVous = () => {
                   {/* Motif du rendez-vous */}
                   <div className="prise-rdv__form-group">
                     <label className="prise-rdv__label">Motif du rendez-vous *</label>
-                    <select 
+                    <select
                       name="motif"
                       value={formData.motif}
                       onChange={handleInputChange}
@@ -593,7 +643,7 @@ const PriseRendezVous = () => {
                     {formErrors.motif && (
                       <span className="prise-rdv__error">{formErrors.motif}</span>
                     )}
-                    
+
                     {/* Description du motif sélectionné */}
                     {formData.motif && pageInfo?.motifs?.[formData.motif] && (
                       <div className="prise-rdv__motif-info">
@@ -608,7 +658,7 @@ const PriseRendezVous = () => {
                   {formData.motif === 'autre' && (
                     <div className="prise-rdv__form-group">
                       <label className="prise-rdv__label">Précisez votre motif *</label>
-                      <input 
+                      <input
                         type="text"
                         name="motif_autre"
                         value={formData.motif_autre}
@@ -631,7 +681,7 @@ const PriseRendezVous = () => {
                         {formData.commentaires.length}/1000
                       </span>
                     </label>
-                    <textarea 
+                    <textarea
                       name="commentaires"
                       value={formData.commentaires}
                       onChange={handleInputChange}
@@ -647,7 +697,7 @@ const PriseRendezVous = () => {
 
                   {/* Actions */}
                   <div className="prise-rdv__form-actions">
-                    <button 
+                    <button
                       type="submit"
                       disabled={submitting || !formData.date_demandee || !formData.heure_demandee || !formData.motif}
                       className={`prise-rdv__submit-btn ${submitting ? 'prise-rdv__submit-btn--loading' : ''}`}
@@ -660,7 +710,6 @@ const PriseRendezVous = () => {
                       ) : (
                         <>
                           <span className="prise-rdv__submit-icon">Soumettre</span>
-                          Soumettre la demande
                         </>
                       )}
                     </button>
@@ -672,12 +721,12 @@ const PriseRendezVous = () => {
             {/* Historique des demandes */}
             {activeTab === 'historique' && (
               <div className="prise-rdv__tab-content-area">
-                
+
                 {/* Filtres */}
                 <div className="prise-rdv__filtres">
                   <div className="prise-rdv__filtre-group">
                     <label className="prise-rdv__filtre-label">Statut:</label>
-                    <select 
+                    <select
                       value={filtres.statut}
                       onChange={(e) => setFiltres(prev => ({ ...prev, statut: e.target.value }))}
                       className="prise-rdv__filtre-select"
@@ -691,7 +740,7 @@ const PriseRendezVous = () => {
 
                   <div className="prise-rdv__filtre-group">
                     <label className="prise-rdv__filtre-label">Motif:</label>
-                    <select 
+                    <select
                       value={filtres.motif}
                       onChange={(e) => setFiltres(prev => ({ ...prev, motif: e.target.value }))}
                       className="prise-rdv__filtre-select"
@@ -703,7 +752,7 @@ const PriseRendezVous = () => {
                     </select>
                   </div>
 
-                  <button 
+                  <button
                     onClick={() => chargerHistorique()}
                     className="prise-rdv__refresh-btn"
                     disabled={loading}
@@ -723,7 +772,7 @@ const PriseRendezVous = () => {
                     <div className="prise-rdv__empty-icon">RDV</div>
                     <h3>Aucune demande de rendez-vous</h3>
                     <p>Vous n'avez pas encore fait de demande de rendez-vous</p>
-                    <button 
+                    <button
                       onClick={() => setActiveTab('nouveau')}
                       className="prise-rdv__empty-btn"
                     >
@@ -734,7 +783,7 @@ const PriseRendezVous = () => {
                   <div className="prise-rdv__liste">
                     {historique.map(demande => (
                       <div key={demande.id} className="prise-rdv__card">
-                        
+
                         {/* En-tête de carte */}
                         <div className="prise-rdv__card-header">
                           <div className="prise-rdv__card-info">
@@ -746,7 +795,7 @@ const PriseRendezVous = () => {
                             </p>
                           </div>
                           <div className="prise-rdv__card-badges">
-                            <span 
+                            <span
                               className="prise-rdv__statut-badge"
                               style={{ backgroundColor: rendezVousService.utils.getCouleurStatut(demande.statut) }}
                             >
@@ -760,16 +809,27 @@ const PriseRendezVous = () => {
                           <div className="prise-rdv__card-details">
                             <div className="prise-rdv__card-detail">
                               <span className="prise-rdv__detail-label">Date demandée:</span>
-                              <span className="prise-rdv__detail-value">{demande.date_heure_formatee}</span>
+                              <span className="prise-rdv__detail-value">
+                                {demande.date_heure_formatee || 'Date non disponible'}
+                              </span>
                             </div>
-                            
+
+                            {/* Debug temporaire - à retirer après test */}
+                            <div style={{ fontSize: '10px', color: '#666' }}>
+                              Debug: {JSON.stringify({
+                                date_heure_formatee: demande.date_heure_formatee,
+                                date_demandee: demande.date_demandee,
+                                heure_demandee: demande.heure_demandee
+                              })}
+                            </div>
+
                             {demande.date_rdv_confirme && (
                               <div className="prise-rdv__card-detail prise-rdv__card-detail--confirmed">
                                 <span className="prise-rdv__detail-label">✅ Date confirmée:</span>
                                 <span className="prise-rdv__detail-value">{demande.date_rdv_confirme}</span>
                               </div>
                             )}
-                            
+
                             {demande.lieu_rdv && (
                               <div className="prise-rdv__card-detail">
                                 <span className="prise-rdv__detail-label">📍 Lieu:</span>
@@ -777,11 +837,11 @@ const PriseRendezVous = () => {
                               </div>
                             )}
                           </div>
-                          
+
                           {demande.commentaires && (
                             <div className="prise-rdv__card-commentaires">
                               <strong>Commentaires:</strong>
-                              <p>{demande.commentaires.length > 100 
+                              <p>{demande.commentaires.length > 100
                                 ? `${demande.commentaires.substring(0, 100)}...`
                                 : demande.commentaires
                               }</p>
@@ -806,10 +866,10 @@ const PriseRendezVous = () => {
                               {demande.temps_ecoule}
                             </span>
                           </div>
-                          
+
                           <div className="prise-rdv__card-actions">
                             {demande.peut_modifier && (
-                              <button 
+                              <button
                                 onClick={() => confirmerAnnulation(demande)}
                                 className="prise-rdv__annuler-btn"
                                 title="Annuler cette demande"
@@ -826,12 +886,11 @@ const PriseRendezVous = () => {
                     {pagination.last_page > 1 && (
                       <div className="prise-rdv__pagination">
                         {Array.from({ length: pagination.last_page }, (_, i) => (
-                          <button 
+                          <button
                             key={i + 1}
                             onClick={() => chargerHistorique(i + 1)}
-                            className={`prise-rdv__page-btn ${
-                              pagination.current_page === i + 1 ? 'prise-rdv__page-btn--active' : ''
-                            }`}
+                            className={`prise-rdv__page-btn ${pagination.current_page === i + 1 ? 'prise-rdv__page-btn--active' : ''
+                              }`}
                           >
                             {i + 1}
                           </button>
@@ -852,7 +911,7 @@ const PriseRendezVous = () => {
                   <h3 className="prise-rdv__modal-title">
                     Confirmer l'annulation
                   </h3>
-                  <button 
+                  <button
                     className="prise-rdv__modal-close"
                     onClick={() => setShowAnnulationModal(false)}
                     disabled={annulationEnCours}
@@ -860,23 +919,23 @@ const PriseRendezVous = () => {
                     ✕
                   </button>
                 </div>
-                
+
                 <div className="prise-rdv__modal-body">
                   <p className="prise-rdv__modal-warning">
-                    Êtes-vous sûr de vouloir annuler votre demande de rendez-vous 
+                    Êtes-vous sûr de vouloir annuler votre demande de rendez-vous
                     <strong> N° {demandeAAnnuler?.numero_demande}</strong> ?
                   </p>
-                  
+
                   <div className="prise-rdv__modal-info">
                     <p><strong>Motif :</strong> {demandeAAnnuler?.motif_complet}</p>
                     <p><strong>Date demandée :</strong> {demandeAAnnuler?.date_heure_formatee}</p>
                   </div>
-                  
+
                   <div className="prise-rdv__form-group">
                     <label className="prise-rdv__label">
                       Motif d'annulation (optionnel)
                     </label>
-                    <textarea 
+                    <textarea
                       value={motifAnnulation}
                       onChange={(e) => setMotifAnnulation(e.target.value)}
                       className="prise-rdv__textarea"
@@ -889,21 +948,21 @@ const PriseRendezVous = () => {
                       {motifAnnulation.length}/500
                     </div>
                   </div>
-                  
+
                   <div className="prise-rdv__modal-warning-text">
                     Cette action est irréversible. Une notification sera envoyée à l'administration.
                   </div>
                 </div>
-                
+
                 <div className="prise-rdv__modal-actions">
-                  <button 
+                  <button
                     className="prise-rdv__modal-btn prise-rdv__modal-btn--secondary"
                     onClick={() => setShowAnnulationModal(false)}
                     disabled={annulationEnCours}
                   >
                     Annuler
                   </button>
-                  <button 
+                  <button
                     className="prise-rdv__modal-btn prise-rdv__modal-btn--danger"
                     onClick={executerAnnulation}
                     disabled={annulationEnCours}
