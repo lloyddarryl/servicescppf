@@ -69,7 +69,6 @@ const Dashboard = () => {
       simulateur_pension: '/actifs/simulateur-pension',
       grappe_familiale: '/actifs/grappe-familiale',
       cotisations: '/actifs/cotisations',
-      prise_rdv: '/actifs/rendez-vous',
       attestations: '/actifs/attestations',
       profil: '/actifs/profil',
       reclamations: '/actifs/reclamations',

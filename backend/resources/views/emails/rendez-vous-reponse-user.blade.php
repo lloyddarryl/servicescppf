@@ -327,7 +327,7 @@
         <!-- Pied de page -->
         <div class="email-footer">
             <p><strong>CPPF e-Services</strong> - Système de Gestion des Rendez-vous</p>
-            <p>Caisse de Pension de la Fonction Publique du Gabon</p>
+            <p>Caisse des Pensions et Prestations Familiales des agents de l'Etat.</p>
             <p>📧 <a href="mailto:{{ env('MAIL_FROM_ADDRESS') }}">{{ env('MAIL_FROM_ADDRESS') }}</a></p>
             <p style="margin-top: 15px; font-size: 12px; opacity: 0.8;">
                 Cet email a été généré automatiquement le {{ now()->format('d/m/Y à H:i') }}.

@@ -417,7 +417,7 @@ const PriseRendezVous = () => {
             <div className="prise-rdv__header">
               <div className="prise-rdv__header-content">
                 <div className="prise-rdv__title-section">
-                  <h1 className="prise-rdv__title">Prise de Rendez-vous - Agent Actif</h1>
+                  <h1 className="prise-rdv__title">Prise de Rendez-vous </h1>
                   <div className="prise-rdv__user-welcome">
                     Bienvenue {getIdentiteComplete(pageInfo.user_info)}
                   </div>
@@ -814,14 +814,7 @@ const PriseRendezVous = () => {
                               </span>
                             </div>
 
-                            {/* Debug temporaire - à retirer après test */}
-                            <div style={{ fontSize: '10px', color: '#666' }}>
-                              Debug: {JSON.stringify({
-                                date_heure_formatee: demande.date_heure_formatee,
-                                date_demandee: demande.date_demandee,
-                                heure_demandee: demande.heure_demandee
-                              })}
-                            </div>
+                           
 
                             {demande.date_rdv_confirme && (
                               <div className="prise-rdv__card-detail prise-rdv__card-detail--confirmed">

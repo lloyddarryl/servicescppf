@@ -170,21 +170,14 @@ class DashboardController extends Controller
         'available' => true
     ],
     [
-        'id' => 'historique',
-        'name' => 'Historique de paiements',
-        'description' => 'Consulter votre historique de paiement',
-        'icon' => 'pencil',
-        'available' => true
-    ],
-    [
-        'id' => 'documents', // ✅ CORRECTION : documents au lieu de 'Mes Documents'
+        'id' => 'documents', 
         'name' => 'Mes Documents',
         'description' => 'Gérer vos documents et attestations',
         'icon' => 'document',
         'available' => true
     ],
     [
-        'id' => 'reclamations', // ✅ AJOUTÉ : Service réclamations
+        'id' => 'reclamations', 
         'name' => 'Réclamations',
         'description' => 'Gérer vos réclamations et demandes',
         'icon' => 'reclamation',
@@ -192,12 +185,12 @@ class DashboardController extends Controller
         'color' => 'red'
     ],
     [
-        'id' => 'certificats', // ✅ AJOUTÉ : Certificats de vie
-        'name' => 'Certificats de Vie',
-        'description' => 'Gérer vos certificats de vie',
-        'icon' => 'document-check',
-        'available' => true,
-        'color' => 'blue'
+            'id' => 'prise_rdv',
+            'name' => 'Prise de Rendez-vous',
+            'description' => 'Réserver un rendez-vous avec un conseiller',
+            'icon' => 'calendar',
+            'available' => true,
+            'color' => 'orange'
     ]
 ];
 

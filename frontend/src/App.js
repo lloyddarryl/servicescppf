@@ -114,15 +114,6 @@ function App() {
           } />
           
           <Route path="/actifs/famille" element={<GrappeFamiliale />} />
-
-          <Route path="/actifs/rendez-vous" element={
-            <ProtectedRoute requiredUserType="actif">
-              <div style={{padding: '6rem 2rem', textAlign: 'center'}}>
-                <h1>Prise de Rendez-vous</h1>
-                <p>Module en développement</p>
-              </div>
-            </ProtectedRoute>
-          } />
           
           {/* ✅ Routes protégées spécifiques aux retraités */}
           <Route path="/retraites/profil" element={
@@ -162,7 +153,7 @@ function App() {
 
 
           {/* ✅ NOUVEAU : Routes pour la prise de rendez-vous (actifs) */}
-          <Route path="/actifs/rendez-vous" element={
+          <Route path="/retraites/rendez-vous" element={
           <ProtectedRoute requiredUserType="retraite">
           <PriseRendezVous />
           </ProtectedRoute>

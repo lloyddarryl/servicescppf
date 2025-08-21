@@ -173,38 +173,80 @@ class RendezVousDemande extends Model
         }
         return $motifInfo['nom'] ?? $this->motif;
     }
-    /**
- * ✅ CORRECTION : Obtenir la date et heure formatées
+/**
+ * ✅ SOLUTION FINALE : Obtenir la date et heure formatées (ROBUSTE)
  */
 public function getDateHeureFormatteeAttribute()
 {
     try {
-        if (!$this->date_demandee || !$this->heure_demandee) {
+        // Log de débogage détaillé
+        Log::info('🔍 [ACCESSOR DEBUG] Données brutes:', [
+            'rdv_id' => $this->id ?? 'null',
+            'date_demandee_raw' => $this->getRawOriginal('date_demandee'),
+            'heure_demandee_raw' => $this->getRawOriginal('heure_demandee'),
+            'date_demandee_cast' => $this->date_demandee,
+            'heure_demandee_cast' => $this->heure_demandee,
+            'date_type' => gettype($this->date_demandee),
+            'heure_type' => gettype($this->heure_demandee)
+        ]);
+
+        // Récupérer les valeurs brutes directement de la base
+        $dateRaw = $this->getRawOriginal('date_demandee');
+        $heureRaw = $this->getRawOriginal('heure_demandee');
+
+        if (!$dateRaw || !$heureRaw) {
+            Log::warning('❌ [ACCESSOR] Données manquantes:', [
+                'date_raw' => $dateRaw,
+                'heure_raw' => $heureRaw
+            ]);
             return 'Date non disponible';
         }
 
-        // S'assurer que date_demandee est un objet Carbon
-        $date = $this->date_demandee instanceof Carbon ? $this->date_demandee : Carbon::parse($this->date_demandee);
-        
-        // Traiter heure_demandee comme une chaîne HH:MM
-        $heure = $this->heure_demandee;
-        
-        // Nettoyer l'heure (enlever les secondes si présentes)
-        if (strlen($heure) > 5) {
-            $heure = substr($heure, 0, 5); // Garder seulement HH:MM
+        // Formatage de la date (YYYY-MM-DD vers DD/MM/YYYY)
+        $dateFormatee = 'Date invalide';
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})/', $dateRaw, $matches)) {
+            $dateFormatee = $matches[3] . '/' . $matches[2] . '/' . $matches[1];
+        } else {
+            // Fallback avec Carbon si le format est différent
+            try {
+                $dateCarbon = Carbon::parse($dateRaw);
+                $dateFormatee = $dateCarbon->format('d/m/Y');
+            } catch (\Exception $carbonError) {
+                Log::error('💥 [ACCESSOR] Erreur parsing date Carbon:', [
+                    'date_raw' => $dateRaw,
+                    'carbon_error' => $carbonError->getMessage()
+                ]);
+                return 'Format de date invalide';
+            }
         }
-        
-        return $date->format('d/m/Y') . ' à ' . $heure;
-        
-    } catch (\Exception $e) {
-        Log::error('💥 [MODEL] Erreur formatage date/heure:', [
-            'rdv_id' => $this->id,
-            'date_demandee' => $this->date_demandee,
-            'heure_demandee' => $this->heure_demandee,
-            'error' => $e->getMessage()
+
+        // Formatage de l'heure (garder HH:MM)
+        $heureFormatee = substr((string) $heureRaw, 0, 5);
+
+        $resultat = $dateFormatee . ' à ' . $heureFormatee;
+
+        Log::info('✅ [ACCESSOR] Formatage réussi:', [
+            'date_raw' => $dateRaw,
+            'heure_raw' => $heureRaw,
+            'date_formatee' => $dateFormatee,
+            'heure_formatee' => $heureFormatee,
+            'resultat' => $resultat
         ]);
-        
-        return 'Date non disponible';
+
+        return $resultat;
+
+    } catch (\Exception $e) {
+        Log::error('💥 [ACCESSOR] Exception critique:', [
+            'rdv_id' => $this->id ?? 'null',
+            'error_message' => $e->getMessage(),
+            'error_line' => $e->getLine(),
+            'error_file' => basename($e->getFile()),
+            'stack_trace' => $e->getTraceAsString(),
+            'all_attributes' => $this->getAttributes()
+        ]);
+
+        // Retourner quelque chose de plus descriptif en cas d'erreur
+        return 'Erreur: ' . $e->getMessage();
     }
 }
 

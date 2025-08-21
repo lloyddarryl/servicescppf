@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\RendezVousDemandeAdminMail;
 use App\Mail\RendezVousReponseUserMail;
+use App\Mail\RendezVousAnnulationAdminMail;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class RendezVousController extends Controller
@@ -568,65 +570,102 @@ class RendezVousController extends Controller
     }
 
     /**
-     * Annuler une demande (utilisateur)
-     */
-    public function annuler(Request $request, $id)
-    {
-        try {
-            $user = $request->user();
-            $userType = $user instanceof Agent ? 'agent' : 'retraite';
+ * Annuler une demande (utilisateur) - VERSION CORRIGÉE AVEC EMAIL
+ */
+public function annuler(Request $request, $id)
+{
+    try {
+        $user = $request->user();
+        $userType = $user instanceof Agent ? 'agent' : 'retraite';
 
-            $demande = RendezVousDemande::pourUtilisateur($user->id, $userType)->findOrFail($id);
+        $demande = RendezVousDemande::pourUtilisateur($user->id, $userType)->findOrFail($id);
 
-            // Vérifier si la demande peut être annulée
-            if (!$demande->peut_modifier) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Cette demande ne peut plus être annulée'
-                ], 403);
-            }
-
-            $validator = Validator::make($request->all(), [
-                'motif_annulation' => 'nullable|string|max:500'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            // Annuler la demande
-            $demande->changerStatut(
-                'annule',
-                'Annulé par l\'utilisateur: ' . ($request->motif_annulation ?? 'Aucun motif précisé')
-            );
-
-            Log::info('🚫 Demande RDV annulée par utilisateur:', [
-                'rdv_id' => $demande->id,
-                'numero' => $demande->numero_demande,
-                'motif' => $request->motif_annulation
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Votre demande de rendez-vous a été annulée avec succès'
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('💥 Erreur annulation RDV:', [
-                'rdv_id' => $id,
-                'user_id' => $request->user()->id,
-                'error' => $e->getMessage()
-            ]);
-
+        // Vérifier si la demande peut être annulée
+        if (!$demande->peut_modifier) {
             return response()->json([
                 'success' => false,
-                'message' => 'Erreur lors de l\'annulation'
-            ], 500);
+                'message' => 'Cette demande ne peut plus être annulée'
+            ], 403);
         }
+
+        $validator = Validator::make($request->all(), [
+            'motif_annulation' => 'nullable|string|max:500'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $motifAnnulation = $request->motif_annulation ?? 'Aucun motif précisé';
+
+        // ✅ SAUVEGARDER LES INFOS AVANT ANNULATION pour l'email
+        $infosRdv = [
+            'numero_demande' => $demande->numero_demande,
+            'date_heure_formatee' => $demande->date_heure_formatee,
+            'motif_complet' => $demande->motif_complet,
+            'user_nom_complet' => $demande->user_prenoms . ' ' . $demande->user_nom,
+            'date_demandee' => $demande->date_demandee,
+            'heure_demandee' => $demande->heure_demandee
+        ];
+
+        // Annuler la demande
+        $demande->changerStatut(
+            'annule',
+            'Annulé par l\'utilisateur: ' . $motifAnnulation
+        );
+
+        Log::info('🚫 [RDV] Demande annulée par utilisateur:', [
+            'rdv_id' => $demande->id,
+            'numero' => $demande->numero_demande,
+            'user_id' => $user->id,
+            'motif_annulation' => $motifAnnulation,
+            'infos_rdv' => $infosRdv
+        ]);
+
+        // ✅ ENVOYER EMAIL D'ANNULATION À L'ADMIN
+        try {
+            $destinataireAdmin = env('APP_RECLAMATION_EMAIL', 'nguidjoldarryl@gmail.com');
+            
+            Log::info('📧 [RDV] Envoi email annulation à admin:', [
+                'destinataire' => $destinataireAdmin,
+                'rdv_numero' => $demande->numero_demande
+            ]);
+
+            Mail::to($destinataireAdmin)->send(new RendezVousAnnulationAdminMail($demande, $user, $motifAnnulation));
+            
+            Log::info('✅ [RDV] Email annulation envoyé avec succès');
+
+        } catch (\Exception $e) {
+            Log::error('❌ [RDV] Erreur envoi email annulation (demande annulée quand même):', [
+                'rdv_id' => $demande->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            // Ne pas faire échouer l'annulation si l'email plante
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Votre demande de rendez-vous a été annulée avec succès. Une notification a été envoyée à l\'administration.'
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('💥 [RDV] Erreur annulation:', [
+            'rdv_id' => $id,
+            'user_id' => $request->user()->id,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Erreur lors de l\'annulation'
+        ], 500);
     }
+}
 
     /**
      * Changer le statut d'une demande (admin uniquement)
