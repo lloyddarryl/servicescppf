@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../../components/Header';
 import { authService, utils } from '../../services/api';
 import { apiCall } from '../../services/urlHelper';
+import RdvNotifications from '../../components/RdvNotifications';
 import './Dashboard.css';
+
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -82,10 +84,10 @@ const Dashboard = () => {
       historique: '/retraites/historique',
       attestations: '/retraites/attestations',
       profil: '/retraites/profil',
-      reclamations: '/retraites/reclamations', // ✅ AJOUTÉ : Pour les retraités
-      rendez_vous: '/retraites/rendez-vous', // ✅ AJOUTÉ
-      prise_rdv: '/retraites/rendez-vous', // ✅ AJOUTÉ (variante)
-
+      reclamations: '/retraites/reclamations', 
+      rendez_vous: '/retraites/rendez-vous', 
+      prise_rdv: '/retraites/rendez-vous', // (variante)
+      documents: '/retraites/documents', 
       }
     };
 
@@ -248,6 +250,10 @@ const Dashboard = () => {
             </div>
           </section>
 
+         {/* NOUVEAU : Notifications RDV */}
+          {dashboard.notifications_rdv && dashboard.notifications_rdv.length > 0 && (
+            <RdvNotifications notifications={dashboard.notifications_rdv} />
+          )}
           
 
           {/* Stats Cards */}
@@ -330,7 +336,7 @@ const Dashboard = () => {
                   <div className="dashboard__stat-card dashboard__stat-card--warning">
                     <div className="dashboard__stat-icon">📋</div>
                     <div className="dashboard__stat-content">
-                      <h3 className="dashboard__stat-title">Certificats Valides</h3>
+                      <h3 className="dashboard__stat-title">Certificats valides</h3>
                       <p className="dashboard__stat-value">
                         {dashboard.stats.certificats_valides}
                       </p>

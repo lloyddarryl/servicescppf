@@ -12,28 +12,34 @@ class RendezVousDemande extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'user_id',
-        'user_type',
-        'user_email',
-        'user_telephone',
-        'user_nom',
-        'user_prenoms',
-        'numero_demande',
-        'date_demandee',
-        'heure_demandee',
-        'motif',
-        'motif_autre',
-        'commentaires',
-        'statut',
-        'reponse_admin',
-        'date_reponse',
-        'date_rdv_confirme',
-        'lieu_rdv',
-        'email_admin_envoye',
-        'email_user_reponse_envoye',
-        'date_soumission'
-    ];
+protected $fillable = [
+    'user_id',
+    'user_type',
+    'user_email',
+    'user_telephone',
+    'user_nom',
+    'user_prenoms',
+    'numero_demande',
+    'date_demandee',
+    'heure_demandee',
+    'motif',
+    'motif_autre',
+    'commentaires',
+    'statut',
+    'reponse_admin',
+    'date_reponse',
+    'date_rdv_confirme',
+    'lieu_rdv',
+    'email_admin_envoye',
+    'email_user_reponse_envoye',
+    'date_soumission',
+    // ✅ NOUVELLES COLONNES POUR LES RAPPELS
+    'rappel_j1_envoye',
+    'date_rappel_j1',
+    'rappel_j7_envoye',
+    'date_rappel_j7',
+    'notification_dashboard_lue'
+];
 
     protected $casts = [
         'date_demandee' => 'date',
@@ -42,7 +48,13 @@ class RendezVousDemande extends Model
         'date_reponse' => 'datetime',
         'date_rdv_confirme' => 'datetime',
         'email_admin_envoye' => 'boolean',
-        'email_user_reponse_envoye' => 'boolean'
+        'email_user_reponse_envoye' => 'boolean',
+        // ✅ NOUVEAUX CASTS
+        'rappel_j1_envoye' => 'boolean',
+        'date_rappel_j1' => 'datetime',
+        'rappel_j7_envoye' => 'boolean',
+        'date_rappel_j7' => 'datetime',
+        'notification_dashboard_lue' => 'boolean'
     ];
 
     // Motifs disponibles avec libellés
@@ -450,5 +462,77 @@ public function getDateHeureFormatteeAttribute()
             ]);
             return false;
         }
+        
     }
+
+    // ✅ NOUVELLES MÉTHODES UTILITAIRES
+
+/**
+ * Scope pour les RDV nécessitant un rappel J-1
+ */
+public function scopeNeedingJ1Reminder($query)
+{
+    return $query->where('statut', 'accepte')
+                 ->whereNotNull('date_rdv_confirme')
+                 ->where('date_rdv_confirme', '>', now())
+                 ->where(function($q) {
+                     $q->whereNull('rappel_j1_envoye')
+                       ->orWhere('rappel_j1_envoye', false);
+                 });
+}
+
+/**
+ * Scope pour les RDV de demain
+ */
+public function scopeForTomorrow($query)
+{
+    $tomorrow = now()->addDay()->startOfDay();
+    $endOfTomorrow = now()->addDay()->endOfDay();
+    
+    return $query->whereBetween('date_rdv_confirme', [$tomorrow, $endOfTomorrow]);
+}
+
+/**
+ * Vérifier si le RDV nécessite une notification urgente
+ */
+public function getIsUrgentAttribute()
+{
+    if (!$this->date_rdv_confirme || $this->statut !== 'accepte') {
+        return false;
+    }
+    
+    $heuresRestantes = now()->diffInHours($this->date_rdv_confirme, false);
+    return $heuresRestantes <= 24 && $heuresRestantes > 0;
+}
+
+/**
+ * Obtenir le niveau de priorité pour les notifications
+ */
+public function getPrioriteNotificationAttribute()
+{
+    if (!$this->date_rdv_confirme || $this->statut !== 'accepte') {
+        return 'normale';
+    }
+    
+    $heuresRestantes = now()->diffInHours($this->date_rdv_confirme, false);
+    
+    if ($heuresRestantes <= 2) {
+        return 'critique';
+    } elseif ($heuresRestantes <= 24) {
+        return 'urgent';
+    } elseif ($heuresRestantes <= 72) {
+        return 'haute';
+    } else {
+        return 'normale';
+    }
+}
+
+/**
+ * Marquer la notification comme lue
+ */
+public function markNotificationAsRead()
+{
+    $this->update(['notification_dashboard_lue' => true]);
+    return $this;
+}
 }

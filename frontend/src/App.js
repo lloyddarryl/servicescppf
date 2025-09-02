@@ -14,7 +14,7 @@ import SimulateurPension from './pages/simulateur/SimulateurPension';
 import GrappeFamiliale from './pages/famille/GrappeFamiliale';
 import Reclamations from './pages/reclamations/Reclamations'; 
 import PriseRendezVous from './pages/rendez_vous/PriseRendezVous';
-
+import MesDocuments from './pages/mesdocuments/MesDocuments';
 
 import './App.css';
 
@@ -143,6 +143,8 @@ function App() {
               <GrappeFamiliale />
             </ProtectedRoute>
           } />
+
+          <Route path="/retraites/documents" element={<MesDocuments />} />
 
           {/* ✅ Route de compatibilité */}
           <Route path="/dashboard/documents" element={

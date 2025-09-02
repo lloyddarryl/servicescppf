@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\Agent;
 use App\Models\Retraite;
 use Carbon\Carbon;
+use Illuminate\Support\Str; 
+
 
 class DashboardController extends Controller
 {
@@ -43,6 +45,9 @@ class DashboardController extends Controller
     // Activités récentes dynamiques
     $activites = $this->getActivitesRecentesAgent($agent);
     
+    // ✅ NOUVEAU : Notifications RDV
+    $notificationsRdv = $this->getRdvNotifications($agent);
+
     // Services disponibles mis à jour avec Article 94
     $services = [
         [
@@ -114,8 +119,9 @@ class DashboardController extends Controller
         ],
         'dashboard' => [
             'stats' => $stats,
-            'activites_recentes' => $activites, // ✅ Maintenant dynamiques
+            'activites_recentes' => $activites,
             'services_disponibles' => $services,
+            'notifications_rdv' => $notificationsRdv, 
             'info_article94' => [
                 'titre' => 'Nouvelle Réglementation Article 94',
                 'description' => 'Calcul des pensions selon la formule : Années de service × 1,8%',
@@ -130,10 +136,11 @@ class DashboardController extends Controller
         ]
     ]);
 }
-    /**
-     * Dashboard pour retraités
-     */
-    public function retraiteDashboard(Request $request)
+
+/**
+ *  Mise à jour du dashboard retraité avec notifications documents
+ */
+public function retraiteDashboard(Request $request)
 {
     $retraite = $request->user();
     
@@ -142,57 +149,99 @@ class DashboardController extends Controller
     $moisRetraite = Carbon::parse($retraite->date_retraite)->diffInMonths(now()) % 12;
     $age = Carbon::parse($retraite->date_naissance)->age;
     
-    // Données statistiques améliorées
+    // Obtenir les statistiques des documents AVANT de les utiliser
+    $statsDocuments = [];
+    try {
+        if (method_exists($retraite, 'statistiques_documents')) {
+            $statsDocuments = $retraite->statistiques_documents;
+        } else {
+            // Fallback si les relations documents ne sont pas encore implémentées
+            $statsDocuments = [
+                'total_documents' => 0,
+                'certificats_vie' => 0,
+                'autres_documents' => 0,
+                'documents_expires' => 0,
+                'derniere_activite' => null
+            ];
+        }
+    } catch (\Exception $e) {
+        // Fallback en cas d'erreur
+        $statsDocuments = [
+            'total_documents' => 0,
+            'certificats_vie' => 0,
+            'autres_documents' => 0,
+            'documents_expires' => 0,
+            'derniere_activite' => null
+        ];
+    }
+    
+    // Données statistiques améliorées avec documents
     $stats = [
         'pension_mensuelle' => $retraite->montant_pension,
         'pensions_recues' => $anneesRetraite * 12 + $moisRetraite,
         'total_percu' => ($anneesRetraite * 12 + $moisRetraite) * $retraite->montant_pension,
         'certificats_valides' => $this->compterCertificatsValides($retraite),
+        'documents_totaux' => $statsDocuments['total_documents'], 
+        'documents_expires' => $statsDocuments['documents_expires'] 
     ];
     
     // Activités récentes dynamiques
     $activites = $this->getActivitesRecentesRetraite($retraite);
+
+    // Notifications de certificat de vie avec fallback
+    $notificationsCertificat = [];
+    try {
+        if (method_exists($retraite, 'notifications_certificat')) {
+            $notificationsCertificat = $retraite->notifications_certificat;
+        }
+    } catch (\Exception $e) {
+        // Fallback vide si pas encore implémenté
+        $notificationsCertificat = [];
+    }
     
-    // Services disponibles
+    // Services disponibles avec documents
     $services = [
-    [
-        'id' => 'pension',
-        'name' => 'Suivi Pension',
-        'description' => 'Consulter vos versements de pension',
-        'icon' => 'banknotes',
-        'available' => true
-    ],
-    [
-        'id' => 'grappe_familiale',
-        'name' => 'Grappe Familiale',
-        'description' => 'Gérer vos informations familiales',
-        'icon' => 'users', 
-        'available' => true
-    ],
-    [
-        'id' => 'documents', 
-        'name' => 'Mes Documents',
-        'description' => 'Gérer vos documents et attestations',
-        'icon' => 'document',
-        'available' => true
-    ],
-    [
-        'id' => 'reclamations', 
-        'name' => 'Réclamations',
-        'description' => 'Gérer vos réclamations et demandes',
-        'icon' => 'reclamation',
-        'available' => true,
-        'color' => 'red'
-    ],
-    [
+        [
+            'id' => 'documents',
+            'name' => 'Mes Documents',
+            'description' => 'Gérer vos documents et certificats',
+            'icon' => 'document',
+            'available' => true,
+            'priority' => 1,
+            'badge' => $statsDocuments['documents_expires'] > 0 ? 'Expirés' : null,
+            'color' => $statsDocuments['documents_expires'] > 0 ? 'red' : 'blue'
+        ],
+        [
+            'id' => 'pension',
+            'name' => 'Historique de Paiement',
+            'description' => 'Consulter vos versements de pension',
+            'icon' => 'banknotes',
+            'available' => true
+        ],
+        [
+            'id' => 'grappe_familiale',
+            'name' => 'Grappe Familiale',
+            'description' => 'Gérer vos informations familiales',
+            'icon' => 'users', 
+            'available' => true
+        ],
+        [
             'id' => 'prise_rdv',
             'name' => 'Prise de Rendez-vous',
             'description' => 'Réserver un rendez-vous avec un conseiller',
             'icon' => 'calendar',
             'available' => true,
             'color' => 'orange'
-    ]
-];
+        ],
+        [
+            'id' => 'reclamations', 
+            'name' => 'Réclamations',
+            'description' => 'Gérer vos réclamations et demandes',
+            'icon' => 'reclamation',
+            'available' => true,
+            'color' => 'red'
+        ]
+    ];
 
     return response()->json([
         'success' => true,
@@ -201,9 +250,11 @@ class DashboardController extends Controller
             'id' => $retraite->id,
             'numero_pension' => $retraite->numero_pension,
             'nom_complet' => $retraite->prenoms . ' ' . $retraite->nom,
+            'nom_complet_avec_titre' => $this->getNomCompletAvecTitre($retraite), 
             'nom' => $retraite->nom,
             'prenoms' => $retraite->prenoms,
             'sexe' => $retraite->sexe,
+            'titre_civilite' => $this->getTitreCivilite($retraite), 
             'age' => $age,
             'ancien_poste' => $retraite->ancien_poste,
             'ancienne_direction' => $retraite->ancienne_direction,
@@ -217,15 +268,78 @@ class DashboardController extends Controller
             'parcours_professionnel' => $retraite->parcours_professionnel,
             'status' => $retraite->status,
             'email_verified' => !is_null($retraite->email_verified_at),
-            'phone_verified' => !is_null($retraite->phone_verified_at),
+            'phone_verified' => !is_null($retraite->phone_verified_at),            
+            'a_certificat_vie_valide' => $this->getACertificatVieValide($retraite)
         ],
         'dashboard' => [
             'stats' => $stats,
-            'activites_recentes' => $activites, // ✅ Maintenant dynamiques
+            'activites_recentes' => $activites, 
             'services_disponibles' => $services,
+            'notifications_certificat' => $notificationsCertificat,
+            'statistiques_documents' => $statsDocuments
         ]
     ]);
 }
+
+/**
+ * Méthodes helper pour éviter les erreurs d'attributs manquants
+ */
+private function getTitreCivilite($retraite)
+{
+    if (!$retraite->sexe) return '';
+    
+    $sexeNormalized = strtoupper($retraite->sexe);
+    
+    if ($sexeNormalized === 'M') {
+        return 'M.';
+    } elseif ($sexeNormalized === 'F') {
+        $situation = strtolower($retraite->situation_matrimoniale ?? '');
+        
+        switch ($situation) {
+            case 'mariée':
+            case 'marie':
+            case 'marié':
+            case 'mariee':
+                return 'Mme';
+            case 'veuve':
+            case 'veuf':
+                return 'Mme';
+            case 'divorcée':
+            case 'divorce':
+            case 'divorcee':
+                return 'Mme';
+            case 'célibataire':
+            case 'celibataire':
+                return 'Mlle';
+            default:
+                return 'Mme';
+        }
+    }
+    
+    return '';
+}
+
+private function getNomCompletAvecTitre($retraite)
+{
+    $titre = $this->getTitreCivilite($retraite);
+    $nomComplet = $retraite->prenoms . ' ' . $retraite->nom;
+    
+    return $titre ? "{$titre} {$nomComplet}" : $nomComplet;
+}
+
+private function getACertificatVieValide($retraite)
+{
+    try {
+        // Si le modèle DocumentRetraite existe et la relation est définie
+        if (class_exists('\App\Models\DocumentRetraite')) {
+            return \App\Models\DocumentRetraite::aCertificatVieValide($retraite->id);
+        }
+        return false;
+    } catch (\Exception $e) {
+        return false;
+    }
+}
+
 // Méthodes utilitaires pour les statistiques
 private function calculerCotisationsTotales($agent)
 {
@@ -1074,18 +1188,37 @@ private function calculateTauxLiquidationArticle94($dureeService)
     return $dureeService * 1.8;
 }
 
-// Mise à jour du DashboardController pour rendre les activités récentes dynamiques
-
-// Ajouter ces méthodes dans app/Http/Controllers/DashboardController.php
-
 /**
- * Obtenir les activités récentes dynamiques pour agents actifs
+ * Obtenir les activités récentes dynamiques pour agents actifs (VERSION MISE À JOUR)
  */
 private function getActivitesRecentesAgent($agent)
 {
     $activites = collect();
     
     try {
+        // ✅ NOUVEAU : Activités des rendez-vous
+        $rdvRecents = \App\Models\RendezVousDemande::pourUtilisateur($agent->id, 'agent')
+                                                  ->orderBy('date_soumission', 'desc')
+                                                  ->limit(3)
+                                                  ->get();
+        
+        foreach ($rdvRecents as $rdv) {
+            $activites->push([
+                'id' => 'rdv_' . $rdv->id,
+                'type' => 'rendez_vous',
+                'description' => $this->getDescriptionActiviteRdv($rdv),
+                'date' => $rdv->date_soumission,
+                'status' => $this->mapStatutRdvToStatus($rdv->statut),
+                'metadata' => [
+                    'numero_demande' => $rdv->numero_demande,
+                    'motif' => $rdv->motif_complet,
+                    'statut' => $rdv->statut,
+                    'date_demandee' => $rdv->date_demandee->format('d/m/Y'),
+                    'heure_demandee' => $rdv->heure_demandee
+                ]
+            ]);
+        }
+
         // Activités des réclamations
         $reclamationsRecentes = \App\Models\Reclamation::pourUtilisateur($agent->id, 'agent')
                                                       ->with('historique')
@@ -1108,7 +1241,7 @@ private function getActivitesRecentesAgent($agent)
             ]);
         }
         
-        // Activités des simulations de pension (si disponibles)
+        // ✅ CORRECTION : Activités des simulations de pension 
         if (class_exists('\App\Models\SimulationPension')) {
             $simulationsRecentes = \App\Models\SimulationPension::where('agent_id', $agent->id)
                                                                ->orderBy('created_at', 'desc')
@@ -1116,16 +1249,18 @@ private function getActivitesRecentesAgent($agent)
                                                                ->get();
             
             foreach ($simulationsRecentes as $simulation) {
+                // ✅ CORRECTION : Formatage correct du montant
+                $montantFormate = number_format($simulation->pension_totale ?: 0, 0, ',', ' ') . ' FCFA';
+                
                 $activites->push([
                     'id' => 'simulation_' . $simulation->id,
                     'type' => 'simulation',
-                    'description' => "Simulation de pension réalisée - Pension estimée: " . 
-                                   number_format($simulation->pension_estimee, 0, ',', ' ') . ' FCFA',
+                    'description' => "Simulation de pension réalisée - Pension estimée: " . $montantFormate,
                     'date' => $simulation->created_at,
                     'status' => 'completed',
                     'metadata' => [
-                        'pension_estimee' => $simulation->pension_estimee,
-                        'duree_service' => $simulation->duree_service
+                        'pension_estimee' => $simulation->pension_totale,
+                        'duree_service' => $simulation->duree_service_simulee
                     ]
                 ]);
             }
@@ -1147,6 +1282,47 @@ private function getActivitesRecentesAgent($agent)
 }
 
 /**
+ * ✅ NOUVEAU : Générer la description d'une activité de rendez-vous
+ */
+private function getDescriptionActiviteRdv($rdv)
+{
+    switch ($rdv->statut) {
+        case 'en_attente':
+            return "Demande de rendez-vous déposée (N° {$rdv->numero_demande})";
+        case 'accepte':
+            return "Rendez-vous confirmé pour le " . $rdv->date_rdv_confirme->format('d/m/Y');
+        case 'refuse':
+            return "Demande de rendez-vous refusée (N° {$rdv->numero_demande})";
+        case 'reporte':
+            return "Rendez-vous reporté (N° {$rdv->numero_demande})";
+        case 'annule':
+            return "Rendez-vous annulé (N° {$rdv->numero_demande})";
+        default:
+            return "Rendez-vous (N° {$rdv->numero_demande})";
+    }
+}
+
+/**
+ * ✅ NOUVEAU : Mapper le statut de RDV vers le statut d'activité
+ */
+private function mapStatutRdvToStatus($statut)
+{
+    switch ($statut) {
+        case 'en_attente':
+            return 'pending';
+        case 'accepte':
+            return 'completed';
+        case 'refuse':
+        case 'annule':
+            return 'warning';
+        case 'reporte':
+            return 'in_progress';
+        default:
+            return 'pending';
+    }
+}
+
+/**
  * Obtenir les activités récentes dynamiques pour retraités
  */
 private function getActivitesRecentesRetraite($retraite)
@@ -1154,6 +1330,54 @@ private function getActivitesRecentesRetraite($retraite)
     $activites = collect();
     
     try {
+
+        // ✅ NOUVEAU : Activités des documents
+        $documentsRecents = $retraite->documentsActifs()
+                                  ->orderBy('date_depot', 'desc')
+                                  ->limit(5)
+                                  ->get();
+        
+        foreach ($documentsRecents as $document) {
+            $activites->push([
+                'id' => 'document_' . $document->id,
+                'type' => 'document',
+                'description' => $this->getDescriptionActiviteDocument($document),
+                'date' => $document->date_depot,
+                'status' => $this->mapStatutDocumentToStatus($document),
+                'metadata' => [
+                    'type_document' => $document->type_document,
+                    'nom_type' => $document->nom_type,
+                    'nom_original' => $document->nom_original,
+                    'taille_formatee' => $document->taille_formatee,
+                    'is_expire' => $document->is_expire,
+                    'expire_bientot' => $document->expire_bientot,
+                    'date_expiration' => $document->date_expiration?->format('d/m/Y')
+                ]
+            ]);
+        }
+
+        // ✅ NOUVEAU : Activités des rendez-vous pour retraités
+        $rdvRecents = \App\Models\RendezVousDemande::pourUtilisateur($retraite->id, 'retraite')
+                                                  ->orderBy('date_soumission', 'desc')
+                                                  ->limit(3)
+                                                  ->get();
+        
+        foreach ($rdvRecents as $rdv) {
+            $activites->push([
+                'id' => 'rdv_' . $rdv->id,
+                'type' => 'rendez_vous',
+                'description' => $this->getDescriptionActiviteRdv($rdv),
+                'date' => $rdv->date_soumission,
+                'status' => $this->mapStatutRdvToStatus($rdv->statut),
+                'metadata' => [
+                    'numero_demande' => $rdv->numero_demande,
+                    'motif' => $rdv->motif_complet,
+                    'statut' => $rdv->statut,
+                    'date_demandee' => $rdv->date_demandee->format('d/m/Y'),
+                    'heure_demandee' => $rdv->heure_demandee
+                ]
+            ]);
+        }
         // Activités des réclamations
         $reclamationsRecentes = \App\Models\Reclamation::pourUtilisateur($retraite->id, 'retraite')
                                                       ->with('historique')
@@ -1190,6 +1414,50 @@ private function getActivitesRecentesRetraite($retraite)
     
     return $activites->sortByDesc('date')->take(5)->values()->toArray();
 }
+
+/**
+ * ✅ NOUVEAU : Générer la description d'une activité de document
+ */
+private function getDescriptionActiviteDocument($document)
+{
+    $typeNom = $document->nom_type;
+    $nomFichier = Str::limit($document->nom_original, 30);
+    
+    $description = "Document déposé: {$typeNom} - {$nomFichier}";
+    
+    // Ajouter des informations sur l'état du document
+    if ($document->type_document === 'certificat_vie') {
+        if ($document->is_expire) {
+            $description .= " (EXPIRÉ)";
+        } elseif ($document->expire_bientot) {
+            $jours = $document->jours_avant_expiration;
+            $description .= " (expire dans {$jours}j)";
+        } else {
+            $description .= " (valide)";
+        }
+    }
+    
+    return $description;
+}
+
+/**
+ * ✅ NOUVEAU : Mapper le statut de document vers le statut d'activité
+ */
+private function mapStatutDocumentToStatus($document)
+{
+    if ($document->type_document === 'certificat_vie') {
+        if ($document->is_expire) {
+            return 'warning'; // Document expiré
+        } elseif ($document->expire_bientot) {
+            return 'in_progress'; // Expire bientôt
+        } else {
+            return 'completed'; // Valide
+        }
+    }
+    
+    return 'completed'; // Autres documents
+}
+
 
 /**
  * Générer la description d'une activité de réclamation
@@ -1235,6 +1503,198 @@ private function mapStatutReclamationToStatus($statut)
         default:
             return 'pending';
     }
+}
+
+
+/**
+ * ✅ NOUVEAU : Obtenir les notifications de rendez-vous
+ */
+private function getRdvNotifications($user)
+{
+    $notifications = [];
+    
+    try {
+        $userType = $user instanceof Agent ? 'agent' : 'retraite';
+        
+        // RDV confirmés à venir
+        $rdvConfirmes = \App\Models\RendezVousDemande::pourUtilisateur($user->id, $userType)
+            ->where('statut', 'accepte')
+            ->whereNotNull('date_rdv_confirme')
+            ->where('date_rdv_confirme', '>', now())
+            ->orderBy('date_rdv_confirme')
+            ->get();
+
+        foreach ($rdvConfirmes as $rdv) {
+            $notification = $this->createRdvNotification($rdv);
+            if ($notification) {
+                $notifications[] = $notification;
+            }
+        }
+
+        // RDV en attente
+        $rdvEnAttente = \App\Models\RendezVousDemande::pourUtilisateur($user->id, $userType)
+            ->where('statut', 'en_attente')
+            ->orderBy('date_soumission', 'desc')
+            ->get();
+
+        foreach ($rdvEnAttente as $rdv) {
+            $notifications[] = [
+                'id' => 'rdv_attente_' . $rdv->id,
+                'type' => 'rdv_attente',
+                'titre' => 'Demande en attente',
+                'message' => "Votre demande de RDV n° {$rdv->numero_demande} est en cours d'examen",
+                'date_creation' => $rdv->date_soumission,
+                'priorite' => 'normale',
+                'couleur' => '#F59E0B',
+                'icone' => '⏳',
+                'actions' => [
+                    [
+                        'label' => 'Voir détails',
+                        'url' => '/actifs/rendez-vous',
+                        'type' => 'primary'
+                    ]
+                ]
+            ];
+        }
+
+    } catch (\Exception $e) {
+        \Log::error('Erreur notifications RDV:', [
+            'user_id' => $user->id,
+            'error' => $e->getMessage()
+        ]);
+    }
+
+    return $notifications;
+}
+
+/**
+ * ✅ NOUVEAU : Créer une notification pour un RDV confirmé
+ */
+private function createRdvNotification($rdv)
+{
+    $dateRdv = $rdv->date_rdv_confirme;
+    $maintenant = now();
+    
+    // Calculer le délai
+    $diffEnJours = $maintenant->diffInDays($dateRdv, false);
+    $diffEnHeures = $maintenant->diffInHours($dateRdv, false);
+    
+    // Pas de notification si le RDV est passé
+    if ($diffEnJours < 0) {
+        return null;
+    }
+    
+    // Déterminer le niveau d'urgence et la couleur
+    $urgence = $this->determinerUrgenceRdv($diffEnJours, $diffEnHeures);
+    
+    return [
+        'id' => 'rdv_confirme_' . $rdv->id,
+        'type' => 'rdv_confirme',
+        'titre' => $urgence['titre'],
+        'message' => $this->formatMessageRdv($rdv, $diffEnJours, $diffEnHeures),
+        'date_creation' => $rdv->date_rdv_confirme,
+        'date_rdv' => $dateRdv->format('d/m/Y H:i'),
+        'priorite' => $urgence['priorite'],
+        'couleur' => $urgence['couleur'],
+        'icone' => $urgence['icone'],
+        'delai_jours' => $diffEnJours,
+        'delai_heures' => $diffEnHeures,
+        'numero_demande' => $rdv->numero_demande,
+        'lieu_rdv' => $rdv->lieu_rdv,
+        'motif' => $rdv->motif_complet,
+        'actions' => [
+            [
+                'label' => 'Voir détails',
+                'url' => '/actifs/rendez-vous',
+                'type' => 'primary'
+            ],
+            [
+                'label' => 'Localiser',
+                'url' => '#',
+                'type' => 'secondary'
+            ]
+        ]
+    ];
+}
+
+/**
+ * ✅ NOUVEAU : Déterminer l'urgence d'un RDV selon le délai
+ */
+private function determinerUrgenceRdv($jours, $heures)
+{
+    if ($heures <= 2) {
+        return [
+            'titre' => '🚨 RDV IMMINENT',
+            'priorite' => 'critique',
+            'couleur' => '#DC2626',
+            'icone' => '🚨'
+        ];
+    } elseif ($heures <= 6) {
+        return [
+            'titre' => '⚡ RDV Aujourd\'hui',
+            'priorite' => 'urgent',
+            'couleur' => '#EA580C',
+            'icone' => '⚡'
+        ];
+    } elseif ($jours <= 1) {
+        return [
+            'titre' => '🔥 RDV Demain',
+            'priorite' => 'urgent',
+            'couleur' => '#F59E0B',
+            'icone' => '🔥'
+        ];
+    } elseif ($jours <= 3) {
+        return [
+            'titre' => '⚠️ RDV Cette Semaine',
+            'priorite' => 'haute',
+            'couleur' => '#EAB308',
+            'icone' => '⚠️'
+        ];
+    } elseif ($jours <= 7) {
+        return [
+            'titre' => '📅 RDV Programmé',
+            'priorite' => 'normale',
+            'couleur' => '#3B82F6',
+            'icone' => '📅'
+        ];
+    } else {
+        return [
+            'titre' => '🗓️ RDV À Venir',
+            'priorite' => 'normale',
+            'couleur' => '#10B981',
+            'icone' => '🗓️'
+        ];
+    }
+}
+
+/**
+ * ✅ NOUVEAU : Formater le message de notification RDV
+ */
+private function formatMessageRdv($rdv, $jours, $heures)
+{
+    $dateFormatee = $rdv->date_rdv_confirme->format('d/m/Y à H:i');
+    
+    if ($heures <= 2) {
+        $delai = "dans " . ceil($heures) . " heure(s)";
+    } elseif ($jours <= 1) {
+        if ($heures <= 24) {
+            $delai = "dans " . ceil($heures) . " heure(s)";
+        } else {
+            $delai = "demain";
+        }
+    } elseif ($jours <= 7) {
+        $delai = "dans " . ceil($jours) . " jour(s)";
+    } else {
+        $delai = "le " . $rdv->date_rdv_confirme->format('d/m/Y');
+    }
+    
+    $message = "Rendez-vous {$delai} ({$dateFormatee})";
+    
+    if ($rdv->lieu_rdv) {
+        $message .= " - Lieu: {$rdv->lieu_rdv}";
+    }
+    
+    return $message;
 }
 
 /**

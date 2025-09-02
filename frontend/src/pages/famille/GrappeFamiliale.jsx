@@ -435,15 +435,7 @@ const calculateAge = (birthDate) => {
                         <div className="membre-famille no-conjoint">
                           <div className="membre-info">
                             <div className="membre-nom">Aucun conjoint déclaré</div> 
-                            <button 
-                              className="btn-add-small"
-                              onClick={() => {
-                                setShowConjointForm(true);
-                                setActiveTab('conjoint');
-                              }}
-                            >
-                              + Ajouter conjoint
-                            </button>
+                           
                           </div>
                         </div>
                       )}
@@ -473,15 +465,7 @@ const calculateAge = (birthDate) => {
                         <div className="membre-famille no-enfants">
                           <div className="membre-info">
                             <div className="membre-nom">Aucun enfant déclaré</div>
-                            <button 
-                              className="btn-add-small"
-                              onClick={() => {
-                                setShowEnfantForm(true);
-                                setActiveTab('enfants');
-                              }}
-                            >
-                              + Ajouter enfant
-                            </button>
+                        
                           </div>
                         </div>
                       )}
@@ -554,12 +538,6 @@ const calculateAge = (birthDate) => {
                     </div>
                     <div className="card-content">
                       <p>Vous n'avez pas encore déclaré de conjoint.</p>
-                      <button 
-                        className="btn-primary"
-                        onClick={() => setShowConjointForm(true)}
-                      >
-                        + Ajouter un conjoint
-                      </button>
                     </div>
                   </div>
                 )}
@@ -674,20 +652,7 @@ const calculateAge = (birthDate) => {
               <div className="enfants-section">
                 <div className="enfants-header">
                   <h3> Liste des Enfants</h3>
-                  <button 
-                    className="btn-primary"
-                    onClick={() => {
-                      setEditingEnfant(null);
-                      setEnfantForm({
-                        enfant_id: '', nom: '', prenoms: '', sexe: '',
-                        date_naissance: '', prestation_familiale: false,
-                        scolarise: true, niveau_scolaire: ''
-                      });
-                      setShowEnfantForm(true);
-                    }}
-                  >
-                    + Ajouter un enfant
-                  </button>
+                  
                 </div>
 
                 {grappeFamiliale?.enfants?.length > 0 ? (
@@ -720,12 +685,7 @@ const calculateAge = (birthDate) => {
                 ) : (
                   <div className="no-enfants">
                     <p>Aucun enfant déclaré</p>
-                    <button 
-                      className="btn-primary"
-                      onClick={() => setShowEnfantForm(true)}
-                    >
-                      + Ajouter le premier enfant
-                    </button>
+                    
                   </div>
                 )}
 

@@ -161,4 +161,96 @@ public function getAConjointAttribute()
 {
     return $this->conjoint()->exists();
 }
+
+// Ajoutez ces relations à la fin de la classe Retraite, avant la fermeture }
+
+/**
+ * Relation avec tous les documents
+ */
+public function documents()
+{
+    return $this->hasMany(DocumentRetraite::class);
+}
+
+/**
+ * Relation avec les documents actifs
+ */
+public function documentsActifs()
+{
+    return $this->hasMany(DocumentRetraite::class)->where('statut', 'actif');
+}
+
+/**
+ * Relation avec les certificats de vie
+ */
+public function certificatsVie()
+{
+    return $this->hasMany(DocumentRetraite::class)->where('type_document', 'certificat_vie');
+}
+
+/**
+ * Obtenir le titre de civilité selon le sexe et la situation matrimoniale
+ */
+public function getTitreCiviliteAttribute()
+{
+    if (!$this->sexe) return '';
+    
+    $sexeNormalized = strtoupper($this->sexe);
+    
+    if ($sexeNormalized === 'M') {
+        return 'M.';
+    } elseif ($sexeNormalized === 'F') {
+        $situation = strtolower($this->situation_matrimoniale ?? '');
+        
+        switch ($situation) {
+            case 'mariée':
+            case 'marie':
+            case 'marié':
+            case 'mariee':
+                return 'Mme';
+            case 'veuve':
+            case 'veuf':
+                return 'Mme';
+            case 'divorcée':
+            case 'divorce':
+            case 'divorcee':
+                return 'Mme';
+            case 'célibataire':
+            case 'celibataire':
+                return 'Mlle';
+            default:
+                return 'Mme';
+        }
+    }
+    
+    return '';
+}
+
+/**
+ * Obtenir le nom complet avec titre de civilité
+ */
+public function getNomCompletAvecTitreAttribute()
+{
+    $titre = $this->titre_civilite;
+    $nomComplet = $this->prenoms . ' ' . $this->nom;
+    
+    return $titre ? "{$titre} {$nomComplet}" : $nomComplet;
+}
+
+/**
+ * Obtenir les notifications de certificat de vie
+ */
+public function getNotificationsCertificatAttribute()
+{
+    return DocumentRetraite::getNotificationsCertificat($this->id);
+}
+
+/**
+ * Obtenir les statistiques des documents
+ */
+public function getStatistiquesDocumentsAttribute()
+{
+    return DocumentRetraite::getStatistiques($this->id);
+}
+
 }

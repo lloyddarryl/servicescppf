@@ -403,10 +403,13 @@
 
 /* Section Enfants */
 .enfants-header {
+  background: linear-gradient(135deg, #10b913 0%, #f5e90b 50%, #0b31ad 100%);
+  color: white;
+  padding: 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  border-radius: 15px 15px 0 0;
 }
 
 .enfants-header h3 {

@@ -22,3 +22,8 @@ Route::get('/sanctum/csrf-cookie', [CsrfCookieController::class, 'show'])
 Route::get('/{any}', function () {
     return view('welcome');
 })->where('any', '.*');
+
+// Important: Ajouter aussi cette route nommée dans web.php pour les téléchargements
+Route::get('/retraites/documents/{id}/download', [DocumentController::class, 'download'])
+     ->name('retraites.documents.download')
+     ->middleware('auth:sanctum');

@@ -9,6 +9,7 @@ use App\Http\Controllers\PensionSimulatorController;
 use App\Http\Controllers\FamilleController;
 use App\Http\Controllers\ReclamationController;
 use App\Http\Controllers\RendezVousController;
+use App\Models\DocumentRetraite; 
 
 /*
 |--------------------------------------------------------------------------
@@ -79,6 +80,26 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/password', [ProfileController::class, 'changePassword']);
         Route::post('/verify-phone', [ProfileController::class, 'verifyPhone']);
         Route::post('/resend-verification', [ProfileController::class, 'resendVerification']);
+    });
+
+    // Routes communes pour documents (utilisées par les deux types d'utilisateurs)
+    Route::prefix('documents')->group(function () {
+        Route::get('/types', function () {
+            return response()->json([
+                'success' => true,
+                'types' => DocumentRetraite::$typesDocuments,
+                'extensions_autorisees' => DocumentRetraite::$extensionsAutorisees,
+                'taille_max_mb' => DocumentRetraite::$tailleMaximale / (1024 * 1024),
+                'max_fichiers_simultanes' => 3
+            ]);
+        });
+        
+        Route::get('/statistiques/{userId}', function ($userId) {
+            return response()->json([
+                'success' => true,
+                'statistiques' => DocumentRetraite::getStatistiques($userId)
+            ]);
+        });
     });
 
     // Routes spécifiques aux agents actifs avec préfixe /actifs
@@ -202,11 +223,23 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/types', [ReclamationController::class, 'getTypesReclamations']);
             Route::get('/', [ReclamationController::class, 'index']);
             Route::post('/', [ReclamationController::class, 'store']);
-            Route::get('/{id}', [ReclamationController::class, 'show']);
-            Route::delete('/{id}', [ReclamationController::class, 'destroy']);
             Route::get('/{id}/accuse-reception', [ReclamationController::class, 'telechargerAccuseReception']);
             Route::get('/{id}/documents/{documentIndex}', [ReclamationController::class, 'downloadDocument']);
+            // Route générique EN DERNIER
+            Route::get('/{id}', [ReclamationController::class, 'show']);
+            Route::delete('/{id}', [ReclamationController::class, 'destroy']);
+            });
+
+         // Documents et gestion documentaire - NOUVEAU
+        Route::prefix('documents')->group(function () {
+        Route::get('/notifications', [App\Http\Controllers\DocumentController::class, 'getNotifications']);
+        Route::post('/notifications/dismiss', [App\Http\Controllers\DocumentController::class, 'dismissNotification']);
+        Route::get('/{id}/download', [App\Http\Controllers\DocumentController::class, 'download'])->name('retraites.documents.download');
+        Route::delete('/{id}', [App\Http\Controllers\DocumentController::class, 'destroy']);
+        Route::get('/', [App\Http\Controllers\DocumentController::class, 'index']); // Cette route PRINCIPALE
+        Route::post('/', [App\Http\Controllers\DocumentController::class, 'store']);
         });
+
 
         // ✅ RENDEZ-VOUS - Routes corrigées pour les retraités
         Route::prefix('rendez-vous')->group(function () {

@@ -1284,4 +1284,5 @@ public function annuler(Request $request, $id)
             ], 500);
         }
     }
+    
 }

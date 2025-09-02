@@ -105,6 +105,279 @@ export const retraiteService = {
   getHistorique: () => api.get('/retraites/historique'),
 };
 
+// ✅ CORRECTION: Services pour les documents des retraités - DÉPLACÉ AVANT utils
+export const documentService = {
+  // Obtenir tous les documents avec notifications
+  getAll: () => {
+    return api.get('/retraites/documents');
+  },
+
+  // Déposer de nouveaux documents (jusqu'à 3 fichiers)
+  upload: (formData) => {
+    return api.post('/retraites/documents', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      timeout: 60000 // 60 secondes pour l'upload
+    });
+  },
+
+  // Télécharger un document
+  download: (documentId) => {
+    return api.get(`/retraites/documents/${documentId}/download`, {
+      responseType: 'blob'
+    });
+  },
+
+  // Supprimer un document
+  delete: (documentId) => {
+    return api.delete(`/retraites/documents/${documentId}`);
+  },
+
+  // Obtenir les notifications de certificat
+  getNotifications: () => {
+    return api.get('/retraites/documents/notifications');
+  },
+
+  // Masquer une notification
+  dismissNotification: (type) => {
+    return api.post('/retraites/documents/notifications/dismiss', { type });
+  },
+
+  // Obtenir les types de documents disponibles
+  getTypes: () => {
+    return api.get('/documents/types');
+  },
+
+  // Utilitaires pour les documents
+  utils: {
+    // Valider les fichiers avant upload
+    validateFiles: (files) => {
+      const maxFiles = 3;
+      const maxSizeBytes = 5 * 1024 * 1024; // 5MB
+      const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'];
+      const errors = [];
+
+      if (!files || files.length === 0) {
+        errors.push('Veuillez sélectionner au moins un fichier');
+        return { isValid: false, errors };
+      }
+
+      if (files.length > maxFiles) {
+        errors.push(`Maximum ${maxFiles} fichiers autorisés à la fois`);
+      }
+
+      Array.from(files).forEach((file, index) => {
+        const extension = file.name.split('.').pop().toLowerCase();
+        
+        if (!allowedExtensions.includes(extension)) {
+          errors.push(`Fichier ${index + 1}: Type non autorisé (${extension}). Extensions acceptées: ${allowedExtensions.join(', ')}`);
+        }
+
+        if (file.size > maxSizeBytes) {
+          errors.push(`Fichier ${index + 1}: Trop volumineux (${documentService.utils.formatFileSize(file.size)}). Maximum 5MB`);
+        }
+      });
+
+      return {
+        isValid: errors.length === 0,
+        errors
+      };
+    },
+
+    // Formater la taille des fichiers
+    formatFileSize: (bytes) => {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    },
+
+    // Obtenir l'icône selon le type de fichier
+    getFileIcon: (extension) => {
+      const icons = {
+        'pdf': '📄',
+        'doc': '📝',
+        'docx': '📝',
+        'jpg': '🖼️',
+        'jpeg': '🖼️',
+        'png': '🖼️'
+      };
+      return icons[extension?.toLowerCase()] || '📄';
+    },
+
+    // Obtenir l'icône selon le type de document
+    getDocumentTypeIcon: (type) => {
+      const icons = {
+        'certificat_vie': '📋',
+        'autre': '📄'
+      };
+      return icons[type] || '📄';
+    },
+
+    // Formater une date
+    formatDate: (date) => {
+      if (!date) return '';
+      return new Date(date).toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    },
+
+    // Calculer les jours avant expiration
+    getDaysUntilExpiration: (expirationDate) => {
+      if (!expirationDate) return null;
+      const now = new Date();
+      const expiration = new Date(expirationDate);
+      const diffTime = expiration - now;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays;
+    },
+
+    // Obtenir le statut d'expiration avec couleur
+    getExpirationStatus: (expirationDate) => {
+      if (!expirationDate) return null;
+      
+      const daysUntil = documentService.utils.getDaysUntilExpiration(expirationDate);
+      
+      if (daysUntil < 0) {
+        return {
+          status: 'expired',
+          message: `Expiré depuis ${Math.abs(daysUntil)} jour(s)`,
+          color: '#EF4444',
+          icon: '❌',
+          priority: 'critical'
+        };
+      } else if (daysUntil <= 30) {
+        return {
+          status: 'expiring_soon',
+          message: `Expire dans ${daysUntil} jour(s)`,
+          color: '#F59E0B',
+          icon: '⚠️',
+          priority: 'warning'
+        };
+      } else {
+        return {
+          status: 'valid',
+          message: `Valide encore ${daysUntil} jour(s)`,
+          color: '#10B981',
+          icon: '✅',
+          priority: 'success'
+        };
+      }
+    },
+
+    // Créer FormData pour l'upload multiple
+    createUploadFormData: (files, types, descriptions = [], datesEmission = [], autoritesEmission = []) => {
+      const formData = new FormData();
+      
+      // Ajouter les fichiers
+      Array.from(files).forEach((file, index) => {
+        formData.append(`documents[${index}]`, file);
+      });
+      
+      // Ajouter les types
+      types.forEach((type, index) => {
+        formData.append(`types[${index}]`, type);
+      });
+      
+      // Ajouter les descriptions si fournies
+      descriptions.forEach((description, index) => {
+        if (description) {
+          formData.append(`descriptions[${index}]`, description);
+        }
+      });
+      
+      // Ajouter les dates d'émission si fournies
+      datesEmission.forEach((date, index) => {
+        if (date) {
+          formData.append(`dates_emission[${index}]`, date);
+        }
+      });
+      
+      // Ajouter les autorités d'émission si fournies
+      autoritesEmission.forEach((autorite, index) => {
+        if (autorite) {
+          formData.append(`autorites_emission[${index}]`, autorite);
+        }
+      });
+      
+      return formData;
+    },
+
+    // Télécharger un fichier blob
+    downloadBlob: (blob, filename) => {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    },
+
+    // Générer un message de notification selon l'action
+    getNotificationMessage: (action, data = {}) => {
+      switch (action) {
+        case 'upload_success':
+          const count = data.count || 1;
+          return `${count} document${count > 1 ? 's' : ''} déposé${count > 1 ? 's' : ''} avec succès`;
+        case 'upload_partial':
+          return `${data.success} document(s) déposé(s), ${data.errors} erreur(s)`;
+        case 'delete_success':
+          return 'Document supprimé avec succès';
+        case 'download_error':
+          return 'Erreur lors du téléchargement du document';
+        case 'validation_error':
+          return 'Veuillez corriger les erreurs avant de continuer';
+        case 'certificat_expire':
+          return 'Attention: Votre certificat de vie a expiré';
+        case 'certificat_expire_bientot':
+          return `Votre certificat de vie expire dans ${data.jours} jour(s)`;
+        default:
+          return 'Action effectuée';
+      }
+    },
+
+    // Obtenir la description d'un type de document
+    getTypeDescription: (type) => {
+      const descriptions = {
+        'certificat_vie': 'Document officiel attestant que vous êtes en vie, requis annuellement',
+        'autre': 'Tout autre document personnel que vous souhaitez conserver'
+      };
+      return descriptions[type] || '';
+    },
+
+    // Valider les champs requis selon le type
+    validateRequiredFields: (type, data) => {
+      const errors = [];
+      
+      if (type === 'certificat_vie') {
+        if (!data.dateEmission) {
+          errors.push('Date d\'émission requise pour un certificat de vie');
+        }
+        if (!data.autoriteEmission) {
+          errors.push('Autorité d\'émission requise pour un certificat de vie');
+        }
+      } else if (type === 'autre') {
+        if (!data.description || data.description.trim().length === 0) {
+          errors.push('Description requise pour un document de type "Autre"');
+        }
+      }
+      
+      return {
+        isValid: errors.length === 0,
+        errors
+      };
+    }
+  }
+};
+
 export const familleService = {
   // Obtenir la grappe familiale complète
   getGrappeFamiliale: () => {
@@ -265,7 +538,7 @@ export const reclamationService = {
   }
 };
 
-// Utilitaires
+// ✅ CORRECTION: Utilitaires - documentService maintenant défini
 export const utils = {
   formatValidationErrors: (errors) => {
     const formattedErrors = {};
@@ -421,7 +694,10 @@ export const utils = {
       default:
         return 'Action effectuée avec succès';
     }
-  }
+  },
+  
+  // ✅ CORRECTION: Référence maintenant correcte
+  documents: documentService.utils
 };
 
 export default api;
