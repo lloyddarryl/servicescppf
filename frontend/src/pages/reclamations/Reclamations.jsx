@@ -529,7 +529,7 @@ const Reclamations = () => {
                 </h1>
                 <p className="reclamations__welcome-subtitle">
                   <span className="reclamations__welcome-user">
-                    👋 {getIdentiteComplete(userInfo)}
+                     {getIdentiteComplete(userInfo)}
                   </span>
                   <span className="reclamations__welcome-badge">
                     {userInfo.type_compte}

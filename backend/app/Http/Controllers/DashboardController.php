@@ -174,13 +174,21 @@ public function retraiteDashboard(Request $request)
             'derniere_activite' => null
         ];
     }
+   // ✅ CORRECTION : Calculer les certificats VALIDES (non expirés)
+    $certificatsValides = $this->compterCertificatsValidesReel($retraite);
+    
+    // ✅ CORRECTION : Calculer le total des mois de pension (arrondir)
+    $totalMoisPension = round($anneesRetraite * 12 + $moisRetraite);
+    
+    // ✅ CORRECTION : Calculer le total perçu (arrondir)
+    $totalPercu = round($totalMoisPension * $retraite->montant_pension);
     
     // Données statistiques améliorées avec documents
     $stats = [
-        'pension_mensuelle' => $retraite->montant_pension,
-        'pensions_recues' => $anneesRetraite * 12 + $moisRetraite,
-        'total_percu' => ($anneesRetraite * 12 + $moisRetraite) * $retraite->montant_pension,
-        'certificats_valides' => $this->compterCertificatsValides($retraite),
+        'pension_mensuelle' => round($retraite->montant_pension), // ✅ Arrondir
+        'pensions_recues' => $totalMoisPension, // ✅ Nombre entier
+        'total_percu' => $totalPercu, // ✅ Nombre entier
+        'certificats_valides' => $certificatsValides,
         'documents_totaux' => $statsDocuments['total_documents'], 
         'documents_expires' => $statsDocuments['documents_expires'] 
     ];
@@ -260,7 +268,7 @@ public function retraiteDashboard(Request $request)
             'ancienne_direction' => $retraite->ancienne_direction,
             'date_naissance' => $retraite->date_naissance,
             'date_retraite' => $retraite->date_retraite,
-            'montant_pension' => $retraite->montant_pension,
+            'montant_pension' => round($retraite->montant_pension),
             'email' => $retraite->email,
             'telephone' => $retraite->telephone,
             'annees_retraite' => $anneesRetraite,
@@ -279,6 +287,27 @@ public function retraiteDashboard(Request $request)
             'statistiques_documents' => $statsDocuments
         ]
     ]);
+}
+
+// ✅ NOUVELLE MÉTHODE : Compter les certificats RÉELLEMENT valides
+private function compterCertificatsValidesReel($retraite)
+{
+    try {
+        if (class_exists('\App\Models\DocumentRetraite')) {
+            // Compter les certificats de vie valides (non expirés, statut actif)
+            return \App\Models\DocumentRetraite::where('retraite_id', $retraite->id)
+                ->where('type_document', 'certificat_vie')
+                ->where('statut', 'actif')
+                ->where(function($query) {
+                    $query->whereNull('date_expiration')
+                          ->orWhere('date_expiration', '>', now());
+                })
+                ->count();
+        }
+        return 0;
+    } catch (\Exception $e) {
+        return 0;
+    }
 }
 
 /**
@@ -378,8 +407,8 @@ private function compterDossiersEnCours($agent)
 
 private function compterCertificatsValides($retraite)
 {
-    // TODO: Implémenter avec de vraies données
-    return rand(1, 3);
+    return $this->compterCertificatsValidesReel($retraite);
+
 }
 
     /**
