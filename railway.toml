@@ -1,0 +1,5 @@
+[build]
+  command = "cd backend && composer install --no-dev --optimize-autoloader"
+
+[deploy]
+  startCommand = "cd backend && php artisan serve --host=0.0.0.0 --port=$PORT"
