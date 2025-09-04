@@ -124,7 +124,7 @@ export const documentService = {
 
   // Télécharger un document
   download: (documentId) => {
-    return api.get(`/retraites/documents/download/${documentId}`, {
+    return api.get(`/retraites/documents/${documentId}/download`, {
       responseType: 'blob'
     });
   },
