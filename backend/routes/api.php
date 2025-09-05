@@ -302,11 +302,3 @@ Route::fallback(function () {
     ], 404);
 });
 
-Route::get('/test-db', function () {
-    try {
-        DB::connection()->getPdo();
-        return "Connexion DB OK";
-    } catch (\Exception $e) {
-        return "Erreur DB: " . $e->getMessage();
-    }
-});
