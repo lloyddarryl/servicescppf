@@ -302,3 +302,9 @@ Route::fallback(function () {
     ], 404);
 });
 
+// Route de test simple (sans middleware)
+Route::get('/test-simple', function () {
+    return response()->json(['message' => 'API fonctionne', 'time' => now()]);
+});
+
+
