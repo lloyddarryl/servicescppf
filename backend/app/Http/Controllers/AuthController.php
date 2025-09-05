@@ -282,87 +282,111 @@ class AuthController extends Controller
      * Connexion standard (après configuration initiale)
      */
     public function standardLogin(Request $request)
-    {
-        // Normaliser le user_type AVANT la validation
-        $userType = $request->user_type;
-        if ($userType === 'actifs') {
-            $userType = 'actif';
-        } elseif ($userType === 'retraites') {
-            $userType = 'retraite';
-        }
+{
+    // Ajouter au début
+    Log::info('🔍 standardLogin START', $request->all());
 
-        // Validation avec le type normalisé
-        $validator = Validator::make([
-            'identifier' => $request->identifier,
-            'password' => $request->password,
-            'user_type' => $userType
-        ], [
-            'identifier' => 'required|string',
-            'password' => 'required|string',
-            'user_type' => 'required|in:actif,retraite'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $identifier = $request->identifier;
-        $password = $request->password;
-
-        // Rechercher l'utilisateur selon le type
-        if ($userType === 'actif') {
-            $user = Agent::where('matricule_solde', $identifier)
-                         ->where('is_active', true)
-                         ->where('password_changed', true)
-                         ->first();
-        } else {
-            $user = Retraite::where('numero_pension', $identifier)
-                           ->where('is_active', true)
-                           ->where('password_changed', true)
-                           ->first();
-        }
-
-        if (!$user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Utilisateur non trouvé ou profil non configuré'
-            ], 404);
-        }
-
-        if (!Hash::check($password, $user->password)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Mot de passe incorrect'
-            ], 401);
-        }
-
-
-        // ✅ NOUVEAU : Révoquer tous les tokens existants pour éviter les sessions multiples
-        $user->tokens()->delete();
-
-        // Générer le token de session
-        $token = $user->createToken('auth-session')->plainTextToken;
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Connexion réussie',
-            'token' => $token,
-            'user' => [
-                'id' => $user->id,
-                'nom' => $user->nom,
-                'prenoms' => $user->prenoms,
-                'email' => $user->email,
-                'telephone' => $user->telephone,
-                'type' => $userType,
-                'identifier' => $identifier,
-                'poste' => $userType === 'actif' ? $user->poste : $user->ancien_poste
-            ],
-            'redirect' => 'dashboard'
-        ]);
+    // Normaliser le user_type AVANT la validation
+    $userType = $request->user_type;
+    if ($userType === 'actifs') {
+        $userType = 'actif';
+    } elseif ($userType === 'retraites') {
+        $userType = 'retraite';
     }
+
+    // Ajouter après normalisation
+    Log::info('📋 user_type normalisé', ['user_type' => $userType]);
+
+    // Validation avec le type normalisé
+    $validator = Validator::make([
+        'identifier' => $request->identifier,
+        'password' => $request->password,
+        'user_type' => $userType
+    ], [
+        'identifier' => 'required|string',
+        'password' => 'required|string',
+        'user_type' => 'required|in:actif,retraite'
+    ]);
+
+    if ($validator->fails()) {
+        // Ajouter log d'erreur validation
+        Log::error('❌ Validation failed', $validator->errors()->toArray());
+        return response()->json([
+            'success' => false,
+            'errors' => $validator->errors()
+        ], 422);
+    }
+
+    $identifier = $request->identifier;
+    $password = $request->password;
+
+    // Ajouter avant recherche
+    Log::info('🔎 Recherche utilisateur', ['identifier' => $identifier, 'type' => $userType]);
+
+    // Rechercher l'utilisateur selon le type
+    if ($userType === 'actif') {
+        $user = Agent::where('matricule_solde', $identifier)
+                     ->where('is_active', true)
+                     ->where('password_changed', true)
+                     ->first();
+    } else {
+        $user = Retraite::where('numero_pension', $identifier)
+                       ->where('is_active', true)
+                       ->where('password_changed', true)
+                       ->first();
+    }
+
+    // Ajouter après recherche
+    Log::info('👤 Résultat recherche', ['user_found' => $user ? true : false, 'user_id' => $user ? $user->id : null]);
+
+    if (!$user) {
+        Log::error('❌ Utilisateur non trouvé');
+        return response()->json([
+            'success' => false,
+            'message' => 'Utilisateur non trouvé ou profil non configuré'
+        ], 404);
+    }
+
+    // Ajouter avant vérification password
+    Log::info('🔐 Vérification mot de passe');
+
+    if (!Hash::check($password, $user->password)) {
+        Log::error('❌ Mot de passe incorrect');
+        return response()->json([
+            'success' => false,
+            'message' => 'Mot de passe incorrect'
+        ], 401);
+    }
+
+    // Ajouter avant génération token
+    Log::info('🎫 Génération token');
+
+    // ✅ NOUVEAU : Révoquer tous les tokens existants pour éviter les sessions multiples
+    $user->tokens()->delete();
+
+    // Générer le token de session
+    $token = $user->createToken('auth-session')->plainTextToken;
+
+    // Ajouter à la fin
+    Log::info('✅ Connexion réussie', ['user_id' => $user->id]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Connexion réussie',
+        'token' => $token,
+        'user' => [
+            'id' => $user->id,
+            'nom' => $user->nom,
+            'prenoms' => $user->prenoms,
+            'email' => $user->email,
+            'telephone' => $user->telephone,
+            'type' => $userType,
+            'identifier' => $identifier,
+            'poste' => $userType === 'actif' ? $user->poste : $user->ancien_poste
+        ],
+        'redirect' => 'dashboard'
+    ]);
+}
 
     /**
      * Obtenir les informations de l'utilisateur connecté
