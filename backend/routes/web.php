@@ -27,12 +27,3 @@ Route::get('/{any}', function () {
 Route::get('/retraites/documents/{id}/download', [DocumentController::class, 'download'])
      ->name('retraites.documents.download')
      ->middleware('auth:sanctum');
-
-Route::get('/test-db', function () {
-    try {
-        DB::connection()->getPdo();
-        return "✅ Connexion DB réussie !";
-    } catch (\Exception $e) {
-        return "❌ Erreur DB: " . $e->getMessage();
-    }
-});
