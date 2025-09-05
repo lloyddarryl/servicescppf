@@ -10,12 +10,22 @@ use App\Http\Controllers\FamilleController;
 use App\Http\Controllers\ReclamationController;
 use App\Http\Controllers\RendezVousController;
 use App\Models\DocumentRetraite; 
-
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 /*
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
 */
+Route::get('/debug-test', function () {
+    Log::info('Route de test atteinte');
+    return response()->json([
+        'status' => 'Laravel fonctionne',
+        'time' => now(),
+        'database' => DB::connection()->getPdo() ? 'OK' : 'KO'
+    ]);
+});
 
 // Route de nettoyage (publique)
 Route::post('/auth/cleanup-setup', [AuthController::class, 'cleanupSetup']);
