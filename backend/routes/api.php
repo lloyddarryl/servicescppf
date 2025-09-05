@@ -230,17 +230,15 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{id}', [ReclamationController::class, 'destroy']);
             });
 
-         // Documents et gestion documentaire - NOUVEAU
-    Route::prefix('documents')->group(function () {
-         Route::get('/notifications', [App\Http\Controllers\DocumentController::class, 'getNotifications']);
-        Route::post('/notifications/dismiss', [App\Http\Controllers\DocumentController::class, 'dismissNotification']);
-        Route::get('/', [App\Http\Controllers\DocumentController::class, 'index']); 
-        Route::post('/', [App\Http\Controllers\DocumentController::class, 'store']);
-        Route::delete('/{id}', [App\Http\Controllers\DocumentController::class, 'destroy']);
-        // Modified route name to be unique
-        Route::get('/{id}/download', [App\Http\Controllers\DocumentController::class, 'download'])
-        ->name('retraites.documents.download.file');  // Changed route name here
-    });
+    // Documents et gestion documentaire 
+        Route::prefix('documents')->group(function () {
+            Route::get('/notifications', [App\Http\Controllers\DocumentController::class, 'getNotifications']);
+            Route::post('/notifications/dismiss', [App\Http\Controllers\DocumentController::class, 'dismissNotification']);
+            Route::get('/', [App\Http\Controllers\DocumentController::class, 'index']); 
+            Route::post('/', [App\Http\Controllers\DocumentController::class, 'store']);
+            Route::delete('/{id}', [App\Http\Controllers\DocumentController::class, 'destroy']);
+            Route::get('/download/{id}', [App\Http\Controllers\DocumentController::class, 'download'])->name('retraites.documents.download');
+            });
 
 
         // ✅ RENDEZ-VOUS - Routes corrigées pour les retraités
