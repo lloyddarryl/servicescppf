@@ -15,6 +15,7 @@ import GrappeFamiliale from './pages/famille/GrappeFamiliale';
 import Reclamations from './pages/reclamations/Reclamations'; 
 import PriseRendezVous from './pages/rendez_vous/PriseRendezVous';
 import MesDocuments from './pages/mesdocuments/MesDocuments';
+import SuiviCotisations from './pages/cotisations/SuiviCotisations';
 
 import './App.css';
 
@@ -96,15 +97,13 @@ function App() {
               </div>
             </ProtectedRoute>
           } />
-          
+
           <Route path="/actifs/cotisations" element={
-            <ProtectedRoute requiredUserType="actif">
-              <div style={{padding: '6rem 2rem', textAlign: 'center'}}>
-                <h1>Suivi des Cotisations</h1>
-                <p>Module en développement</p>
-              </div>
-            </ProtectedRoute>
+         <ProtectedRoute requiredUserType="actif">
+          <SuiviCotisations />
+          </ProtectedRoute>
           } />
+          
           
           {/* ✅ Redirection vers la vraie page Grappe Familiale */}
           <Route path="/actifs/grappe-familiale" element={

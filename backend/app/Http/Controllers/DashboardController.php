@@ -500,34 +500,117 @@ private function compterCertificatsValides($retraite)
         ]);
     }
 
-    /**
-     * Obtenir les cotisations (agents actifs)
-     */
-    public function getCotisations(Request $request)
-    {
-        $cotisations = [
-            [
-                'id' => 1,
-                'mois' => 'Juin 2025',
-                'montant' => 45000,
-                'date_prelevement' => '2025-06-01',
-                'status' => 'prelevee'
-            ],
-            [
-                'id' => 2,
-                'mois' => 'Mai 2025',
-                'montant' => 45000,
-                'date_prelevement' => '2025-05-01',
-                'status' => 'prelevee'
-            ]
+    // Mise à jour de la méthode getCotisations dans DashboardController.php
+
+/**
+ * Obtenir les cotisations réelles (agents actifs)
+ */
+public function getCotisations(Request $request)
+{
+    $agent = $request->user();
+    
+    try {
+        // Récupérer les cotisations avec pagination
+        $cotisations = $agent->cotisations()
+                           ->orderBy('periode_debut', 'desc')
+                           ->paginate(10);
+
+        // Statistiques générales
+        $statistiques = [
+            'total_cotisations' => $agent->total_cotisations ?: 0,
+            'retenue_mensuelle_actuelle' => $agent->retenue_mensuelle ?: 0,
+            'nombre_periodes' => $agent->cotisations()->count(),
+            'duree_service_total' => $agent->duree_service_mois ?: 0,
+            'premiere_cotisation' => $agent->cotisations()
+                                         ->orderBy('periode_debut', 'asc')
+                                         ->first()?->periode_debut?->format('d/m/Y'),
+            'derniere_cotisation' => $agent->derniere_cotisation_date?->format('d/m/Y'),
+            'droit_pension' => ($agent->duree_service_mois >= 180) ? 'OUI' : 'NON'
         ];
+
+        // Données pour graphique des 6 derniers mois
+        $graphique = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $mois = now()->subMonths($i);
+            $cotisation = $agent->cotisations()
+                              ->where('periode_debut', '<=', $mois->endOfMonth())
+                              ->where(function($q) use ($mois) {
+                                  $q->whereNull('periode_fin')
+                                    ->orWhere('periode_fin', '>=', $mois->startOfMonth());
+                              })
+                              ->first();
+            
+            $graphique[] = [
+                'mois' => $mois->format('M Y'),
+                'retenue' => $cotisation ? $cotisation->retenue : 0,
+                'grade' => $cotisation ? $cotisation->grade : null,
+                'statut' => $cotisation ? $cotisation->statut : 'aucune'
+            ];
+        }
 
         return response()->json([
             'success' => true,
-            'cotisations' => $cotisations
+            'data' => [
+                'agent_info' => [
+                    'nom_complet' => $agent->prenoms . ' ' . $agent->nom,
+                    'matricule_solde' => $agent->matricule_solde,
+                    'num_affiliation' => $agent->num_affiliation,
+                    'grade_actuel' => $agent->grade,
+                    'indice_actuel' => $agent->indice,
+                    'statut' => $agent->statut_format
+                ],
+                'cotisations' => $cotisations->items(),
+                'pagination' => [
+                    'current_page' => $cotisations->currentPage(),
+                    'per_page' => $cotisations->perPage(),
+                    'total' => $cotisations->total(),
+                    'last_page' => $cotisations->lastPage()
+                ],
+                'statistiques' => $statistiques,
+                'graphique' => $graphique,
+                'resume' => [
+                    'total_cotisations_formatees' => number_format($statistiques['total_cotisations'], 0, ',', ' ') . ' FCFA',
+                    'retenue_actuelle_formatee' => number_format($statistiques['retenue_mensuelle_actuelle'], 0, ',', ' ') . ' FCFA',
+                    'duree_service_formatee' => $this->formatDureeService($statistiques['duree_service_total']),
+                    'est_eligible_pension' => $statistiques['droit_pension'] === 'OUI'
+                ]
+            ]
         ]);
-    }
 
+    } catch (\Exception $e) {
+        \Log::error('Erreur récupération cotisations:', [
+            'agent_id' => $agent->id,
+            'error' => $e->getMessage()
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Erreur lors de la récupération des cotisations',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Formater la durée de service
+ */
+private function formatDureeService($dureeEnMois)
+{
+    if (!$dureeEnMois) return '0 mois';
+    
+    $annees = floor($dureeEnMois / 12);
+    $mois = $dureeEnMois % 12;
+    
+    $result = [];
+    if ($annees > 0) {
+        $result[] = $annees . ($annees > 1 ? ' ans' : ' an');
+    }
+    if ($mois > 0) {
+        $result[] = $mois . ' mois';
+    }
+    
+    return implode(' ', $result) ?: '0 mois';
+}
     /**
      * Obtenir la carrière (agents actifs)
      */

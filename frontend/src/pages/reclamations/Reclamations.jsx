@@ -220,6 +220,15 @@ const Reclamations = () => {
     chargerReclamations();
   }, [chargerReclamations]);
 
+    // ✅ AJOUT : useEffect pour scroll vers le haut au chargement de la page
+  useEffect(() => {
+    // Scroll vers le haut quand le composant se charge
+    window.scrollTo({ 
+      top: 0, 
+      behavior: 'smooth' 
+    });
+  }, []); // Vide = ne s'exécute qu'au montage du composant
+  
   // ✅ Fonction de soumission mise à jour
   const soumettreReclamation = async (e) => {
     e.preventDefault();

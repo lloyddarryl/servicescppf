@@ -160,6 +160,16 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/parametres', [PensionSimulatorController::class, 'getParameters']);
         });
 
+         // Routes cotisations
+    Route::prefix('cotisations')->group(function () {
+        Route::get('/', [App\Http\Controllers\CotisationController::class, 'index']);
+        Route::get('/releve-pdf', [App\Http\Controllers\CotisationController::class, 'genererRelevePDF']);
+        Route::get('/search', [App\Http\Controllers\CotisationController::class, 'search']);
+        Route::get('/statistiques', [App\Http\Controllers\CotisationController::class, 'statistiques']);
+        Route::get('/export-excel', [App\Http\Controllers\CotisationController::class, 'exportExcel']);
+        Route::get('/{id}', [App\Http\Controllers\CotisationController::class, 'show']);
+    });
+
         // ✅ RÉCLAMATIONS - Routes pour les agents actifs
         Route::prefix('reclamations')->group(function () {
             Route::get('/types', [ReclamationController::class, 'getTypesReclamations']);

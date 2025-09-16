@@ -14,8 +14,8 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\ReclamationCreatedMail;
 use App\Mail\ReclamationStatusChangedMail;
 use App\Mail\ReclamationDeletedMail;
-use App\Mail\AccuseReceptionMail; // ✅ Nouveau mail
-use App\Services\AccuseReceptionService; // ✅ Nouveau service
+use App\Mail\AccuseReceptionMail; 
+use App\Services\AccuseReceptionService; 
 use Carbon\Carbon;
 use App\Models\ReclamationHistorique; 
 

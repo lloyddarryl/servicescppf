@@ -44,7 +44,8 @@ class PensionSimulatorController extends Controller
                 'user_id' => $user->id,
                 'user_type' => get_class($user),
                 'date_naissance' => $user->date_naissance,
-                'date_prise_service' => $user->date_prise_service
+                'date_prise_service' => $user->date_prise_service,
+                'montant_bonifications' => $user->montant_bonifications
             ]);
 
             // CORRECTION : Gestion plus souple des dates manquantes
@@ -99,7 +100,9 @@ class PensionSimulatorController extends Controller
                 'telephone' => $user->telephone ?? $user->phone ?? null,
                 'email' => $user->email ?? null,
                 'adresse' => $user->adresse ?? null,
-                'lieu_naissance' => $user->lieu_naissance ?? null
+                'lieu_naissance' => $user->lieu_naissance ?? null,
+                // ✅ NOUVEAU : Ajouter les bonifications depuis la BD
+                'montant_bonifications' => (float) ($user->montant_bonifications ?? 0)
             ];
 
             Log::info('Profile data:', ['profile' => $profileData]);
@@ -163,6 +166,33 @@ class PensionSimulatorController extends Controller
     }
 
     /**
+     * ✅ NOUVELLE MÉTHODE : Appliquer l'écrêtement si nécessaire
+     */
+    private function appliquerEcretement($soldeModifie)
+    {
+        $seuilEcretement = 1122000; // 1.122.000 FCFA
+        
+        if ($soldeModifie > $seuilEcretement) {
+            // Formule d'écrêtement : ((SBm - 1.122.000) / 2) + 1.122.000
+            $soldeFinal = (($soldeModifie - $seuilEcretement) / 2) + $seuilEcretement;
+            
+            return [
+                'solde_final' => $soldeFinal,
+                'ecretement_applique' => true,
+                'montant_ecrete' => $soldeModifie - $soldeFinal,
+                'seuil_ecretement' => $seuilEcretement
+            ];
+        }
+        
+        return [
+            'solde_final' => $soldeModifie,
+            'ecretement_applique' => false,
+            'montant_ecrete' => 0,
+            'seuil_ecretement' => $seuilEcretement
+        ];
+    }
+
+    /**
      * Simuler la pension
      */
     public function simulatePension(Request $request)
@@ -209,27 +239,33 @@ class PensionSimulatorController extends Controller
             // Pour l'affichage normal (années + mois)
             $dureeServiceCalculee = $this->formatDureeService($dateEmbauche->diffInYears($dateRetraite, true));
             
-            // Calcul selon l'Article 94 avec la durée d'annuité
-            $salaireReference = $this->calculateSalaire($indiceSimule);
+            // ✅ NOUVEAU CALCUL selon les nouvelles règles
             
-            // ✅ Taux de liquidation basé sur la durée d'annuité
+            // 1. Solde de base (SB)
+            $soldeBase = $this->calculateSalaire($indiceSimule);
+            
+            // 2. Bonifications depuis la BD
+            $bonifications = (float) ($user->montant_bonifications ?? 0);
+            
+            // 3. Solde de base modifié (SBm)
+            $soldeModifie = $soldeBase + $bonifications;
+            
+            // 4. Application de l'écrêtement si nécessaire
+            $resultatsEcretement = $this->appliquerEcretement($soldeModifie);
+            $soldeFinal = $resultatsEcretement['solde_final'];
+            
+            // 5. Taux de liquidation basé sur la durée d'annuité
             $tauxLiquidation = $this->calculateTauxLiquidation($dureeServiceRetraite);
             
-            // Pension de base
-            $pensionBase = ($salaireReference * $tauxLiquidation) / 100;
+            // 6. Pension de base (avec le solde final après écrêtement)
+            $pensionBase = ($soldeFinal * $tauxLiquidation) / 100;
             
-            // Coefficient temporel selon l'année de départ
+            // 7. Coefficient temporel selon l'année de départ
             $anneePension = $dateRetraite->year;
             $coefficientTemporel = $this->getCoefficientTemporel($anneePension);
             
-            // Pension après coefficient temporel
-            $pensionApresCoeff = ($pensionBase * $coefficientTemporel) / 100;
-            
-            // Bonifications
-            $bonifications = $this->calculateBonifications($user, $pensionApresCoeff);
-            
-            // Pension totale finale
-            $pensionTotale = $pensionApresCoeff + $bonifications;
+            // 8. Pension finale après coefficient temporel
+            $pensionTotale = ($pensionBase * $coefficientTemporel) / 100;
 
             // Sauvegarder la simulation
             try {
@@ -239,22 +275,27 @@ class PensionSimulatorController extends Controller
                     'date_retraite_prevue' => $dateRetraite,
                     'duree_service_simulee' => $dureeServiceRetraite, // ✅ Durée d'annuité pour les calculs
                     'indice_simule' => $indiceSimule,
-                    'salaire_reference' => $salaireReference,
+                    'salaire_reference' => $soldeFinal, // ✅ Solde final après écrêtement
                     'taux_liquidation' => $tauxLiquidation,
                     'pension_base' => $pensionBase,
-                    'bonifications' => $bonifications,
+                    'bonifications' => $bonifications, // ✅ Bonifications BD
                     'pension_totale' => $pensionTotale,
                     'coefficient_temporel' => $coefficientTemporel,
-                    'pension_apres_coefficient' => $pensionApresCoeff,
+                    'pension_apres_coefficient' => $pensionTotale, // ✅ Pension finale
                     'annee_pension' => $anneePension,
-                    'methode_calcul' => 'Article_94',
+                    'methode_calcul' => 'Article_94_avec_ecretement',
                     'created_at' => now(),
                     'parametres_utilises' => [
                         'formule_taux' => 'annees_x_1.8',
                         'coefficient_temporel' => $coefficientTemporel,
                         'annee_pension' => $anneePension,
-                        'pension_apres_coefficient' => $pensionApresCoeff,
-                        'principe_annuite' => true
+                        'principe_annuite' => true,
+                        'solde_base' => $soldeBase,
+                        'bonifications_bd' => $bonifications,
+                        'solde_modifie' => $soldeModifie,
+                        'ecretement_applique' => $resultatsEcretement['ecretement_applique'],
+                        'solde_final' => $soldeFinal,
+                        'montant_ecrete' => $resultatsEcretement['montant_ecrete']
                     ]
                 ]);
                 $simulationId = $simulation->id;
@@ -263,6 +304,11 @@ class PensionSimulatorController extends Controller
                     'simulation_id' => $simulationId,
                     'agent_id' => $user->id,
                     'duree_annuite' => $dureeServiceRetraite,
+                    'solde_base' => $soldeBase,
+                    'bonifications' => $bonifications,
+                    'solde_modifie' => $soldeModifie,
+                    'ecretement_applique' => $resultatsEcretement['ecretement_applique'],
+                    'solde_final' => $soldeFinal,
                     'pension_totale' => $pensionTotale
                 ]);
                 
@@ -285,19 +331,26 @@ class PensionSimulatorController extends Controller
                 'dureeServiceMois' => $dureeServiceCalculee['mois'], // ✅ Pour affichage
                 'dureeServiceAnnuite' => $dureeServiceRetraite, // ✅ Pour calculs (principe d'annuité)
                 'salaireActuel' => $this->calculateSalaire($user->indice ?? 1001),
-                'salaireReference' => $salaireReference,
+                
+                // ✅ NOUVEAU : Détails du calcul complet
                 'indiceActuel' => $user->indice ?? 1001,
                 'indiceSimule' => $indiceSimule,
+                'soldeBase' => $soldeBase,
+                'bonificationsBD' => $bonifications,
+                'soldeModifie' => $soldeModifie,
+                'ecretementApplique' => $resultatsEcretement['ecretement_applique'],
+                'montantEcrete' => $resultatsEcretement['montant_ecrete'],
+                'seuilEcretement' => $resultatsEcretement['seuil_ecretement'],
+                'soldeFinal' => $soldeFinal,
+                
                 'tauxLiquidation' => round($tauxLiquidation, 2),
                 'pensionBase' => round($pensionBase),
-                'coefficientTemporel' => $coefficientTemporel, // ✅ Pour affichage
-                'pensionApresCoefficient' => round($pensionApresCoeff),
-                'bonifications' => round($bonifications),
+                'coefficientTemporel' => $coefficientTemporel,
                 'pensionTotale' => round($pensionTotale),
                 'eligible' => $dureeServiceRetraite >= 15,
                 'simulationId' => $simulationId,
                 'anneePension' => $anneePension,
-                'methodeCalcul' => 'Article 94 - Années × 1,8% (principe d\'annuité)'
+                'methodeCalcul' => 'Article 94 - Avec écrêtement si nécessaire'
             ];
 
             return response()->json([
@@ -391,16 +444,17 @@ class PensionSimulatorController extends Controller
             $parametres = [
                 'age_retraite' => 60,
                 'duree_service_minimum' => 15,
-                'formule_taux_liquidation' => 'annees × 1.8%',
+                'formule_taux_liquidation' => 'années × 1.8%',
                 'formule_solde_base' => 'indice × 500',
-                'formule_pension_base' => 'solde_base × taux_liquidation',
+                'formule_solde_modifie' => 'solde_base + bonifications_BD',
+                'seuil_ecretement' => 1122000,
+                'formule_ecretement' => '((SBm - 1.122.000) / 2) + 1.122.000',
+                'formule_pension_base' => 'solde_final × taux_liquidation',
                 'coefficients_temporels' => [
                     2024 => 89, 2025 => 91, 2026 => 94, 2027 => 96, 
                     2028 => 98, 2029 => 100
                 ],
-                'bonification_conjoint' => 0.03,
-                'bonification_enfant' => 0.02,
-                'article_reference' => 'Article 94 du décret',
+                'article_reference' => 'Article 94 du décret avec écrêtement',
                 'principe_annuite' => 'Moins de 6 mois = +0,5 an | 6 mois et plus = +1 an'
             ];
 
@@ -467,27 +521,5 @@ class PensionSimulatorController extends Controller
         }
 
         return $coefficients[$anneePension] ?? 100;
-    }
-
-    /**
-     * Calculer les bonifications
-     */
-    private function calculateBonifications($user, $pensionBase)
-    {
-        $bonifications = 0;
-
-        // Bonification pour situation matrimoniale
-        if (isset($user->situation_matrimoniale) && $user->situation_matrimoniale === 'Marié(e)') {
-            $tauxConjoint = ParametrePension::getValeur('BONIF_CONJOINT') ?? 3.0;
-            $bonifications += $pensionBase * ($tauxConjoint / 100);
-        }
-
-        // Bonification pour enfants (si cette donnée est disponible)
-        if (isset($user->nombre_enfants) && $user->nombre_enfants > 0) {
-            $tauxEnfant = ParametrePension::getValeur('BONIF_ENFANT') ?? 2.0;
-            $bonifications += $pensionBase * ($tauxEnfant / 100) * $user->nombre_enfants;
-        }
-
-        return $bonifications;
     }
 }

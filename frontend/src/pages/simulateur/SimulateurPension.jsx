@@ -30,10 +30,13 @@ const SimulateurPension = () => {
     return 'M.';
   };
 
+  // ✅ CORRECTION : Ajouter espace entre prénom et nom
   const getFullName = (userProfile) => {
     if (!userProfile) return '';
     const title = getTitle(userProfile.sexe, userProfile.situationMatrimoniale);
-    return `${title} ${userProfile.nom}${userProfile.prenoms}`;
+    const prenoms = userProfile.prenoms || '';
+    const nom = userProfile.nom || '';
+    return `${title} ${prenoms} ${nom}`.trim();
   };
 
   const loadHistory = useCallback(async () => {
@@ -151,7 +154,7 @@ const SimulateurPension = () => {
         <Header />
         <div className="loading-container">
           <div className="alert alert-warning">
-            <p>❌ {error}</p>
+            <p>⚠ {error}</p>
             <button 
               className="simulate-button" 
               onClick={() => loadInitialData()}
@@ -272,7 +275,6 @@ const SimulateurPension = () => {
                         <label>Email:</label>
                         <span>{userProfile.email || 'Non renseigné'}</span>
                       </div>
-                      
                     </div>
                   </div>
                 </div>
@@ -312,18 +314,33 @@ const SimulateurPension = () => {
                   </div>
                 </div>
 
-                {/* Rémunération */}
+                {/* Rémunération avec bonifications */}
                 <div className="profile-card salary-card">
                   <div className="card-header">
-                    <h2>💰 Solde de Base</h2>
+                    <h2>💰 Rémunération et Bonifications</h2>
                   </div>
                   <div className="card-content">
                     <div className="salary-display">
-                      <div className="salary-amount">
-                        {formatCurrency(userProfile.indice * 500)}
+                      <div className="salary-row">
+                        <label>Solde de Base (SB):</label>
+                        <div className="salary-amount">{formatCurrency(userProfile.indice * 500)}</div>
+                        <div className="salary-formula">Indice {userProfile.indice} × 500</div>
                       </div>
-                      <div className="salary-formula">
-                        Calcul: {userProfile.indice} × 500 = {formatCurrency(userProfile.indice * 500)}
+                      
+                      {userProfile.montant_bonifications > 0 && (
+                        <div className="salary-row">
+                          <label>Bonifications (BD):</label>
+                          <div className="salary-amount bonus">{formatCurrency(userProfile.montant_bonifications)}</div>
+                          <div className="salary-formula">Montant de vos bonifications</div>
+                        </div>
+                      )}
+                      
+                      <div className="salary-row total">
+                        <label>Solde Modifié (SBm):</label>
+                        <div className="salary-amount">
+                          {formatCurrency((userProfile.indice * 500) + (userProfile.montant_bonifications || 0))}
+                          </div>
+                        <div className="salary-formula">SB + Bonifications</div>
                       </div>
                     </div>
                   </div>
@@ -380,7 +397,7 @@ const SimulateurPension = () => {
                 {simulationData && (
                   <div className="results-section">
                     
-                    {/* ✅ Statistiques principales avec 5 cartes incluant coefficient temporel */}
+                    {/* Statistiques principales avec 5 cartes */}
                     <div className="stats-grid">
                       <div className="stat-card primary">
                         <div className="stat-icon">📅</div>
@@ -396,10 +413,9 @@ const SimulateurPension = () => {
                         <div className="stat-content">
                           <div className="stat-label">Durée de Service</div>
                           <div className="stat-value">
-                            {simulationData.dureeServiceRetraite} ans
-                            {simulationData.dureeServiceMois > 0 && ` et ${simulationData.dureeServiceMois} mois`}
+                            {Math.round(simulationData.dureeServiceAnnuite)} ans
                           </div>
-                          <div className="stat-subtitle">À la retraite</div>
+                          <div className="stat-subtitle">Principe d'annuité</div>
                         </div>
                       </div>
 
@@ -408,11 +424,10 @@ const SimulateurPension = () => {
                         <div className="stat-content">
                           <div className="stat-label">Taux de Liquidation</div>
                           <div className="stat-value">{simulationData.tauxLiquidation}%</div>
-                          <div className="stat-subtitle">Du salaire de référence</div>
+                          <div className="stat-subtitle">Du solde final</div>
                         </div>
                       </div>
 
-                      {/* ✅ NOUVELLE CARTE : Coefficient temporel */}
                       <div className="stat-card warning">
                         <div className="stat-icon">📈</div>
                         <div className="stat-content">
@@ -432,67 +447,103 @@ const SimulateurPension = () => {
                       </div>
                     </div>
 
-                    {/* Détails du calcul selon Article 94 */}
+                    {/* Détails du calcul selon Article 94 avec écrêtement */}
                     <div className="calculation-details">
                       <div className="card-header">
-                        <h3>🧮 Détail du Calcul (Article 94)</h3>
+                        <h3>🧮 Détail du Calcul (Article 94 avec écrêtement)</h3>
                       </div>
                       <div className="calculation-steps">
+                        
+                        {/* Étape 1: Solde de base */}
                         <div className="step">
-                          <div className="step-label">Solde de base (SB):</div>
-                          <div className="step-value">{formatCurrency(simulationData.salaireReference)}</div>
+                          <div className="step-label"> Solde de base (SB):</div>
+                          <div className="step-value">{formatCurrency(simulationData.soldeBase)}</div>
                           <div className="step-formula">Indice {simulationData.indiceSimule} × 500</div>
                         </div>
 
+                        {/* Étape 2: Bonifications */}
+                        {simulationData.bonificationsBD > 0 && (
+                          <div className="step">
+                            <div className="step-label"> Bonifications:</div>
+                            <div className="step-value">{formatCurrency(simulationData.bonificationsBD)}</div>
+                            <div className="step-formula">Montant de vos bonifications </div>
+                          </div>
+                        )}
+
+                        {/* Étape 3: Solde modifié */}
+                        <div className="step">
+                          <div className="step-label"> Solde modifié (SBm):</div>
+                          <div className="step-value">{formatCurrency(simulationData.soldeModifie)}</div>
+                          <div className="step-formula">
+                            SB + Bonifications = {formatCurrency(simulationData.soldeBase)} + {formatCurrency(simulationData.bonificationsBD)}
+                          </div>
+                        </div>
+
+                        {/* Étape 4: Écrêtement si applicable */}
+                        {simulationData.ecretementApplique && (
+                          <>
+                            <div className="step ecretement">
+                              <div className="step-label"> Écrêtement appliqué:</div>
+                              <div className="step-value">-{formatCurrency(simulationData.montantEcrete)}</div>
+                              <div className="step-formula">
+                                SBm {'>'} {formatCurrency(simulationData.seuilEcretement)} → Écrêtement
+                              </div>
+                            </div>
+                            <div className="step">
+                              <div className="step-label"> Solde final après écrêtement:</div>
+                              <div className="step-value">{formatCurrency(simulationData.soldeFinal)}</div>
+                              <div className="step-formula">
+                                (({formatCurrency(simulationData.soldeModifie)} - {formatCurrency(simulationData.seuilEcretement)}) ÷ 2) + {formatCurrency(simulationData.seuilEcretement)}
+                              </div>
+                            </div>
+                          </>
+                        )}
+
+                        {!simulationData.ecretementApplique && (
+                          <div className="step">
+                            <div className="step-label"> Solde final:</div>
+                            <div className="step-value">{formatCurrency(simulationData.soldeFinal)}</div>
+                            <div className="step-formula">
+                              Pas d'écrêtement (≤ {formatCurrency(simulationData.seuilEcretement)})
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Étape: Taux de liquidation */}
                         <div className="step">
                           <div className="step-label">Taux de liquidation:</div>
                           <div className="step-value">{simulationData.tauxLiquidation}%</div>
                           <div className="step-formula">
                             {simulationData.dureeServiceRetraite < 15 
                               ? "Moins de 15 ans - Pas de pension"
-                              : `${simulationData.dureeServiceAnnuite || simulationData.dureeServiceRetraite} années (annuité) × 1,8% = ${simulationData.tauxLiquidation}%`
+                              : `${Math.round(simulationData.dureeServiceAnnuite)} années (annuité) × 1,8% = ${simulationData.tauxLiquidation}%`
                             }
                           </div>
                         </div>
 
+                        {/* Étape: Pension de base */}
                         <div className="step">
                           <div className="step-label">Pension de base:</div>
                           <div className="step-value">{formatCurrency(simulationData.pensionBase)}</div>
                           <div className="step-formula">
-                            SB × Taux = {formatCurrency(simulationData.salaireReference)} × {simulationData.tauxLiquidation}%
+                            Solde final × Taux = {formatCurrency(simulationData.soldeFinal)} × {simulationData.tauxLiquidation}%
                           </div>
                         </div>
 
-                        {simulationData.coefficientTemporel && (
-                          <div className="step">
-                            <div className="step-label">Coefficient {simulationData.anneePension}:</div>
-                            <div className="step-value">{simulationData.coefficientTemporel}%</div>
-                            <div className="step-formula">Article 94 - Coefficient temporel</div>
-                          </div>
-                        )}
+                        {/* Étape: Coefficient temporel */}
+                        <div className="step">
+                          <div className="step-label">Coefficient {simulationData.anneePension}:</div>
+                          <div className="step-value">{simulationData.coefficientTemporel}%</div>
+                          <div className="step-formula">Article 94 - Coefficient temporel</div>
+                        </div>
 
-                        {simulationData.pensionApresCoefficient && (
-                          <div className="step">
-                            <div className="step-label">Après coefficient:</div>
-                            <div className="step-value">{formatCurrency(simulationData.pensionApresCoefficient)}</div>
-                            <div className="step-formula">
-                              {formatCurrency(simulationData.pensionBase)} × {simulationData.coefficientTemporel}%
-                            </div>
-                          </div>
-                        )}
-
-                        {simulationData.bonifications > 0 && (
-                          <div className="step">
-                            <div className="step-label">Bonifications:</div>
-                            <div className="step-value">+{formatCurrency(simulationData.bonifications)}</div>
-                            <div className="step-formula">Majorations familiales</div>
-                          </div>
-                        )}
-
+                        {/* Étape finale: Pension totale */}
                         <div className="step total">
-                          <div className="step-label">Pension totale:</div>
+                          <div className="step-label">Pension totale finale:</div>
                           <div className="step-value">{formatCurrency(simulationData.pensionTotale)}</div>
-                          <div className="step-formula">Montant mensuel final</div>
+                          <div className="step-formula">
+                            {formatCurrency(simulationData.pensionBase)} × {simulationData.coefficientTemporel}%
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -501,8 +552,16 @@ const SimulateurPension = () => {
                     <div className="alerts-section">
                       {!simulationData.eligible && (
                         <div className="alert alert-warning">
-                          ⚠️ Attention: Avec {simulationData.dureeServiceRetraite} années de service, 
+                          ⚠️ Attention: Avec {Math.round(simulationData.dureeServiceAnnuite)} années de service, 
                           vous n'êtes pas encore éligible à une pension (minimum 15 ans requis).
+                        </div>
+                      )}
+                      
+                      {simulationData.ecretementApplique && (
+                        <div className="alert alert-info">
+                          ✂️ Écrêtement appliqué: Votre solde modifié ({formatCurrency(simulationData.soldeModifie)}) 
+                          dépasse le seuil de {formatCurrency(simulationData.seuilEcretement)}, 
+                          réduction de {formatCurrency(simulationData.montantEcrete)}.
                         </div>
                       )}
                       

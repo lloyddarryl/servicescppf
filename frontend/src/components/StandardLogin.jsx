@@ -20,8 +20,8 @@ const StandardLogin = ({ userType, onModeSwitch }) => {
     
     if (name === 'identifier') {
       if (userType === 'actifs') {
-        // Pour les actifs : matricule solde (6 chiffres + 1 lettre)
-        formattedValue = value.replace(/[^0-9A-Z]/g, '').slice(0, 7);
+        // ✅ CORRECTION : Pour les actifs, permettre jusqu'à 13 caractères
+        formattedValue = value.replace(/[^0-9A-Z]/g, '').slice(0, 13);
       } else {
         // Pour les retraités : numéro de pension (chiffres uniquement)
         formattedValue = value.replace(/[^0-9]/g, '');
@@ -51,11 +51,27 @@ const StandardLogin = ({ userType, onModeSwitch }) => {
         ? 'Le matricule solde est requis' 
         : 'Le numéro de pension est requis';
     } else if (userType === 'actifs') {
-      // Validation matricule solde pour les actifs
-      if (formData.identifier.length !== 7) {
-        newErrors.identifier = 'Le matricule doit contenir exactement 7 caractères';
-      } else if (!/^[0-9]{6}[A-Z]$/.test(formData.identifier)) {
-        newErrors.identifier = 'Format invalide : 6 chiffres suivis d\'une lettre majuscule';
+      // ✅ CORRECTION : Validation matricule solde pour les actifs (7 OU 13 caractères)
+      const length = formData.identifier.length;
+      
+      if (length === 7) {
+        // Format 7 caractères : 6 chiffres + 1 lettre
+        if (!/^[0-9]{6}[A-Z]$/.test(formData.identifier)) {
+          newErrors.identifier = 'Format 7 caractères : 6 chiffres suivis d\'une lettre majuscule';
+        }
+      } else if (length === 13) {
+        // Format 13 caractères : 12 chiffres + 1 lettre
+        if (!/^[0-9]{12}[A-Z]$/.test(formData.identifier)) {
+          newErrors.identifier = 'Format 13 caractères : 12 chiffres suivis d\'une lettre majuscule';
+        }
+      } else if (length > 0 && length < 7) {
+        newErrors.identifier = 'Matricule incomplet. Format attendu : 7 ou 13 caractères';
+      } else if (length > 7 && length < 13) {
+        newErrors.identifier = 'Matricule incomplet. Format attendu : 7 ou 13 caractères';
+      } else if (length > 13) {
+        newErrors.identifier = 'Matricule trop long. Maximum 13 caractères';
+      } else {
+        newErrors.identifier = 'Format invalide. Attendu : 7 caractères (6 chiffres + 1 lettre) ou 13 caractères (12 chiffres + 1 lettre)';
       }
     } else {
       // Validation numéro de pension pour les retraités
@@ -139,12 +155,12 @@ const StandardLogin = ({ userType, onModeSwitch }) => {
   };
 
   const getIdentifierPlaceholder = () => {
-    return userType === 'actifs' ? '123456A' : '123456789';
+    return userType === 'actifs' ? '123456A ou 123456789012B' : '123456789';
   };
 
   const getIdentifierHelp = () => {
     return userType === 'actifs' 
-      ? 'Votre matricule solde (6 chiffres + 1 lettre)'
+      ? 'Votre matricule solde (7 ou 13 caractères : chiffres + 1 lettre)'
       : 'Votre numéro de pension (chiffres uniquement)';
   };
 
@@ -175,6 +191,7 @@ const StandardLogin = ({ userType, onModeSwitch }) => {
           onChange={handleInputChange}
           placeholder={getIdentifierPlaceholder()}
           className={`login-form__input ${errors.identifier ? 'login-form__input--error' : ''}`}
+          maxLength={userType === 'actifs' ? 13 : undefined}
           required
           disabled={loading}
           autoComplete="username"

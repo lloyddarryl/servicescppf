@@ -418,6 +418,7 @@ export const familleService = {
   }
 };
 
+
 // Services pour les réclamations (universels actifs/retraités)
 export const reclamationService = {
   // Obtenir les types de réclamations disponibles
@@ -538,7 +539,7 @@ export const reclamationService = {
   }
 };
 
-// ✅ CORRECTION: Utilitaires - documentService maintenant défini
+// Utilitaires - documentService maintenant défini
 export const utils = {
   formatValidationErrors: (errors) => {
     const formattedErrors = {};
@@ -619,7 +620,6 @@ export const utils = {
     return age;
   },
 
-  // Ajoutez ces nouvelles méthodes à l'objet utils existant
   generateReclamationReference: () => {
     const now = new Date();
     const prefix = `REC-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}`;
@@ -695,9 +695,222 @@ export const utils = {
         return 'Action effectuée avec succès';
     }
   },
-  
-  // ✅ CORRECTION: Référence maintenant correcte
-  documents: documentService.utils
+    documents: documentService.utils
+};
+
+
+
+// Services pour les cotisations (agents actifs uniquement)
+export const cotisationService = {
+  // Obtenir toutes les cotisations avec filtres et pagination
+  getAll: (params = {}) => {
+    const queryParams = new URLSearchParams(params).toString();
+    const url = queryParams ? `/actifs/cotisations?${queryParams}` : '/actifs/cotisations';
+    return api.get(url);
+  },
+
+  // Obtenir le détail d'une cotisation
+  getById: (id) => api.get(`/actifs/cotisations/${id}`),
+
+  // Rechercher dans les cotisations
+  search: (terme) => api.get(`/actifs/cotisations/search?q=${encodeURIComponent(terme)}`),
+
+  // Obtenir les statistiques détaillées
+  getStatistiques: () => api.get('/actifs/cotisations/statistiques'),
+
+  // Générer et télécharger le relevé PDF
+  genererRelevePDF: () => {
+    return api.get('/actifs/cotisations/releve-pdf', {
+      responseType: 'blob'
+    });
+  },
+
+  // Exporter en Excel (si implémenté)
+  exportExcel: (params = {}) => {
+    const queryParams = new URLSearchParams(params).toString();
+    const url = queryParams ? `/actifs/cotisations/export-excel?${queryParams}` : '/actifs/cotisations/export-excel';
+    return api.get(url, {
+      responseType: 'blob'
+    });
+  },
+
+  // Utilitaires pour les cotisations
+  utils: {
+    // Formater un montant en FCFA
+    formatMontant: (montant) => {
+      if (!montant && montant !== 0) return '0 FCFA';
+      return new Intl.NumberFormat('fr-FR').format(montant) + ' FCFA';
+    },
+
+    // Formater une durée en mois vers années + mois
+    formatDuree: (moisTotal) => {
+      if (!moisTotal) return '0 mois';
+      
+      const annees = Math.floor(moisTotal / 12);
+      const mois = moisTotal % 12;
+      
+      const parties = [];
+      if (annees > 0) {
+        parties.push(annees + (annees > 1 ? ' ans' : ' an'));
+      }
+      if (mois > 0) {
+        parties.push(mois + ' mois');
+      }
+      
+      return parties.length > 0 ? parties.join(' ') : '0 mois';
+    },
+
+    // Calculer le pourcentage de cotisation
+    calculerPourcentageCotisation: (retenue, salaireBase) => {
+      if (!salaireBase || salaireBase === 0) return 0;
+      return ((retenue / salaireBase) * 100).toFixed(2);
+    },
+
+    // Obtenir la couleur selon le statut
+    getCouleurStatut: (statut) => {
+      const couleurs = {
+        'actif': '#059669',
+        'valide': '#3b82f6',
+        'suspendu': '#d97706',
+        'annule': '#dc2626'
+      };
+      return couleurs[statut?.toLowerCase()] || '#6b7280';
+    },
+
+    // Vérifier si une période est active
+    isPeriodeActive: (cotisation) => {
+      const maintenant = new Date();
+      const debut = new Date(cotisation.periode_debut);
+      const fin = cotisation.periode_fin ? new Date(cotisation.periode_fin) : null;
+      
+      return cotisation.statut === 'actif' && 
+             debut <= maintenant && 
+             (!fin || fin >= maintenant);
+    },
+
+    // Formater une période
+    formatPeriode: (dateDebut, dateFin) => {
+      const formatDate = (date) => {
+        return new Date(date).toLocaleDateString('fr-FR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        });
+      };
+
+      const debut = formatDate(dateDebut);
+      const fin = dateFin ? formatDate(dateFin) : 'En cours';
+      
+      return `${debut} - ${fin}`;
+    },
+
+    // Calculer l'âge de la cotisation
+    getAgeCotisation: (dateDebut) => {
+      const debut = new Date(dateDebut);
+      const maintenant = new Date();
+      const diffMs = maintenant - debut;
+      const diffJours = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      
+      if (diffJours < 30) {
+        return `${diffJours} jour(s)`;
+      } else if (diffJours < 365) {
+        const mois = Math.floor(diffJours / 30);
+        return `${mois} mois`;
+      } else {
+        const annees = Math.floor(diffJours / 365);
+        const moisRestants = Math.floor((diffJours % 365) / 30);
+        return annees + ' an(s)' + (moisRestants > 0 ? ` ${moisRestants} mois` : '');
+      }
+    },
+
+    // Valider les filtres
+    validateFiltres: (filtres) => {
+      const errors = [];
+      
+      if (filtres.annee && (filtres.annee < 1990 || filtres.annee > new Date().getFullYear())) {
+        errors.push('Année invalide');
+      }
+      
+      if (filtres.page && filtres.page < 1) {
+        errors.push('Numéro de page invalide');
+      }
+      
+      return {
+        isValid: errors.length === 0,
+        errors
+      };
+    },
+
+    // Générer les options de filtre par année
+    genererOptionsAnnees: (cotisations) => {
+      const annees = new Set();
+      
+      cotisations.forEach(cotisation => {
+        if (cotisation.periode_debut) {
+          const annee = new Date(cotisation.periode_debut).getFullYear();
+          annees.add(annee);
+        }
+      });
+      
+      return Array.from(annees).sort((a, b) => b - a);
+    },
+
+    // Calculer les statistiques client-side
+    calculerStatistiques: (cotisations) => {
+      if (!cotisations || cotisations.length === 0) {
+        return {
+          totalCotisations: 0,
+          cotisationMoyenne: 0,
+          cotisationMin: 0,
+          cotisationMax: 0,
+          nombrePeriodes: 0,
+          dureeTotal: 0
+        };
+      }
+
+      const retenues = cotisations.map(c => c.retenue || 0);
+      const total = retenues.reduce((sum, r) => sum + r, 0);
+      const dureeTotal = cotisations.reduce((sum, c) => sum + (c.nombre_mois || 0), 0);
+
+      return {
+        totalCotisations: total,
+        cotisationMoyenne: total / cotisations.length,
+        cotisationMin: Math.min(...retenues),
+        cotisationMax: Math.max(...retenues),
+        nombrePeriodes: cotisations.length,
+        dureeTotal: dureeTotal
+      };
+    },
+
+    // Préparer les données pour le graphique
+    preparerDonneesGraphique: (donneesGraphique) => {
+      return donneesGraphique.map(item => ({
+        ...item,
+        retenueFormatee: cotisationService.utils.formatMontant(item.retenue),
+        couleur: cotisationService.utils.getCouleurStatut(item.statut),
+        retenueKilo: Math.round(item.retenue / 1000) // Pour affichage en milliers
+      }));
+    },
+
+    // Télécharger un fichier blob
+    downloadBlob: (blob, filename) => {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    },
+
+    // Générer un nom de fichier pour export
+    genererNomFichier: (prefix, agent, extension = 'pdf') => {
+      const date = new Date().toISOString().split('T')[0];
+      const matricule = agent?.matricule_solde || 'agent';
+      return `${prefix}_${matricule}_${date}.${extension}`;
+    }
+  }
 };
 
 export default api;

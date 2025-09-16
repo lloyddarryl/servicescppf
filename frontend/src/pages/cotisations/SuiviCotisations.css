@@ -1,0 +1,611 @@
+/* SuiviCotisations.css */
+.suivi-cotisations {
+  min-height: 100vh;
+  background-color: #f8fafc;
+}
+
+.suivi-cotisations__main {
+  padding: 2rem 0;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* ✅ NOUVELLE SECTION BIENVENUE inspirée de Reclamations.jsx */
+.suivi-cotisations__welcome {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  color: rgb(77, 70, 70);
+  padding: 2rem;
+  border-radius: 15px;
+  margin-bottom: 2rem;
+  padding-top: 6rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2rem;
+}
+
+.suivi-cotisations__welcome-content {
+  flex: 1;
+}
+
+.suivi-cotisations__welcome-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0 0 1rem 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.suivi-cotisations__welcome-subtitle {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0 0 1.5rem 0;
+  opacity: 0.95;
+}
+
+.suivi-cotisations__welcome-user {
+  display: block;
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.suivi-cotisations__welcome-badge {
+  background: rgba(21, 65, 197, 0.2);
+  padding: 0.1rem 0.3rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  backdrop-filter: blur(10px);
+  margin-bottom: 1rem;
+}
+
+.suivi-cotisations__welcome-details {
+  display:grid;
+  gap: 0.5rem 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  background: rgba(23, 25, 103, 0.1);
+  padding: 0.5rem;
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+}
+
+.suivi-cotisations__detail {
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.suivi-cotisations__detail strong {
+  color: rgba(36, 30, 30, 0.8);
+  min-width: 80px;
+}
+
+.suivi-cotisations__welcome-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.suivi-cotisations__dashboard-btn {
+  background: rgba(6, 7, 117, 0.2);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  padding: 0.5rem 0.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.suivi-cotisations__dashboard-btn:hover {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(123, 70, 70, 0.5);
+  transform: translateY(-2px);
+}
+
+/* En-tête (si encore utilisé ailleurs) */
+.suivi-cotisations__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e40af;
+  margin: 0 0 1rem 0;
+}
+
+.agent-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.agent-detail {
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.agent-detail strong {
+  color: #334155;
+  margin-right: 0.5rem;
+}
+
+.status {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status.actif {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.status.radié {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.status.suspendu {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+/* Actions */
+.actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn--primary {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.btn--primary:hover:not(:disabled) {
+  background-color: #2563eb;
+  transform: translateY(-1px);
+}
+
+.btn--secondary {
+  background-color: #e5e7eb;
+  color: #374151;
+}
+
+.btn--secondary:hover {
+  background-color: #d1d5db;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Statistiques */
+.statistiques-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: white;
+  padding: 1rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(44, 13, 13, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.stat-icon {
+  font-size: 1.7rem;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: #f1f5f9;
+}
+
+.stat-card--primary .stat-icon {
+  background-color: #dbfedf;
+}
+
+.stat-card--success .stat-icon {
+  background-color: #fcf9dc;
+}
+
+.stat-card--info .stat-icon {
+  background-color: #e0f2fe;
+}
+
+.stat-card--warning .stat-icon {
+  background-color: #fef3c7;
+}
+
+.stat-content h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.stat-value {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.stat-value.success {
+  color: #059669;
+}
+
+.stat-value.warning {
+  color: #d97706;
+}
+
+/* Section graphique */
+.graphique-section {
+  margin-bottom: 2rem;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.count {
+  font-size: 0.9rem;
+  color: #64748b;
+  font-weight: 400;
+}
+
+.graphique-container {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Filtres */
+.filtres-section {
+  margin-bottom: 2rem;
+}
+
+.filtres-container {
+  display: flex;
+  gap: 1.5rem;
+  align-items: end;
+  flex-wrap: wrap;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.filtre-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 150px;
+}
+
+.recherche-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: end;
+}
+
+.filtre-group label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.form-select,
+.form-input {
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background-color: white;
+  transition: border-color 0.2s;
+}
+
+.form-select:focus,
+.form-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-input {
+  min-width: 250px;
+}
+
+/* Tableau */
+.cotisations-section {
+  margin-bottom: 2rem;
+}
+
+.table-container {
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.cotisations-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.cotisations-table th {
+  background-color: #f8fafc;
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.cotisations-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.cotisation-row:hover {
+  background-color: #f8fafc;
+}
+
+.etablissement-cell {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.montant {
+  font-weight: 600;
+  color: #059669;
+}
+
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-actif {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.status-valide {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+.status-suspendu {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.status-annule {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+/* ✅ PAGINATION AMÉLIORÉE */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  background-color: #f8fafc;
+  border-top: 1px solid #e5e7eb;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pagination-btn {
+  padding: 0.5rem 0.75rem;
+  min-width: 40px;
+  border: 1px solid #d1d5db;
+  background-color: white;
+  color: #374151;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+  transform: translateY(-1px);
+}
+
+.pagination-btn--active {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+  color: white;
+  font-weight: 600;
+}
+
+.pagination-btn--active:hover {
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.pagination-info {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin: 0 1rem;
+  padding: 0.5rem 1rem;
+  background-color: white;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+/* États de chargement et d'erreur */
+.suivi-cotisations__loading,
+.suivi-cotisations__error,
+.table-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f1f5f9;
+  border-left: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.suivi-cotisations__error h2 {
+  color: #dc2626;
+  margin-bottom: 1rem;
+}
+
+.suivi-cotisations__error p {
+  color: #64748b;
+  margin-bottom: 2rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .suivi-cotisations__welcome {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .suivi-cotisations__welcome-actions {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .suivi-cotisations__welcome-details {
+    grid-template-columns: 1fr;
+  }
+
+  .suivi-cotisations__header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  .actions {
+    justify-content: center;
+  }
+
+  .statistiques-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filtres-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .recherche-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .form-input {
+    min-width: auto;
+  }
+
+  .cotisations-table {
+    font-size: 0.8rem;
+  }
+
+  .cotisations-table th,
+  .cotisations-table td {
+    padding: 0.5rem;
+  }
+
+  .pagination {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .pagination-info {
+    order: -1;
+    margin: 0;
+  }
+}
