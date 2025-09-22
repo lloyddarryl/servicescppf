@@ -220,7 +220,7 @@ public function retraiteDashboard(Request $request)
             'color' => $statsDocuments['documents_expires'] > 0 ? 'red' : 'blue'
         ],
         [
-            'id' => 'pension',
+            'id' => 'historique-paiements',
             'name' => 'Historique de Paiement',
             'description' => 'Consulter vos versements de pension',
             'icon' => 'banknotes',

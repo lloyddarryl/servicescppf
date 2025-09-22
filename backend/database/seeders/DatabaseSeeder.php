@@ -29,5 +29,13 @@ class DatabaseSeeder extends Seeder
         echo "📋 Utilisez 'php debug_famille.php' pour voir les résultats\n";
         echo "🔑 Tous les comptes ont first_login=true (première connexion)\n";
         echo "💡 Mot de passe temporaire = chiffres du matricule/n° pension\n";
+
+        // Nouveau seeder pour l'historique des paiements
+    $this->call([
+        HistoriquePaiementSeeder::class,
+    ]);
+    
+    $this->command->info('✅ Historique des paiements généré avec succès');
+
     }
 }

@@ -253,4 +253,49 @@ public function getStatistiquesDocumentsAttribute()
     return DocumentRetraite::getStatistiques($this->id);
 }
 
+// À ajouter dans app/Models/Retraite.php à la fin de la classe, avant la fermeture }
+
+/**
+ * Relations avec l'historique des paiements
+ */
+public function historiquePaiements()
+{
+    return $this->hasMany(HistoriquePaiement::class);
+}
+
+public function paiementsVerses()
+{
+    return $this->hasMany(HistoriquePaiement::class)->where('etat_paiement', 'verse');
+}
+
+public function dernierPaiement()
+{
+    return $this->hasOne(HistoriquePaiement::class)->latestOfMany('date_paiement');
+}
+
+/**
+ * Statistiques simples des paiements (basées sur les données en base)
+ */
+public function getTotalPaiementsRecusAttribute()
+{
+    return $this->paiementsVerses()->sum('montant_net');
+}
+
+public function getNombrePaiementsRecusAttribute()
+{
+    return $this->paiementsVerses()->count();
+}
+
+public function getPaiementMoisActuelAttribute()
+{
+    $moisActuel = now()->month;
+    $anneeActuelle = now()->year;
+    
+    return $this->historiquePaiements()
+        ->whereMonth('date_paiement', $moisActuel)
+        ->whereYear('date_paiement', $anneeActuelle)
+        ->where('etat_paiement', 'verse')
+        ->first();
+}
+
 }

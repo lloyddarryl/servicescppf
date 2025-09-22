@@ -16,6 +16,7 @@ import Reclamations from './pages/reclamations/Reclamations';
 import PriseRendezVous from './pages/rendez_vous/PriseRendezVous';
 import MesDocuments from './pages/mesdocuments/MesDocuments';
 import SuiviCotisations from './pages/cotisations/SuiviCotisations';
+import HistoriquePaiements from './pages/historiquepaiements/HistoriquePaiements';
 
 import './App.css';
 
@@ -113,6 +114,13 @@ function App() {
           } />
           
           <Route path="/actifs/famille" element={<GrappeFamiliale />} />
+
+          {/* ✅ NOUVEAU : Routes pour la prise de rendez-vous (actifs) */}
+          <Route path="/retraites/rendez-vous" element={
+          <ProtectedRoute requiredUserType="retraite">
+          <PriseRendezVous />
+          </ProtectedRoute>
+          } />
           
           {/* ✅ Routes protégées spécifiques aux retraités */}
           <Route path="/retraites/profil" element={
@@ -145,21 +153,29 @@ function App() {
 
           <Route path="/retraites/documents" element={<MesDocuments />} />
 
+          {/* Dans les routes des retraités, ajouter : */}
+          <Route path="/retraites/historiquepaiements" element={
+          <ProtectedRoute requiredUserType="retraite">
+          <HistoriquePaiements />
+          </ProtectedRoute>
+          } />
+
+          {/* Route pour l'historique des paiements */}
+<Route 
+  path="/retraites/historique-paiements" 
+  element={
+    <ProtectedRoute requiredUserType="retraite">
+      <HistoriquePaiements />
+    </ProtectedRoute>
+  } 
+/>
+
           {/* ✅ Route de compatibilité */}
           <Route path="/dashboard/documents" element={
             <ProtectedRoute>
               <EditProfile />
             </ProtectedRoute>
           } />
-
-
-          {/* ✅ NOUVEAU : Routes pour la prise de rendez-vous (actifs) */}
-          <Route path="/retraites/rendez-vous" element={
-          <ProtectedRoute requiredUserType="retraite">
-          <PriseRendezVous />
-          </ProtectedRoute>
-          } />
-
 
           {/* ✅ Route catch-all pour les URLs invalides */}
           <Route path="*" element={<HomeServices />} />

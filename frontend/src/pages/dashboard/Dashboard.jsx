@@ -50,6 +50,10 @@ const Dashboard = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+
+
+  
+
   const handleLogout = async () => {
     try {
       await authService.logout();
@@ -78,7 +82,7 @@ const Dashboard = () => {
       rendez_vous: '/actifs/rendez-vous', // ✅ AJOUTÉ (variante)
       },
      retraite: {
-      pension: '/retraites/pension',
+      pension: '/retraites/pension', 
       grappe_familiale: '/retraites/grappe-familiale', 
       certificats: '/retraites/certificats-vie',
       historique: '/retraites/historique',
@@ -86,8 +90,9 @@ const Dashboard = () => {
       profil: '/retraites/profil',
       reclamations: '/retraites/reclamations', 
       rendez_vous: '/retraites/rendez-vous', 
-      prise_rdv: '/retraites/rendez-vous', // (variante)
-      documents: '/retraites/documents', 
+      prise_rdv: '/retraites/rendez-vous', 
+      documents: '/retraites/documents',
+    "historique-paiements": "/retraites/historique-paiements", // Correct
       }
     };
 

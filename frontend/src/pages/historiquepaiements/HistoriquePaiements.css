@@ -1,0 +1,1396 @@
+/* frontend/src/pages/historique_paiements/HistoriquePaiements.css */
+
+.historique-paiements {
+  min-height: 100vh;
+  background-color: #f8fafc;
+}
+
+.historique-main {
+  padding: 2rem 0;
+}
+
+.historique-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* En-tête */
+.historique-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  background: white;
+  padding: 2rem;
+  padding-top: 110px;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.header-content h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.retraite-info {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.retraite-info p {
+  margin: 0.25rem 0;
+}
+
+.header-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.btn-statistiques,
+.btn-export {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-statistiques {
+  background: #3b82f6;
+  color: white;
+}
+
+.btn-statistiques:hover {
+  background: #2563eb;
+}
+
+.btn-export {
+  background: #10b981;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-export:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+}
+
+.btn-export:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-export:disabled::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  width: 16px;
+  height: 16px;
+  margin-top: -8px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spin 1s linear infinite;
+}
+
+/* Statistiques */
+.statistiques-panel {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.statistiques-panel h3 {
+  margin-bottom: 1.5rem;
+  color: #1f2937;
+  font-size: 1.5rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  background: #f8fafc;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.stat-icon {
+  font-size: 2rem;
+  margin-right: 1rem;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.stat-label {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+/* Évolution mensuelle dans statistiques */
+.evolution-mensuelle h4 {
+  margin-bottom: 1rem;
+  color: #374151;
+}
+
+.mois-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 0.5rem;
+}
+
+.mois-item {
+  text-align: center;
+  padding: 0.75rem 0.25rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+}
+
+.mois-item.verse {
+  background: #d1fae5;
+  border: 1px solid #10b981;
+}
+
+.mois-item.non-verse {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+}
+
+.mois-nom {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.mois-montant {
+  color: #6b7280;
+}
+
+/* Filtres */
+.filtres-section {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.filtres-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.filtre-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 150px;
+}
+
+.filtre-group label {
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.filtre-group select {
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  font-size: 0.875rem;
+}
+
+.filtre-group select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Recherche */
+.recherche-row {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 1rem;
+}
+
+.recherche-group {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.recherche-group input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.recherche-group input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.btn-recherche,
+.btn-reset {
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-recherche {
+  background: #3b82f6;
+  color: white;
+}
+
+.btn-recherche:hover {
+  background: #2563eb;
+}
+
+.btn-reset {
+  background: #6b7280;
+  color: white;
+}
+
+.btn-reset:hover {
+  background: #4b5563;
+}
+
+/* Messages */
+.error-message {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.error-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #dc2626;
+}
+
+.error-close {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: #dc2626;
+}
+
+.info-message {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  color: #1d4ed8;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Résumé période */
+.resume-periode {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.resume-periode h3 {
+  margin-bottom: 1rem;
+  color: #1f2937;
+}
+
+.resume-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+}
+
+.resume-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.resume-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.resume-value {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* Liste des paiements */
+.paiements-section {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.paiements-liste {
+  visibility: 1px solid #e5e7eb;
+}
+
+.paiement-item {
+  padding: 1.5rem;
+  transition: background-color 0.2s;
+}
+
+.paiement-item:hover {
+  background: #f8fafc;
+}
+
+.paiement-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.paiement-numero {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.paiement-numero .label {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.statut-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.paiement-date {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.paiement-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.paiement-montant {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #059669;
+}
+
+.paiement-details {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.detail-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.detail-value {
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+/* Pagination */
+.pagination {
+  padding: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pagination-info {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-page {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  background: white;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-page:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+
+.btn-page:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-page.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.pages-numbers {
+  display: flex;
+  gap: 0.25rem;
+}
+
+/* État vide */
+.empty-state {
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+  color: #6b7280;
+  margin-bottom: 2rem;
+}
+
+.btn-retour {
+  padding: 0.75rem 1.5rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-retour:hover {
+  background: #2563eb;
+}
+
+/* Graphique mensuel */
+.graphique-section {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-top: 2rem;
+}
+
+.graphique-section h3 {
+  margin-bottom: 1.5rem;
+  color: #1f2937;
+}
+
+.graphique-mensuel {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1rem;
+}
+
+.mois-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem 0.5rem;
+  border-radius: 8px;
+  transition: transform 0.2s;
+  cursor: pointer;
+}
+
+.mois-bar:hover {
+  transform: translateY(-2px);
+}
+
+.mois-bar.verse {
+  background: #d1fae5;
+  border: 2px solid #10b981;
+}
+
+.mois-bar.non-verse {
+  background: #f3f4f6;
+  border: 2px solid #d1d5db;
+}
+
+.mois-label {
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.mois-montant {
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.mois-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.mois-indicator.success {
+  background: #10b981;
+}
+
+.mois-indicator.empty {
+  background: #d1d5db;
+}
+
+/* Loading states */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e5e7eb;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+.loading-inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  color: #6b7280;
+}
+
+.spinner-small {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e5e7eb;
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .historique-container {
+    padding: 0 0.5rem;
+  }
+
+  .historique-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.5rem;
+  }
+
+  .header-actions {
+    justify-content: stretch;
+  }
+
+  .btn-statistiques,
+  .btn-export {
+    flex: 1;
+  }
+
+  .filtres-row {
+    flex-direction: column;
+  }
+
+  .filtre-group {
+    min-width: auto;
+  }
+
+  .recherche-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .paiement-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .paiement-details {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .pagination {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .resume-stats {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .graphique-mensuel {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  .mois-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .historique-main {
+    padding: 1rem 0;
+  }
+
+  .historique-header,
+  .filtres-section,
+  .resume-periode,
+  .paiements-section,
+  .statistiques-panel,
+  .graphique-section {
+    margin-bottom: 1rem;
+    padding: 1rem;
+  }
+
+  .paiement-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .graphique-mensuel {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .mois-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+/* CSS pour les contrôles de vue et boutons - Version corrigée */
+
+/* Contrôles de vue */
+.view-controls-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.view-toggle {
+  display: flex;
+  background: #f3f4f6;
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.btn-toggle {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-toggle.active {
+  background: white;
+  color: #1f2937;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.btn-toggle:hover:not(.active) {
+  color: #374151;
+}
+
+/* Contrôles des années */
+.annees-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.btn-voir-plus,
+.btn-voir-moins {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-voir-plus {
+  background: #3b82f6;
+  color: white;
+}
+
+.btn-voir-plus:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.btn-voir-moins {
+  background: #6b7280;
+  color: white;
+}
+
+.btn-voir-moins:hover {
+  background: #4b5563;
+  transform: translateY(-1px);
+}
+
+/* Sections d'années */
+.annees-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.annee-section {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  border: 1px solid #e9ecef;
+}
+
+.annee-header {
+  background: linear-gradient(135deg, #343a40 0%, #495057 100%);
+  color: white;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.annee-header h4 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.annee-stats {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.stat-item {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+
+
+/* Tableau wrapper */
+.tableau-wrapper {
+  overflow-x: auto;
+}
+
+/* TABLEAU CORRIGÉ - Colonnes bien alignées */
+.paiements-tableau {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  table-layout: fixed; /* Force les largeurs fixes */
+}
+
+.paiements-tableau thead {
+  background: #f8fafc;
+}
+
+.paiements-tableau th {
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* LARGEURS FIXES pour chaque colonne */
+.paiements-tableau th:nth-child(1),
+.paiements-tableau td:nth-child(1) { 
+  width: 12%; /* Date */
+}
+
+.paiements-tableau th:nth-child(2),
+.paiements-tableau td:nth-child(2) { 
+  width: 15%; /* N° Titre */
+}
+
+.paiements-tableau th:nth-child(3),
+.paiements-tableau td:nth-child(3) { 
+  width: 15%; /* État - PLUS LARGE pour éviter le décalage */
+  text-align: center;
+}
+
+.paiements-tableau th:nth-child(4),
+.paiements-tableau td:nth-child(4) { 
+  width: 18%; /* Montant */
+  text-align: right;
+}
+
+.paiements-tableau th:nth-child(5),
+.paiements-tableau td:nth-child(5) { 
+  width: 25%; /* Mode */
+}
+
+.paiements-tableau th:nth-child(6),
+.paiements-tableau td:nth-child(6) { 
+  width: 15%; /* Régime */
+}
+
+.paiements-tableau tbody tr {
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.2s;
+}
+
+.paiements-tableau tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.paiements-tableau td {
+  padding: 0.75rem;
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Cellules spécifiques */
+.date-cell {
+  font-family: monospace;
+  color: #6b7280;
+  font-weight: 500;
+  font-size: 0.8rem;
+}
+
+.titre-cell {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.etat-cell {
+  text-align: center;
+  padding: 0.5rem; /* Plus d'espace pour les badges */
+}
+
+.montant-cell {
+  text-align: right;
+}
+
+.montant-value {
+  color: #059669;
+  font-weight: 700;
+}
+
+.mode-cell,
+.regime-cell {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+/* Badge de statut - AMÉLIORE */
+.statut-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+  min-width: 70px; /* Largeur minimum pour éviter les décalages */
+  justify-content: center;
+}
+
+/* Lignes selon l'état */
+.paiement-row.etat-verse {
+  border-left: 3px solid #10b981;
+}
+
+.paiement-row.etat-Versé,
+.paiement-row.etat-VersÉ {
+  border-left: 3px solid #10b981;
+}
+
+.paiement-row.etat-en_attente {
+  border-left: 3px solid #f59e0b;
+}
+
+.paiement-row.etat-traite {
+  border-left: 3px solid #3b82f6;
+}
+
+.paiement-row.etat-rejete {
+  border-left: 3px solid #ef4444;
+}
+
+.paiement-row.etat-annule {
+  border-left: 3px solid #6b7280;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .view-controls-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .annees-controls {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .annee-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .annee-stats {
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .tableau-wrapper {
+    overflow-x: scroll;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .paiements-tableau {
+    min-width: 700px;
+    table-layout: auto; /* Largeur automatique sur mobile */
+  }
+
+  .paiements-tableau th,
+  .paiements-tableau td {
+    padding: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .btn-voir-plus,
+  .btn-voir-moins {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.75rem;
+  }
+
+  .view-toggle {
+    width: 100%;
+  }
+
+  .btn-toggle {
+    flex: 1;
+    text-align: center;
+  }
+}
+
+/* Contrôles de vue */
+.view-controls-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.view-toggle {
+  display: flex;
+  background: #f3f4f6;
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.btn-toggle {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-toggle.active {
+  background: white;
+  color: #1f2937;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.btn-toggle:hover:not(.active) {
+  color: #374151;
+}
+
+/* Contrôles des années */
+.annees-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.btn-voir-plus,
+.btn-voir-moins {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-voir-plus {
+  background: #3b82f6;
+  color: white;
+}
+
+.btn-voir-plus:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.btn-voir-moins {
+  background: #6b7280;
+  color: white;
+}
+
+.btn-voir-moins:hover {
+  background: #4b5563;
+  transform: translateY(-1px);
+}
+
+/* Sections d'années */
+.annees-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.annee-section {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  border: 1px solid #e9ecef;
+}
+
+.annee-header {
+  background: linear-gradient(135deg, #1f2937, #374151);
+  color: white;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.annee-header h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.annee-stats {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.8rem;
+}
+
+.stat-item {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 0.3rem 0.8rem;
+  border-radius: 15px;
+  backdrop-filter: blur(10px);
+}
+
+/* Tableau wrapper */
+.tableau-wrapper {
+  overflow-x: auto;
+}
+
+.paiements-tableau {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.paiements-tableau thead {
+  background: #f8fafc;
+}
+
+.paiements-tableau th {
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.paiements-tableau tbody tr {
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.2s;
+}
+
+.paiements-tableau tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.paiements-tableau td {
+  padding: 0.75rem;
+  vertical-align: middle;
+}
+
+/* Cellules spécifiques */
+.date-cell {
+  font-family: monospace;
+  color: #6b7280;
+  font-weight: 500;
+  font-size: 0.8rem;
+}
+
+.titre-cell {
+  color: #1f2937;
+}
+
+.etat-cell {
+  text-align: center;
+}
+
+.montant-cell {
+  text-align: right;
+}
+
+.montant-value {
+  color: #059669;
+  font-weight: 700;
+}
+
+.mode-cell,
+.regime-cell {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+/* Lignes selon l'état */
+.paiement-row.etat-verse {
+  border-left: 3px solid #10b981;
+}
+
+.paiement-row.etat-en_attente {
+  border-left: 3px solid #f59e0b;
+}
+
+.paiement-row.etat-traite {
+  border-left: 3px solid #3b82f6;
+}
+
+.paiement-row.etat-rejete {
+  border-left: 3px solid #ef4444;
+}
+
+.paiement-row.etat-annule {
+  border-left: 3px solid #6b7280;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .view-controls-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .annees-controls {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .annee-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .annee-stats {
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .tableau-wrapper {
+    overflow-x: scroll;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .paiements-tableau {
+    min-width: 600px;
+  }
+
+  .paiements-tableau th,
+  .paiements-tableau td {
+    padding: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .btn-voir-plus,
+  .btn-voir-moins {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.75rem;
+  }
+
+  .view-toggle {
+    width: 100%;
+  }
+
+  .btn-toggle {
+    flex: 1;
+    text-align: center;
+  }
+}
+
+/* Ajoutez cette règle CSS pour harmoniser les headers */
+
+/* Header d'année pour Vue Liste - même style que Vue Tableau */
+.annee-separator {
+  background: linear-gradient(135deg, #1f2937, #374151);
+  color: white;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 8px 8px 0 0; /* Coins arrondis en haut seulement */
+}
+
+.annee-separator h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.annee-separator span {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 0.3rem 0.8rem;
+  border-radius: 15px;
+  backdrop-filter: blur(10px);
+  font-size: 0.8rem;
+}
+
+/* Groupe d'année pour Vue Liste - même style que annee-section */
+.annee-groupe-liste {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  border: 1px solid #e9ecef;
+  margin-bottom: 1.5rem;
+}
+
+/* S'assurer que les paiements dans la liste ont le bon padding */
+.annee-groupe-liste .paiement-item {
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.annee-groupe-liste .paiement-item:last-child {
+  border-bottom: none;
+}

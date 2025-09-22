@@ -1,5 +1,5 @@
 <?php
-// File: backend/routes/api.php - Version corrigée pour les rendez-vous
+// File: backend/routes/api.php - Version corrigée pour les historique paiements
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
@@ -9,10 +9,12 @@ use App\Http\Controllers\PensionSimulatorController;
 use App\Http\Controllers\FamilleController;
 use App\Http\Controllers\ReclamationController;
 use App\Http\Controllers\RendezVousController;
+use App\Http\Controllers\HistoriquePaiementController;
 use App\Models\DocumentRetraite; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -50,7 +52,7 @@ Route::prefix('auth')->group(function () {
 // Routes protégées par authentification Sanctum
 Route::middleware('auth:sanctum')->group(function () {
 
-    // ✅ ROUTE DE TEST FAMILLE
+    // Route de test famille
     Route::get('/test-famille', function (Request $request) {
         try {
             $user = $request->user();
@@ -143,7 +145,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/notifications', [DashboardController::class, 'getNotifications']);
         Route::put('/notifications/{id}/read', [DashboardController::class, 'markNotificationRead']);
 
-        // ✅ FAMILLE - Routes pour les agents actifs
+        // FAMILLE - Routes pour les agents actifs
         Route::prefix('famille')->group(function () {
             Route::get('/', [FamilleController::class, 'getGrappeFamiliale']);
             Route::post('/conjoint', [FamilleController::class, 'saveConjoint']);
@@ -152,7 +154,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/enfants/{id}', [FamilleController::class, 'deleteEnfant']);
         });
 
-        // ✅ SIMULATEUR DE PENSION - Routes pour agents actifs uniquement
+        // SIMULATEUR DE PENSION - Routes pour agents actifs uniquement
         Route::prefix('simulateur-pension')->group(function () {
             Route::get('/profil', [PensionSimulatorController::class, 'getProfile']);
             Route::post('/simuler', [PensionSimulatorController::class, 'simulatePension']);
@@ -160,17 +162,17 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/parametres', [PensionSimulatorController::class, 'getParameters']);
         });
 
-         // Routes cotisations
-    Route::prefix('cotisations')->group(function () {
-        Route::get('/', [App\Http\Controllers\CotisationController::class, 'index']);
-        Route::get('/releve-pdf', [App\Http\Controllers\CotisationController::class, 'genererRelevePDF']);
-        Route::get('/search', [App\Http\Controllers\CotisationController::class, 'search']);
-        Route::get('/statistiques', [App\Http\Controllers\CotisationController::class, 'statistiques']);
-        Route::get('/export-excel', [App\Http\Controllers\CotisationController::class, 'exportExcel']);
-        Route::get('/{id}', [App\Http\Controllers\CotisationController::class, 'show']);
-    });
+        // Routes cotisations
+        Route::prefix('cotisations')->group(function () {
+            Route::get('/', [App\Http\Controllers\CotisationController::class, 'index']);
+            Route::get('/releve-pdf', [App\Http\Controllers\CotisationController::class, 'genererRelevePDF']);
+            Route::get('/search', [App\Http\Controllers\CotisationController::class, 'search']);
+            Route::get('/statistiques', [App\Http\Controllers\CotisationController::class, 'statistiques']);
+            Route::get('/export-excel', [App\Http\Controllers\CotisationController::class, 'exportExcel']);
+            Route::get('/{id}', [App\Http\Controllers\CotisationController::class, 'show']);
+        });
 
-        // ✅ RÉCLAMATIONS - Routes pour les agents actifs
+        // RÉCLAMATIONS - Routes pour les agents actifs
         Route::prefix('reclamations')->group(function () {
             Route::get('/types', [ReclamationController::class, 'getTypesReclamations']);
             Route::get('/', [ReclamationController::class, 'index']);
@@ -181,7 +183,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{id}/documents/{documentIndex}', [ReclamationController::class, 'downloadDocument']);
         });
 
-        // ✅ RENDEZ-VOUS - Routes corrigées pour les agents actifs
+        // RENDEZ-VOUS - Routes pour les agents actifs
         Route::prefix('rendez-vous')->group(function () {
             Route::get('/', [RendezVousController::class, 'index']);
             Route::post('/', [RendezVousController::class, 'store']);
@@ -229,7 +231,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/notifications', [DashboardController::class, 'getNotificationsRetraite']);
         Route::put('/notifications/{id}/read', [DashboardController::class, 'markNotificationReadRetraite']);
 
-        // ✅ FAMILLE - Routes pour les retraités
+        // FAMILLE - Routes pour les retraités
         Route::prefix('famille')->group(function () {
             Route::get('/', [FamilleController::class, 'getGrappeFamiliale']);
             Route::post('/conjoint', [FamilleController::class, 'saveConjoint']);
@@ -238,7 +240,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/enfants/{id}', [FamilleController::class, 'deleteEnfant']);
         });
 
-        // ✅ RÉCLAMATIONS - Routes pour les retraités
+        // RÉCLAMATIONS - Routes pour les retraités
         Route::prefix('reclamations')->group(function () {
             Route::get('/types', [ReclamationController::class, 'getTypesReclamations']);
             Route::get('/', [ReclamationController::class, 'index']);
@@ -248,9 +250,9 @@ Route::middleware('auth:sanctum')->group(function () {
             // Route générique EN DERNIER
             Route::get('/{id}', [ReclamationController::class, 'show']);
             Route::delete('/{id}', [ReclamationController::class, 'destroy']);
-            });
+        });
 
-    // Documents et gestion documentaire 
+        // Documents et gestion documentaire 
         Route::prefix('documents')->group(function () {
             Route::get('/notifications', [App\Http\Controllers\DocumentController::class, 'getNotifications']);
             Route::post('/notifications/dismiss', [App\Http\Controllers\DocumentController::class, 'dismissNotification']);
@@ -258,10 +260,23 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/', [App\Http\Controllers\DocumentController::class, 'store']);
             Route::delete('/{id}', [App\Http\Controllers\DocumentController::class, 'destroy']);
             Route::get('/download/{id}', [App\Http\Controllers\DocumentController::class, 'download'])->name('retraites.documents.download');
-            });
+        });
 
+        // ✅ NOUVEAU : Routes pour l'historique des paiements - VERSION CORRIGÉE
+        Route::prefix('historique-paiements')->group(function () {
+            Route::get('/', [HistoriquePaiementController::class, 'index']);
+            Route::get('/statistiques', [HistoriquePaiementController::class, 'statistiques']);
+            Route::get('/rechercher', [HistoriquePaiementController::class, 'rechercher']);
+            Route::get('/telecharger-pdf', [HistoriquePaiementController::class, 'telechargerPDF']);
+            Route::get('/toutes-annees', [HistoriquePaiementController::class, 'obtenirToutesLesAnnees']);
+            Route::get('/{id}', [HistoriquePaiementController::class, 'show']);
+        });
 
-        // ✅ RENDEZ-VOUS - Routes corrigées pour les retraités
+        // Alternative pour compatibilité avec dashboard existant
+        Route::get('/pension/historique', [HistoriquePaiementController::class, 'index']);
+        Route::get('/suivi-paiements', [HistoriquePaiementController::class, 'index']);
+
+        // RENDEZ-VOUS - Routes pour les retraités
         Route::prefix('rendez-vous')->group(function () {
             Route::get('/', [RendezVousController::class, 'index']);
             Route::post('/', [RendezVousController::class, 'store']);
@@ -300,7 +315,7 @@ Route::middleware('auth:sanctum')->group(function () {
         }
     });
 
-    // ✅ NOUVEAU : Routes d'administration pour les rendez-vous
+    // NOUVEAU : Routes d'administration pour les rendez-vous
     Route::prefix('admin/rendez-vous')->group(function () {
         Route::get('/', [RendezVousController::class, 'indexAdmin']);
         Route::get('/statistiques', [RendezVousController::class, 'statistiquesAdmin']);
@@ -313,7 +328,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 });
 
-// ✅ Route de fallback pour API
+// Route de fallback pour API
 Route::fallback(function () {
     return response()->json([
         'success' => false,
@@ -326,5 +341,3 @@ Route::fallback(function () {
 Route::get('/test-simple', function () {
     return response()->json(['message' => 'API fonctionne', 'time' => now()]);
 });
-
-

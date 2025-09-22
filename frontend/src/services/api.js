@@ -913,4 +913,241 @@ export const cotisationService = {
   }
 };
 
+// Service pour l'historique des paiements (retraités uniquement)
+export const historiquePaiementService = {
+  // Obtenir l'historique avec filtres et pagination
+  getHistorique: (params = {}) => {
+    // Nettoyer les paramètres vides
+    const cleanParams = Object.fromEntries(
+      Object.entries(params).filter(([_, value]) => value !== '' && value !== null && value !== undefined)
+    );
+    
+    return api.get('/retraites/historique-paiements', { params: cleanParams });
+  },
+
+  // Obtenir un paiement spécifique
+  getPaiementById: (id) => api.get(`/retraites/historique-paiements/${id}`),
+
+  // Obtenir les statistiques détaillées
+  getStatistiques: (params = {}) => {
+    const cleanParams = Object.fromEntries(
+      Object.entries(params).filter(([_, value]) => value !== '' && value !== null && value !== undefined)
+    );
+    
+    return api.get('/retraites/historique-paiements/statistiques', { params: cleanParams });
+  },
+
+  // Rechercher dans l'historique - CORRIGÉ
+  rechercher: (terme, params = {}) => {
+    const searchParams = {
+      q: terme, // Utiliser 'q' comme paramètre de recherche
+      ...params
+    };
+    
+    const cleanParams = Object.fromEntries(
+      Object.entries(searchParams).filter(([_, value]) => value !== '' && value !== null && value !== undefined)
+    );
+    
+    return api.get('/retraites/historique-paiements/rechercher', { params: cleanParams });
+  },
+
+  // Télécharger le PDF - TOUS LES VERSEMENTS
+  telechargerPDF: (params = {}) => {
+    // NE PAS PASSER DE FILTRES pour récupérer TOUS les versements
+    return api.get('/retraites/historique-paiements/telecharger-pdf', {
+      responseType: 'blob'
+    });
+  },
+
+  // Routes de compatibilité avec dashboard existant
+  getPensionHistorique: (params = {}) => {
+    const cleanParams = Object.fromEntries(
+      Object.entries(params).filter(([_, value]) => value !== '' && value !== null && value !== undefined)
+    );
+    return api.get('/retraites/pension/historique', { params: cleanParams });
+  },
+
+  getSuiviPaiements: (params = {}) => {
+    const cleanParams = Object.fromEntries(
+      Object.entries(params).filter(([_, value]) => value !== '' && value !== null && value !== undefined)
+    );
+    return api.get('/retraites/suivi-paiements', { params: cleanParams });
+  },
+
+  // Utilitaires pour l'historique des paiements
+  utils: {
+    // Formater un montant en FCFA
+    formatMontant: (montant) => {
+      if (!montant && montant !== 0) return '0 FCFA';
+      return new Intl.NumberFormat('fr-FR').format(montant) + ' FCFA';
+    },
+
+    // Formater une date
+    formatDate: (date) => {
+      if (!date) return '';
+      return new Date(date).toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    },
+
+    // Obtenir la couleur selon l'état du paiement
+     getCouleurEtat(etat) {
+    if (!etat) return '#6B7280';
+    
+    const etatNormalise = etat.toLowerCase().replace(/é/g, 'e');
+    
+    const couleurs = {
+      'verse': '#10B981',        // Vert pour "Versé"
+      'en_attente': '#F59E0B',   // Orange pour "En attente" 
+      'traite': '#3B82F6',       // Bleu pour "Traité"
+      'rejete': '#EF4444',       // Rouge pour "Rejeté"
+      'annule': '#6B7280',       // Gris pour "Annulé"
+      'non_verse': '#9CA3AF'     // Gris clair pour "Non versé"
+    };
+    return couleurs[etatNormalise] || '#6B7280';
+  },
+
+    // Obtenir l'icône selon l'état
+    getIconeEtat(etat) {
+    if (!etat) return '❓';
+    
+    const etatNormalise = etat.toLowerCase().replace(/é/g, 'e');
+    
+    const icones = {
+      'verse': '✅',
+      'en_attente': '⏳', 
+      'traite': '🔄',
+      'rejete': '❌',
+      'annule': '🚫',
+      'non_verse': '⏸️'
+    };
+    
+    return icones[etatNormalise] || '❓';
+  },
+
+    // Obtenir le libellé français de l'état
+    getLibelleEtat(etat) {
+    if (!etat) return 'Inconnu';
+    
+    // Si c'est déjà en français, on le retourne tel quel
+    if (etat === 'Versé' || etat === 'VersÉ') return 'Versé';
+    
+    const etatNormalise = etat.toLowerCase().replace(/é/g, 'e');
+    
+    const libelles = {
+      'verse': 'Versé',
+      'en_attente': 'En attente',
+      'traite': 'Traité', 
+      'rejete': 'Rejeté',
+      'annule': 'Annulé',
+      'non_verse': 'Non versé'
+    };
+    
+    return libelles[etatNormalise] || etat; // Retourner l'état original si pas trouvé
+  },
+
+    // Formater le nom du mois
+    formatNomMois: (numeroMois) => {
+      const mois = [
+        'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+        'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+      ];
+      return mois[numeroMois - 1] || '';
+    },
+
+    // Générer les options pour le filtre de mois
+    genererOptionsMois: () => {
+      return [
+        { value: '', label: 'Tous les mois' },
+        { value: 1, label: 'Janvier' },
+        { value: 2, label: 'Février' },
+        { value: 3, label: 'Mars' },
+        { value: 4, label: 'Avril' },
+        { value: 5, label: 'Mai' },
+        { value: 6, label: 'Juin' },
+        { value: 7, label: 'Juillet' },
+        { value: 8, label: 'Août' },
+        { value: 9, label: 'Septembre' },
+        { value: 10, label: 'Octobre' },
+        { value: 11, label: 'Novembre' },
+        { value: 12, label: 'Décembre' }
+      ];
+    },
+
+    // Générer les options pour le filtre d'états
+    genererOptionsEtats: () => {
+      return [
+        { value: '', label: 'Tous les états' },
+        { value: 'verse', label: 'Versé' },
+        { value: 'en_attente', label: 'En attente' },
+        { value: 'traite', label: 'Traité' },
+        { value: 'rejete', label: 'Rejeté' },
+        { value: 'annule', label: 'Annulé' }
+      ];
+    },
+
+    // Télécharger un fichier blob
+    downloadBlob: (blob, filename) => {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    },
+
+    // Générer un nom de fichier pour export
+    genererNomFichier: (prefix, retraite, filtres = {}, extension = 'pdf') => {
+      const date = new Date().toISOString().split('T')[0];
+      const pension = retraite?.numero_pension?.replace(/\//g, '_') || 'pension';
+      
+      let suffixe = '';
+      if (filtres.annee) {
+        suffixe += `_${filtres.annee}`;
+      }
+      if (filtres.mois) {
+        suffixe += `_${filtres.mois.toString().padStart(2, '0')}`;
+      }
+
+      return `${prefix}_${pension}_${date}${suffixe}.${extension}`;
+    },
+
+    // Formater une période pour affichage
+    formatPeriode: (filtres) => {
+      let periode = '';
+      
+      if (filtres.mois && filtres.annee) {
+        const nomMois = historiquePaiementService.utils.formatNomMois(parseInt(filtres.mois));
+        periode = `${nomMois} ${filtres.annee}`;
+      } else if (filtres.annee) {
+        periode = `Année ${filtres.annee}`;
+      } else {
+        periode = 'Toute la période';
+      }
+      
+      return periode;
+    },
+
+    // Obtenir un message d'information selon le contexte
+    getMessageInfo: (action, data = {}) => {
+      switch (action) {
+        case 'aucun_paiement':
+          return 'Aucun paiement trouvé pour cette période';
+        case 'recherche_vide':
+          return `Aucun résultat pour "${data.terme}"`;
+        case 'export_success':
+          return 'Export généré avec succès';
+        case 'chargement':
+          return 'Chargement de l\'historique des paiements...';
+        default:
+          return '';
+      }
+    }
+  }
+};
+
 export default api;
