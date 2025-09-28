@@ -83,11 +83,6 @@
   animation: slideInLeft 0.6s ease-out;
 }
 
-.user-welcome::before {
-  content: "";
-  font-size: 1rem;
-}
-
 @keyframes slideInLeft {
   from {
     opacity: 0;
@@ -100,13 +95,13 @@
 }
 
 .famille-subtitle {
-  font-size: 1.125rem;
+  font-size: 1rem;
   color: #6b7280;
   margin: 0;
 }
 
 .back-button {
-  padding: 0.75rem 1.5rem;
+  padding: 0.65rem 1rem;
   background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
   color: white;
   border: none;
@@ -161,7 +156,7 @@
 .famille-content {
   background: white;
   border-radius: 1.5rem;
-  padding: 2rem;
+  padding: 1rem;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
   min-height: 600px;
 }
@@ -193,9 +188,9 @@
 }
 
 .stat-card.primary { border-left-color: #00ae1d; }
-.stat-card.success { border-left-color: #f3e709; }
-.stat-card.info { border-left-color: #0b17f5; }
-.stat-card.warning { border-left-color: #e40f0f ; }
+.stat-card.success { border-left-color: #00ae1d; }
+.stat-card.info { border-left-color: #c4f309; }
+.stat-card.warning { border-left-color: #0b17f5 ; }
 
 .stat-icon {
   font-size: 2rem;
@@ -204,25 +199,6 @@
 
 .stat-content {
   flex: 1;
-}
-
-.stat-label {
-  font-size: 0.875rem;
-  color: #6b7280;
-  font-weight: 500;
-  margin-bottom: 0.25rem;
-}
-
-.stat-value {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #1f2937;
-  margin-bottom: 0.25rem;
-}
-
-.stat-subtitle {
-  font-size: 0.75rem;
-  color: #9ca3af;
 }
 
 /* Vue d'ensemble */
@@ -240,7 +216,7 @@
 .card-header {
   background: linear-gradient(135deg, #10b913 0%, #f5e90b 50%, #0b31ad 100%);
   color: white;
-  padding: 1.5rem;
+  padding: 1.2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -409,13 +385,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-weight: 600;
   border-radius: 15px 15px 0 0;
 }
 
 .enfants-header h3 {
   margin: 0;
   font-size: 1.5rem;
-  color: #1f2937;
+  color: #e5e9ee;
 }
 
 .enfants-list {
@@ -797,7 +774,6 @@
   .form-actions {
     flex-direction: column;
   }
-  /* Éléments CSS manquants à ajouter à votre fichier GrappeFamiliale.css */
 
 /* 1. Badge spécifique pour les retraités - À ajouter après .user-welcome::before */
 .badge-retraite {
@@ -971,4 +947,107 @@ select:focus-visible {
     break-inside: avoid;
   }
 }
+}
+
+/* Stats Cards - Version Corrigée */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  border-left: 6px solid #e5e7eb; /* Bordure par défaut plus épaisse */
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  animation: fadeInUp 0.6s ease-out;
+  position: relative;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+}
+
+/* Bordures colorées spécifiques - avec !important pour forcer l'application */
+.stat-card.primary { 
+  border-left: 6px solid #00ae1d !important; 
+}
+
+.stat-card.success { 
+  border-left: 6px solid #00ae1d !important; 
+}
+
+.stat-card.info { 
+  border-left: 6px solid #f3ef09 !important; 
+}
+
+.stat-card.warning { 
+  border-left: 6px solid#0b17f5 !important; 
+}
+
+
+.stat-icon {
+  font-size: 2rem;
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+}
+
+.stat-subtitle {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .stat-card {
+    padding: 1rem;
+  }
+  
+  .stat-value {
+    font-size: 1.25rem;
+  }
 }

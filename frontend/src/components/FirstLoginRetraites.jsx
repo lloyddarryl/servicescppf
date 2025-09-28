@@ -200,14 +200,14 @@ const FirstLoginRetraites = ({ onModeSwitch }) => {
       </button>
 
       <div className="login-form__switch">
-        <p className="login-form__switch-text">Déjà configuré votre compte ?</p>
+        <p className="login-form__switch-text">Vous avez déjà configuré votre compte ?</p>
         <button 
           type="button" 
           className="login-form__switch-button"
           onClick={() => onModeSwitch('standard')}
           disabled={loading}
         >
-          Utiliser la connexion standard
+          Utilisez la connexion standard
         </button>
       </div>
     </form>

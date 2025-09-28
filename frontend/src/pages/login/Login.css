@@ -54,21 +54,21 @@
 }
 
 .login-page__title {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: bold;
   color: #1E3A8A;
   margin-bottom: 1.5rem;
-  line-height: 1.2;
+  line-height: 1;
 }
 
 @media (min-width: 768px) {
   .login-page__title {
-    font-size: 3rem;
+    font-size: 2.85rem;
   }
 }
 
 .login-page__description {
-  font-size: 1.125rem;
+  font-size: 1rem;
   color: #6b7280;
   line-height: 1.6;
   margin-bottom: 2rem;
@@ -79,7 +79,7 @@
 }
 
 .login-page__features-title {
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   font-weight: 600;
   color: #374151;
   margin-bottom: 1rem;
@@ -94,7 +94,7 @@
 .login-page__feature-item {
   position: relative;
   padding-left: 2rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
   color: #4b5563;
   font-size: 1rem;
 }

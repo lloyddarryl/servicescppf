@@ -9,7 +9,7 @@ import './SimulateurPension.css';
 const SimulateurPension = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState('simulation'); // 'profile', 'simulation', 'history'
   const [userProfile, setUserProfile] = useState(null);
   const [simulationData, setSimulationData] = useState(null);
   const [simulationHistory, setSimulationHistory] = useState([]);
@@ -179,8 +179,7 @@ const SimulateurPension = () => {
           <div className="simulateur-header">
             <div className="header-content">
               <h1 className="simulateur-title">
-                <span className="title-icon">🧮</span>
-                Simulateur de Pension CPPF
+                Simulateur de Pension 
               </h1>
               {userProfile && (
                 <div className="user-welcome">
@@ -450,7 +449,7 @@ const SimulateurPension = () => {
                     {/* Détails du calcul selon Article 94 avec écrêtement */}
                     <div className="calculation-details">
                       <div className="card-header">
-                        <h3>🧮 Détail du Calcul (Article 94 avec écrêtement)</h3>
+                        <h3>🧮 Détail du Calcul (Article 94)</h3>
                       </div>
                       <div className="calculation-steps">
                         

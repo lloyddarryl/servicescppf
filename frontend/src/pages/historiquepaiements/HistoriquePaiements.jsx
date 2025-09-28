@@ -13,7 +13,7 @@ const HistoriquePaiements = () => {
   
   // États pour les filtres - MODIFIÉ : annee vide par défaut
   const [filtres, setFiltres] = useState({
-    annee: '', // CHANGÉ : vide par défaut au lieu de new Date().getFullYear()
+    annee: '', 
     mois: '',
     etat: '',
     per_page: 12
@@ -29,7 +29,7 @@ const HistoriquePaiements = () => {
 
   // NOUVEAUX ÉTATS pour "Voir plus/moins"
   const [anneesVisibles, setAnneesVisibles] = useState(1);
-  const [vueTableau, setVueTableau] = useState(false);
+  const [vueTableau, setVueTableau] = useState(true);
   const [loadingPDF, setLoadingPDF] = useState(false);
 
   // Charger l'historique au montage du composant
@@ -609,18 +609,19 @@ const HistoriquePaiements = () => {
             {!loading && historique.length > 0 && (
               <div className="view-controls-header">
                 <div className="view-toggle">
+                   <button 
+                    className={`btn-toggle ${vueTableau ? 'active' : ''}`}
+                    onClick={() => setVueTableau(true)}
+                  >
+                    Vue Tableau par Année
+                  </button>
                   <button 
                     className={`btn-toggle ${!vueTableau ? 'active' : ''}`}
                     onClick={() => setVueTableau(false)}
                   >
                     Vue Liste
                   </button>
-                  <button 
-                    className={`btn-toggle ${vueTableau ? 'active' : ''}`}
-                    onClick={() => setVueTableau(true)}
-                  >
-                    Vue Tableau par Année
-                  </button>
+                 
                 </div>
                 
                 {/* LOGIQUE CORRIGÉE : Afficher les contrôles selon le contexte */}

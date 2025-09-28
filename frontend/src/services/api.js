@@ -123,11 +123,15 @@ export const documentService = {
   },
 
   // Télécharger un document
-  download: (documentId) => {
-    return api.get(`/retraites/documents/${documentId}/download`, {
-      responseType: 'blob'
-    });
-  },
+download: (documentId) => {
+  return api.get(`/retraites/documents/${documentId}/download`, {
+    responseType: 'blob',
+    timeout: 60000, // 60 secondes
+    headers: {
+      'Accept': 'application/octet-stream'
+    }
+  });
+},
 
   // Supprimer un document
   delete: (documentId) => {
@@ -319,7 +323,32 @@ export const documentService = {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
+    }, downloadBlob: (blob, filename) => {
+      try {
+        // Créer URL temporaire
+        const url = window.URL.createObjectURL(blob);
+        
+        // Créer élément de téléchargement
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', filename);
+        link.style.display = 'none';
+        
+        // Ajouter au DOM et cliquer
+        document.body.appendChild(link);
+        link.click();
+        
+        // Nettoyer
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        console.log('Téléchargement initié:', filename);
+      } catch (error) {
+        console.error('Erreur téléchargement blob:', error);
+        throw error;
+      }
     },
+
 
     // Générer un message de notification selon l'action
     getNotificationMessage: (action, data = {}) => {

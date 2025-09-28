@@ -201,7 +201,6 @@ const FirstLoginActifs = ({ onModeSwitch }) => {
           <div className="login-form__error">{errors.matricule_solde}</div>
         )}
         <div className="login-form__help">
-          <small>Format accepté : 7 caractères (6 chiffres + 1 lettre) ou 13 caractères (12 chiffres + 1 lettre)</small>
         </div>
       </div>
 
@@ -227,8 +226,8 @@ const FirstLoginActifs = ({ onModeSwitch }) => {
         <div className="login-form__help">
           <small>
             {formData.matricule_solde.length === 13 
-              ? "Les 12 premiers chiffres de votre matricule solde"
-              : "Les 6 premiers chiffres de votre matricule solde"
+              ? "Uniquement les chiffres de votre matricule solde"
+              : "Uniquement les chiffres de votre matricule solde"
             }
           </small>
         </div>
@@ -250,14 +249,14 @@ const FirstLoginActifs = ({ onModeSwitch }) => {
       </button>
 
       <div className="login-form__switch">
-        <p className="login-form__switch-text">Déjà configuré votre compte ?</p>
+        <p className="login-form__switch-text">Vous avez déjà configuré votre compte ?</p>
         <button 
           type="button" 
           className="login-form__switch-button"
           onClick={() => onModeSwitch('standard')}
           disabled={loading}
         >
-          Utiliser la connexion standard
+          Utilisez la connexion standard
         </button>
       </div>
     </form>

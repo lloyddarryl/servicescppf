@@ -15,16 +15,22 @@ const EditProfile = ({ userType }) => {
     new_password_confirmation: ''
   });
   
-  const [activeTab, setActiveTab] = useState('info'); // 'info' ou 'password'
+  const [activeTab, setActiveTab] = useState('info');
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [notifications, setNotifications] = useState([]);
   
-  // États pour la vérification téléphone
-  const [phoneVerificationStep, setPhoneVerificationStep] = useState(0); // 0: normal, 1: en attente code, 2: vérifié
+  // ✅ ÉTATS POUR LA VÉRIFICATION TÉLÉPHONE AMÉLIORÉS
+  const [phoneVerification, setPhoneVerification] = useState({
+    isRequired: false,
+    step: 0, // 0: normal, 1: en attente code, 2: vérifié
+    pendingPhone: '',
+    originalPhone: '',
+    showModal: false,
+    canLeave: true
+  });
   const [verificationCode, setVerificationCode] = useState('');
-  const [originalPhone, setOriginalPhone] = useState('');
 
   // Fonction helper pour les appels API
   const makeApiCall = async (endpoint, options = {}) => {
@@ -54,11 +60,9 @@ const EditProfile = ({ userType }) => {
   // Charger les données utilisateur
   const fetchUserData = useCallback(async () => {
     try {
-      console.log('🔄 Tentative de chargement du profil...');
+      console.log('📄 Tentative de chargement du profil...');
       
-      // ✅ Utiliser la route commune /profile qui fonctionne
       const response = await makeApiCall('/profile');
-      
       console.log('📡 Réponse reçue:', response.status);
       
       if (!response.ok) {
@@ -77,7 +81,11 @@ const EditProfile = ({ userType }) => {
           new_password: '',
           new_password_confirmation: ''
         });
-        setOriginalPhone(data.profile.telephone || '');
+        
+        setPhoneVerification(prev => ({
+          ...prev,
+          originalPhone: data.profile.telephone || ''
+        }));
         
         // Vérifier si le téléphone n'est pas vérifié
         if (data.profile.telephone && !data.profile.phone_verified) {
@@ -101,6 +109,40 @@ const EditProfile = ({ userType }) => {
     fetchUserData();
   }, [navigate, fetchUserData]);
 
+  // ✅ NOUVELLE FONCTION : Gestion de la navigation avec vérification en cours
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (phoneVerification.isRequired && !phoneVerification.canLeave) {
+        e.preventDefault();
+        e.returnValue = 'Vous avez un changement de téléphone en cours de vérification. Voulez-vous vraiment quitter sans terminer ?';
+        return e.returnValue;
+      }
+    };
+
+    const handlePopState = (e) => {
+      if (phoneVerification.isRequired && !phoneVerification.canLeave) {
+        if (!window.confirm('Vous avez un changement de téléphone en cours de vérification. Voulez-vous vraiment quitter sans terminer ?')) {
+          e.preventDefault();
+          window.history.pushState(null, '', window.location.pathname);
+          return;
+        }
+      }
+    };
+
+    if (phoneVerification.isRequired && !phoneVerification.canLeave) {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      window.addEventListener('popstate', handlePopState);
+      
+      // Ajouter un état à l'historique pour intercepter le retour
+      window.history.pushState(null, '', window.location.pathname);
+    }
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [phoneVerification.isRequired, phoneVerification.canLeave]);
+
   const addNotification = (type, text) => {
     const id = Date.now();
     setNotifications(prev => [...prev, { id, type, text }]);
@@ -115,12 +157,10 @@ const EditProfile = ({ userType }) => {
     
     let formattedValue = value;
     
-    // Formatage du téléphone (sans +241)
     if (name === 'telephone') {
       formattedValue = value.replace(/[^0-9]/g, '').slice(0, 9);
     }
     
-    // Formatage du code de vérification
     if (name === 'verification_code') {
       formattedValue = value.replace(/[^0-9]/g, '').slice(0, 6);
     }
@@ -134,7 +174,6 @@ const EditProfile = ({ userType }) => {
       }));
     }
 
-    // Effacer l'erreur pour ce champ
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -189,7 +228,7 @@ const EditProfile = ({ userType }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Mise à jour des informations de contact
+  // ✅ MISE À JOUR DES INFORMATIONS DE CONTACT AVEC GESTION TÉLÉPHONE
   const handleContactInfoSubmit = async (e) => {
     e.preventDefault();
     
@@ -212,17 +251,27 @@ const EditProfile = ({ userType }) => {
       const data = await response.json();
 
       if (data.success) {
-        setMessage({ type: 'success', text: 'Informations mises à jour avec succès' });
-        
-        // Si le téléphone a changé, déclencher la vérification
-        const newPhone = `+241${formData.telephone}`;
-        if (newPhone !== originalPhone) {
-          setPhoneVerificationStep(1);
-          addNotification('warning', 'Votre numéro de téléphone a été modifié. Veuillez le vérifier avec le code SMS qui vous sera envoyé.');
-          await sendVerificationCode();
+        // ✅ VÉRIFIER SI VÉRIFICATION TÉLÉPHONE REQUISE
+        if (data.phone_verification_required) {
+          setPhoneVerification({
+            isRequired: true,
+            step: 1,
+            pendingPhone: data.pending_phone,
+            originalPhone: phoneVerification.originalPhone,
+            showModal: true,
+            canLeave: false
+          });
+          
+          setMessage({ 
+            type: 'info', 
+            text: 'Code de vérification envoyé au nouveau numéro' 
+          });
+          
+          addNotification('info', 'Vérifiez votre nouveau numéro avec le code SMS reçu');
+        } else {
+          setMessage({ type: 'success', text: data.message });
+          await fetchUserData();
         }
-        
-        await fetchUserData();
       } else {
         if (data.errors) {
           setErrors(data.errors);
@@ -263,7 +312,6 @@ const EditProfile = ({ userType }) => {
 
       if (data.success) {
         setMessage({ type: 'success', text: 'Mot de passe modifié avec succès' });
-        // Réinitialiser le formulaire de mot de passe
         setFormData(prev => ({
           ...prev,
           current_password: '',
@@ -285,7 +333,7 @@ const EditProfile = ({ userType }) => {
     }
   };
 
-  // Envoyer le code de vérification SMS
+  // ✅ RENVOYER LE CODE DE VÉRIFICATION
   const sendVerificationCode = async () => {
     setLoading(true);
     try {
@@ -296,8 +344,7 @@ const EditProfile = ({ userType }) => {
       const data = await response.json();
 
       if (data.success) {
-        setPhoneVerificationStep(1);
-        setMessage({ type: 'success', text: 'Code de vérification envoyé par SMS' });
+        setMessage({ type: 'success', text: 'Code de vérification renvoyé' });
       } else {
         setMessage({ type: 'error', text: data.message || 'Erreur lors de l\'envoi du code' });
       }
@@ -309,7 +356,7 @@ const EditProfile = ({ userType }) => {
     }
   };
 
-  // Vérifier le code SMS
+  // ✅ VÉRIFIER LE CODE SMS
   const verifyPhoneCode = async () => {
     if (verificationCode.length !== 6) {
       setErrors({ verification_code: 'Le code doit contenir 6 chiffres' });
@@ -326,11 +373,22 @@ const EditProfile = ({ userType }) => {
       const data = await response.json();
 
       if (data.success) {
-        setPhoneVerificationStep(2);
+        // ✅ VÉRIFICATION RÉUSSIE
+        setPhoneVerification({
+          isRequired: false,
+          step: 2,
+          pendingPhone: '',
+          originalPhone: '',
+          showModal: false,
+          canLeave: true
+        });
+        
         setMessage({ type: 'success', text: 'Numéro de téléphone vérifié avec succès' });
         setVerificationCode('');
-        // Enlever la notification de téléphone non vérifié
+        
+        // Enlever les notifications de téléphone non vérifié
         setNotifications(prev => prev.filter(notif => !notif.text.includes('téléphone n\'est pas vérifié')));
+        
         await fetchUserData();
       } else {
         setErrors({ verification_code: data.message || 'Code de vérification invalide' });
@@ -340,6 +398,29 @@ const EditProfile = ({ userType }) => {
       setErrors({ verification_code: 'Erreur lors de la vérification' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ✅ ANNULER LA VÉRIFICATION
+  const cancelPhoneVerification = () => {
+    if (window.confirm('Annuler la vérification du nouveau numéro ? Vos modifications ne seront pas sauvegardées.')) {
+      setPhoneVerification({
+        isRequired: false,
+        step: 0,
+        pendingPhone: '',
+        originalPhone: phoneVerification.originalPhone,
+        showModal: false,
+        canLeave: true
+      });
+      
+      setVerificationCode('');
+      setErrors({});
+      
+      // Remettre l'ancien numéro dans le formulaire
+      setFormData(prev => ({
+        ...prev,
+        telephone: phoneVerification.originalPhone.replace('+241', '') || ''
+      }));
     }
   };
 
@@ -364,6 +445,65 @@ const EditProfile = ({ userType }) => {
   return (
     <div className="edit-profile">
       <Header />
+      
+      {/* ✅ MODAL DE VÉRIFICATION TÉLÉPHONE */}
+      {phoneVerification.showModal && (
+        <div className="edit-profile__verification-overlay">
+          <div className="edit-profile__verification-modal">
+            <div className="edit-profile__verification-header">
+              <h3>Vérification du nouveau numéro</h3>
+              <button 
+                className="edit-profile__modal-close"
+                onClick={cancelPhoneVerification}
+                type="button"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="edit-profile__verification-content">
+              <p>Un code de vérification a été envoyé au numéro :</p>
+              <p className="edit-profile__pending-phone">{phoneVerification.pendingPhone}</p>
+              
+              <div className="edit-profile__verification-form">
+                <input
+                  type="text"
+                  value={verificationCode}
+                  onChange={(e) => handleInputChange({
+                    target: { name: 'verification_code', value: e.target.value }
+                  })}
+                  placeholder="123456"
+                  className={`edit-profile__verification-input ${errors.verification_code ? 'edit-profile__input--error' : ''}`}
+                  maxLength={6}
+                  disabled={loading}
+                />
+                {errors.verification_code && (
+                  <div className="edit-profile__error">{errors.verification_code}</div>
+                )}
+                
+                <div className="edit-profile__verification-actions">
+                  <button 
+                    type="button"
+                    className="edit-profile__button edit-profile__button--success"
+                    onClick={verifyPhoneCode}
+                    disabled={loading || verificationCode.length !== 6}
+                  >
+                    {loading ? 'Vérification...' : 'Vérifier'}
+                  </button>
+                  <button 
+                    type="button"
+                    className="edit-profile__button edit-profile__button--outline"
+                    onClick={sendVerificationCode}
+                    disabled={loading}
+                  >
+                    Renvoyer le code
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       <main className="edit-profile__main">
         <div className="edit-profile__container">
@@ -399,10 +539,9 @@ const EditProfile = ({ userType }) => {
                     {userData.prenoms} {userData.nom}
                   </p>
                   <p className="edit-profile__user-role">
-                    {userType === 'actif' ? userData.poste : userData.ancien_poste}
+                    {userType === 'actif' ? 'Agent en activité' : 'Retraité'}
                   </p>
                   <div className="edit-profile__verification-status">
-                    
                     <span className={`edit-profile__badge ${userData.phone_verified ? 'edit-profile__badge--success' : 'edit-profile__badge--warning'}`}>
                       Téléphone {userData.phone_verified ? 'vérifié' : 'non vérifié'}
                     </span>
@@ -465,7 +604,7 @@ const EditProfile = ({ userType }) => {
                           value={formData.email}
                           onChange={handleInputChange}
                           className={`edit-profile__input ${errors.email ? 'edit-profile__input--error' : ''}`}
-                          disabled={loading}
+                          disabled={loading || phoneVerification.isRequired}
                         />
                         {errors.email && (
                           <div className="edit-profile__error">{errors.email}</div>
@@ -487,10 +626,10 @@ const EditProfile = ({ userType }) => {
                             onChange={handleInputChange}
                             placeholder="01234567"
                             className={`edit-profile__input ${errors.telephone ? 'edit-profile__input--error' : ''}`}
-                            disabled={loading}
+                            disabled={loading || phoneVerification.isRequired}
                             maxLength={9}
                           />
-                          {/* ✅ NOUVEAU : Indicateur de vérification */}
+                          {/* Indicateur de vérification */}
                           <div className="edit-profile__phone-status">
                             {userData.phone_verified ? (
                               <span className="edit-profile__phone-verified">
@@ -511,7 +650,7 @@ const EditProfile = ({ userType }) => {
                           <div className="edit-profile__error">{errors.telephone}</div>
                         )}
                         
-                        {/* ✅ NOUVEAU : Section de vérification téléphone */}
+                        {/* Section de vérification téléphone */}
                         <div className="edit-profile__phone-verification">
                           {!userData.phone_verified ? (
                             <div className="edit-profile__phone-action">
@@ -524,7 +663,7 @@ const EditProfile = ({ userType }) => {
                                 type="button"
                                 className="edit-profile__verify-button"
                                 onClick={sendVerificationCode}
-                                disabled={loading || !formData.telephone}
+                                disabled={loading || !formData.telephone || phoneVerification.isRequired}
                               >
                                 {loading ? (
                                   <span className="edit-profile__button-loading">
@@ -553,59 +692,11 @@ const EditProfile = ({ userType }) => {
                     <button 
                       type="submit" 
                       className="edit-profile__button edit-profile__button--primary"
-                      disabled={loading}
+                      disabled={loading || phoneVerification.isRequired}
                     >
                       {loading ? 'Mise à jour...' : 'Mettre à jour les informations'}
                     </button>
                   </form>
-
-                  {/* Section vérification téléphone */}
-                  {phoneVerificationStep === 1 && (
-                    <div className="edit-profile__verification-section">
-                      <h3 className="edit-profile__verification-title">
-                        Vérification du numéro de téléphone
-                      </h3>
-                      <p className="edit-profile__verification-text">
-                        Un code de vérification a été envoyé au numéro +241{formData.telephone}
-                      </p>
-                      
-                      <div className="edit-profile__verification-form">
-                        <input
-                          type="text"
-                          name="verification_code"
-                          value={verificationCode}
-                          onChange={handleInputChange}
-                          placeholder="123456"
-                          className={`edit-profile__input edit-profile__input--center ${errors.verification_code ? 'edit-profile__input--error' : ''}`}
-                          maxLength={6}
-                          disabled={loading}
-                        />
-                        {errors.verification_code && (
-                          <div className="edit-profile__error">{errors.verification_code}</div>
-                        )}
-                        
-                        <div className="edit-profile__verification-actions">
-                          <button 
-                            type="button"
-                            className="edit-profile__button edit-profile__button--success"
-                            onClick={verifyPhoneCode}
-                            disabled={loading || verificationCode.length !== 6}
-                          >
-                            Vérifier le code
-                          </button>
-                          <button 
-                            type="button"
-                            className="edit-profile__button edit-profile__button--outline"
-                            onClick={sendVerificationCode}
-                            disabled={loading}
-                          >
-                            Renvoyer le code
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
                 </div>
               )}
 
@@ -627,7 +718,7 @@ const EditProfile = ({ userType }) => {
                           value={formData.current_password}
                           onChange={handleInputChange}
                           className={`edit-profile__input ${errors.current_password ? 'edit-profile__input--error' : ''}`}
-                          disabled={loading}
+                          disabled={loading || phoneVerification.isRequired}
                         />
                         {errors.current_password && (
                           <div className="edit-profile__error">{errors.current_password}</div>
@@ -646,7 +737,7 @@ const EditProfile = ({ userType }) => {
                           value={formData.new_password}
                           onChange={handleInputChange}
                           className={`edit-profile__input ${errors.new_password ? 'edit-profile__input--error' : ''}`}
-                          disabled={loading}
+                          disabled={loading || phoneVerification.isRequired}
                         />
                         {errors.new_password && (
                           <div className="edit-profile__error">{errors.new_password}</div>
@@ -668,7 +759,7 @@ const EditProfile = ({ userType }) => {
                           value={formData.new_password_confirmation}
                           onChange={handleInputChange}
                           className={`edit-profile__input ${errors.new_password_confirmation ? 'edit-profile__input--error' : ''}`}
-                          disabled={loading}
+                          disabled={loading || phoneVerification.isRequired}
                         />
                         {errors.new_password_confirmation && (
                           <div className="edit-profile__error">{errors.new_password_confirmation}</div>
@@ -680,7 +771,7 @@ const EditProfile = ({ userType }) => {
                     <button 
                       type="submit" 
                       className="edit-profile__button edit-profile__button--primary"
-                      disabled={loading}
+                      disabled={loading || phoneVerification.isRequired}
                     >
                       {loading ? 'Changement...' : 'Changer le mot de passe'}
                     </button>

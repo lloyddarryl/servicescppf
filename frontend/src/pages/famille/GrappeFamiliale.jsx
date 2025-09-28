@@ -236,7 +236,7 @@ const calculateAge = (birthDate) => {
 
   // ✅ Fonction pour obtenir le titre de la page selon le type d'utilisateur
   const getPageTitle = () => {
-    return userType === 'retraite' ? 'Ma Grappe Familiale - Agent Retraité' : 'Ma Grappe Familiale - Agent Actif';
+    return userType === 'retraite' ? 'Votre Grappe Familiale' : 'Votre Grappe Familiale';
   };
 
   // ✅ Fonction pour déterminer le bouton de retour selon le type d'utilisateur
@@ -291,7 +291,7 @@ const calculateAge = (birthDate) => {
               </h1>
               {grappeFamiliale && (
                 <div className="user-welcome">
-                  {getTitle(grappeFamiliale.agent.sexe, grappeFamiliale.agent.situation_matrimoniale)} {grappeFamiliale.agent.nom_complet}
+                  Bienvenue {getTitle(grappeFamiliale.agent.sexe, grappeFamiliale.agent.situation_matrimoniale)} {grappeFamiliale.agent.nom_complet}
                   {userType === 'retraite' && <span className="badge-retraite"> • Agent Retraité</span>}
                 </div>
               )}
@@ -349,14 +349,6 @@ const calculateAge = (birthDate) => {
                 
                 {/* Statistiques famille */}
                 <div className="stats-grid">
-                  <div className="stat-card primary">
-                    <div className="stat-content">
-                      <div className="stat-label">{userType === 'retraite' ? 'Retraité' : 'Chef de famille'}</div>
-                      <div className="stat-value">{grappeFamiliale.agent.nom_complet}</div>
-                      <div className="stat-subtitle">{getMatriculeLabel()}: {grappeFamiliale.agent.matricule}</div>
-                    </div>
-                  </div>
-
                   <div className="stat-card success">
                     <div className="stat-content">
                       <div className="stat-label">Conjoint(e)</div>

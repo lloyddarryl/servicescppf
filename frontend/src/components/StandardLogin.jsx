@@ -160,8 +160,6 @@ const StandardLogin = ({ userType, onModeSwitch }) => {
 
   const getIdentifierHelp = () => {
     return userType === 'actifs' 
-      ? 'Votre matricule solde (7 ou 13 caractères : chiffres + 1 lettre)'
-      : 'Votre numéro de pension (chiffres uniquement)';
   };
 
   return (
@@ -170,7 +168,7 @@ const StandardLogin = ({ userType, onModeSwitch }) => {
         Connexion standard - {userType === 'actifs' ? 'Agents Actifs' : 'Retraités'}
       </h2>
       <p className="login-form__subtitle">
-        Utilisez vos identifiants configurés pour accéder à votre espace personnel.
+        Utilisez vos identifiants  pour accéder à votre espace personnel CPPF.
       </p>
 
       {message.text && (
@@ -251,7 +249,7 @@ const StandardLogin = ({ userType, onModeSwitch }) => {
           onClick={() => onModeSwitch('first')}
           disabled={loading}
         >
-          Utiliser la première connexion
+          Utilisez la première connexion
         </button>
       </div>
     </form>

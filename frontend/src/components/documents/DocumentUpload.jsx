@@ -81,44 +81,98 @@ const DocumentUpload = ({ isOpen, onClose, onSuccess, limites }) => {
     return validationErrors;
   };
 
-  // Gérer l'envoi des fichiers
-  const handleUpload = async () => {
-    if (files.length === 0) return;
+  // Dans DocumentUpload.jsx - Corriger la méthode handleUpload
 
-    const validationErrors = validateBeforeUpload();
-    if (validationErrors.length > 0) {
-      setErrors(validationErrors);
-      return;
+const handleUpload = async () => {
+  if (files.length === 0) return;
+
+  const validationErrors = validateBeforeUpload();
+  if (validationErrors.length > 0) {
+    setErrors(validationErrors);
+    return;
+  }
+
+  setUploading(true);
+  setErrors([]);
+
+  try {
+    // Créer FormData manuellement pour un meilleur contrôle
+    const formData = new FormData();
+    
+    // Ajouter les fichiers
+    files.forEach((fileObj, index) => {
+      formData.append(`documents[${index}]`, fileObj.file);
+      console.log(`Ajout fichier ${index}:`, fileObj.file.name, fileObj.file.size);
+    });
+    
+    // Ajouter les types
+    files.forEach((fileObj, index) => {
+      formData.append(`types[${index}]`, fileObj.type);
+      console.log(`Type ${index}:`, fileObj.type);
+    });
+    
+    // Ajouter les descriptions
+    files.forEach((fileObj, index) => {
+      if (fileObj.description && fileObj.description.trim()) {
+        formData.append(`descriptions[${index}]`, fileObj.description.trim());
+        console.log(`Description ${index}:`, fileObj.description);
+      }
+    });
+    
+    // Ajouter les dates d'émission
+    files.forEach((fileObj, index) => {
+      if (fileObj.dateEmission) {
+        formData.append(`dates_emission[${index}]`, fileObj.dateEmission);
+        console.log(`Date émission ${index}:`, fileObj.dateEmission);
+      }
+    });
+    
+    // Ajouter les autorités d'émission
+    files.forEach((fileObj, index) => {
+      if (fileObj.autoriteEmission && fileObj.autoriteEmission.trim()) {
+        formData.append(`autorites_emission[${index}]`, fileObj.autoriteEmission.trim());
+        console.log(`Autorité ${index}:`, fileObj.autoriteEmission);
+      }
+    });
+
+    // Débugger le contenu du FormData
+    console.log('Contenu FormData:');
+    for (let [key, value] of formData.entries()) {
+      console.log(key, value);
     }
 
-    setUploading(true);
-    setErrors([]);
+    const response = await documentService.upload(formData);
 
-    try {
-      // Préparer les données pour l'upload
-      const formData = documentService.utils.createUploadFormData(
-        files.map(f => f.file),
-        files.map(f => f.type),
-        files.map(f => f.description),
-        files.map(f => f.dateEmission),
-        files.map(f => f.autoriteEmission)
-      );
-
-      const response = await documentService.upload(formData);
-
-      if (response.data.success) {
-        onSuccess(response.data);
-      } else {
-        setErrors([response.data.message || 'Erreur lors du dépôt']);
-      }
-    } catch (error) {
-      console.error('Erreur upload:', error);
+    if (response.data.success) {
+      console.log('Upload réussi:', response.data);
+      onSuccess(response.data);
+    } else {
+      console.error('Erreur serveur:', response.data);
+      setErrors([response.data.message || 'Erreur lors du dépôt']);
+    }
+  } catch (error) {
+    console.error('Erreur upload:', error);
+    
+    if (error.response?.status === 422) {
+      // Erreurs de validation
+      const validationErrors = error.response.data.errors;
+      const errorMessages = [];
+      
+      Object.keys(validationErrors).forEach(field => {
+        validationErrors[field].forEach(message => {
+          errorMessages.push(message);
+        });
+      });
+      
+      setErrors(errorMessages);
+    } else {
       const errorMessage = error.response?.data?.message || 'Erreur lors du dépôt des documents';
       setErrors([errorMessage]);
-    } finally {
-      setUploading(false);
     }
-  };
+  } finally {
+    setUploading(false);
+  }
+};
 
   if (!isOpen) return null;
 

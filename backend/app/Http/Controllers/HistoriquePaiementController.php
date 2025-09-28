@@ -147,69 +147,78 @@ class HistoriquePaiementController extends Controller
     }
 
     public function telechargerPDF(Request $request)
-    {
-        try {
-            $retraite = $request->user();
-            
-            $request->validate([
-                'annee' => 'nullable|integer|min:2000|max:' . date('Y'),
-                'mois' => 'nullable|integer|min:1|max:12'
-            ]);
+{
+    try {
+        $retraite = $request->user();
+        
+        $request->validate([
+            'annee' => 'nullable|integer|min:2000|max:' . date('Y'),
+            'mois' => 'nullable|integer|min:1|max:12'
+        ]);
 
-            // RÉCUPÉRER TOUS LES VERSEMENTS de la personne si aucune année spécifiée
-            $query = $retraite->historiquePaiements()->orderBy('date_paiement', 'desc');
-            
-            // Appliquer les filtres seulement s'ils sont fournis
-            if ($request->annee) {
-                $query->whereYear('date_paiement', $request->annee);
-            }
-            
-            if ($request->mois) {
-                $query->whereMonth('date_paiement', $request->mois);
-            }
+        // RÉCUPÉRER TOUS LES VERSEMENTS de la personne si aucune année spécifiée
+        $query = $retraite->historiquePaiements()->orderBy('date_paiement', 'desc');
+        
+        // Appliquer les filtres seulement s'ils sont fournis
+        if ($request->annee) {
+            $query->whereYear('date_paiement', $request->annee);
+        }
+        
+        if ($request->mois) {
+            $query->whereMonth('date_paiement', $request->mois);
+        }
 
-            $paiements = $query->get();
-            
-            if ($paiements->isEmpty()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Aucun paiement trouvé pour cette période'
-                ], 404);
-            }
-
-            $filtres = $request->only(['annee', 'mois']);
-            
-            // MODIFICATION : Organiser par année si aucune année spécifiée
-            $paiementsOrganises = $request->annee ? $paiements : $paiements->groupBy(function($paiement) {
-                return $paiement->date_paiement->year;
-            })->sortKeysDesc();
-            
-            $html = view('pdf.historique-paiements', [
-                'retraite' => $retraite,
-                'paiements' => $request->annee ? $paiements : null,
-                'paiements_par_annee' => !$request->annee ? $paiementsOrganises : null,
-                'filtres' => $filtres,
-                'toutes_annees' => !$request->annee
-            ])->render();
-
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html);
-            $pdf->setPaper('A4', 'portrait');
-            
-            $filename = $this->genererNomFichierPDF($retraite, $filtres);
-
-            return $pdf->download($filename);
-
-        } catch (\Exception $e) {
-            Log::error('Erreur génération PDF historique:', [
-                'error' => $e->getMessage()
-            ]);
-
+        $paiements = $query->get();
+        
+        if ($paiements->isEmpty()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Erreur lors de la génération du PDF'
-            ], 500);
+                'message' => 'Aucun paiement trouvé pour cette période'
+            ], 404);
         }
+
+        $filtres = $request->only(['annee', 'mois']);
+        
+        // CORRECTION : Toujours passer $paiements à la vue
+        // Si une année est spécifiée, on passe directement $paiements
+        // Sinon, on organise par année ET on passe aussi $paiements
+        $paiementsOrganises = null;
+        if (!$request->annee) {
+            $paiementsOrganises = $paiements->groupBy(function($paiement) {
+                return $paiement->date_paiement->year;
+            })->sortKeysDesc();
+        }
+        
+        $html = view('pdf.historique-paiements', [
+            'retraite' => $retraite,
+            'paiements' => $paiements, // TOUJOURS passer cette variable
+            'paiements_par_annee' => $paiementsOrganises,
+            'filtres' => $filtres,
+            'toutes_annees' => !$request->annee,
+            'annee_specifique' => $request->annee // Nouvelle variable pour clarifier
+        ])->render();
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html);
+        $pdf->setPaper('A4', 'portrait');
+        
+        $filename = $this->genererNomFichierPDF($retraite, $filtres);
+
+        return $pdf->download($filename);
+
+    } catch (\Exception $e) {
+        Log::error('Erreur génération PDF historique:', [
+            'error' => $e->getMessage(),
+            'line' => $e->getLine(),
+            'file' => $e->getFile(),
+            'request_data' => $request->all()
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Erreur lors de la génération du PDF: ' . $e->getMessage()
+        ], 500);
     }
+}
 
     public function statistiques(Request $request)
     {

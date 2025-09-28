@@ -24,90 +24,82 @@ class SmsServices
             $formattedPhone = $this->formatPhoneNumber($phoneNumber);
             
             // Message de vérification
-            $message = "Code de vérification e-CPPF: $code. Valide pendant 15 minutes.";
+            $message = "Code de verification e-CPPF: $code. Valide pendant 15 minutes.";
             
-            // Paramètres pour l'API
+            // Construction de l'URL avec tous les paramètres selon votre chef
             $params = [
                 'client' => $this->config['client'],
                 'password' => $this->config['password'],
                 'phone' => $formattedPhone,
                 'text' => $message,
-                'from' => $this->config['from']
+                'from' => $this->config['from'],
+                'affiliate' => $this->config['affiliate'] ?? '999'
             ];
 
-            // Log des paramètres envoyés (pour debugging)
-            Log::info('SMS API Request', [
+            // Construction de l'URL complète
+            $fullUrl = $this->baseUrl . '?' . http_build_query($params);
+
+            Log::info('SMS API Request (GET Method)', [
                 'url' => $this->baseUrl,
+                'full_url' => $fullUrl,
                 'params' => $params,
                 'phone_original' => $phoneNumber,
-                'phone_formatted' => $formattedPhone
+                'phone_formatted' => $formattedPhone,
+                'message_length' => strlen($message),
+                'method' => 'GET'
             ]);
 
-            // Envoi de la requête HTTP
-            $response = Http::timeout(30)
-                ->asForm()
-                ->post($this->baseUrl, $params);
+            // Envoi de la requête HTTP GET (pas POST)
+            $response = Http::timeout(45)->get($fullUrl);
 
-            // Log de la réponse
-            Log::info('SMS API Response', [
+            Log::info('SMS API Response (GET Method)', [
                 'status' => $response->status(),
+                'headers' => $response->headers(),
                 'body' => $response->body(),
-                'headers' => $response->headers()
+                'successful' => $response->successful(),
+                'response_size' => strlen($response->body())
             ]);
 
-            // Vérification du statut de la réponse
+            // Traitement de la réponse
             if ($response->successful()) {
                 $responseText = $response->body();
                 
-                // ✅ CORRECTION : Gérer la réponse XML de Wirepick
+                // Log de la réponse brute pour debug
+                Log::info('Raw SMS Response', [
+                    'response' => $responseText,
+                    'length' => strlen($responseText)
+                ]);
+                
+                // Parser la réponse XML si c'est du XML
                 if ($this->isXmlResponse($responseText)) {
-                    return $this->parseXmlResponse($responseText);
+                    $result = $this->parseXmlResponse($responseText);
+                    Log::info('XML Response Parsed', ['parsed_result' => $result]);
+                    return $result;
                 }
                 
-                // Essayer de parser en JSON si possible
-                try {
-                    $responseData = $response->json();
-                    if ($responseData && isset($responseData['status'])) {
-                        if ($responseData['status'] === 'success' || $responseData['status'] === '200') {
-                            return [
-                                'success' => true,
-                                'message' => 'SMS envoyé avec succès',
-                                'response' => $responseData
-                            ];
-                        } else {
-                            return [
-                                'success' => false,
-                                'message' => $responseData['message'] ?? 'Erreur inconnue de l\'API SMS',
-                                'response' => $responseData
-                            ];
-                        }
-                    }
-                } catch (Exception $e) {
-                    // Si ce n'est pas du JSON valide, continuer avec le traitement texte
-                    Log::info('Response is not JSON, treating as text', ['response' => $responseText]);
-                }
-                
-                // Vérifier le texte de la réponse pour des mots-clés de succès
-                if (stripos($responseText, 'success') !== false || 
-                    stripos($responseText, 'sent') !== false ||
-                    stripos($responseText, 'delivered') !== false ||
-                    preg_match('/<id>\d+<\/id>/', $responseText)) { // Présence d'un ID XML indique succès
-                    
+                // Rechercher des indicateurs de succès dans la réponse
+                if ($this->isSuccessResponse($responseText)) {
                     return [
                         'success' => true,
                         'message' => 'SMS envoyé avec succès',
                         'response' => $responseText
                     ];
+                } else {
+                    return [
+                        'success' => false,
+                        'message' => 'Réponse inattendue: ' . substr($responseText, 0, 200),
+                        'response' => $responseText
+                    ];
                 }
-                
-                return [
-                    'success' => false,
-                    'message' => 'Réponse inattendue de l\'API SMS : ' . substr($responseText, 0, 200) . '...',
-                    'response' => $responseText
-                ];
             }
 
             // Gestion des erreurs HTTP
+            Log::error('SMS API HTTP Error', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+                'url' => $fullUrl
+            ]);
+
             return [
                 'success' => false,
                 'message' => "Erreur HTTP {$response->status()}: {$response->body()}",
@@ -115,7 +107,7 @@ class SmsServices
             ];
 
         } catch (Exception $e) {
-            Log::error('SMS Service Error', [
+            Log::error('SMS Service Critical Error', [
                 'message' => $e->getMessage(),
                 'phone' => $phoneNumber,
                 'code' => $code,
@@ -124,31 +116,68 @@ class SmsServices
 
             return [
                 'success' => false,
-                'message' => 'Erreur lors de l\'envoi du SMS: ' . $e->getMessage(),
+                'message' => 'Erreur critique: ' . $e->getMessage(),
                 'error' => $e->getMessage()
             ];
         }
     }
 
     /**
-     * ✅ NOUVELLE MÉTHODE : Vérifier si la réponse est du XML
+     * Vérifier si la réponse est du XML
      */
     private function isXmlResponse($responseText)
     {
         return strpos(trim($responseText), '<?xml') === 0 || 
-               strpos($responseText, '<messages>') !== false;
+               strpos($responseText, '<messages>') !== false ||
+               strpos($responseText, '<msgid>') !== false ||
+               strpos($responseText, '<message>') !== false;
     }
 
     /**
-     * ✅ NOUVELLE MÉTHODE : Parser la réponse XML de Wirepick
+     * Vérifier si la réponse indique un succès
+     */
+    private function isSuccessResponse($responseText)
+    {
+        $responseTextLower = strtolower(trim($responseText));
+        
+        // Mots-clés de succès
+        $successKeywords = [
+            'success', 'sent', 'delivered', 'ok', 
+            'message sent', 'sms sent', 'queued'
+        ];
+        
+        // Vérifier la présence d'un ID de message
+        if (preg_match('/\b\d{10,}\b/', $responseText)) {
+            Log::info('Message ID pattern found in response');
+            return true;
+        }
+        
+        // Vérifier les mots-clés de succès
+        foreach ($successKeywords as $keyword) {
+            if (strpos($responseTextLower, $keyword) !== false) {
+                Log::info('Success keyword found', ['keyword' => $keyword]);
+                return true;
+            }
+        }
+        
+        // Si la réponse ne contient que des chiffres (souvent un ID)
+        if (preg_match('/^\s*\d+\s*$/', $responseText)) {
+            Log::info('Response contains only numbers (likely message ID)');
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Parser la réponse XML
      */
     private function parseXmlResponse($xmlString)
     {
         try {
-            // Nettoyer le XML
             $cleanXml = trim($xmlString);
+            Log::info('Parsing XML Response', ['xml' => $cleanXml]);
             
-            // Parser le XML
             $xml = simplexml_load_string($cleanXml);
             
             if ($xml === false) {
@@ -159,99 +188,132 @@ class SmsServices
                 ];
             }
 
-            // Vérifier la structure XML de Wirepick
-            if (isset($xml->message)) {
-                $message = $xml->message;
-                
-                // Si on a un ID, c'est généralement un succès
-                if (isset($message->id) && !empty((string)$message->id)) {
-                    return [
-                        'success' => true,
-                        'message' => 'SMS envoyé avec succès',
-                        'response' => [
-                            'id' => (string)$message->id,
-                            'cost' => isset($message->cost) ? (string)$message->cost : null,
-                            'currency' => isset($message->currency) ? (string)$message->currency : null
-                        ]
-                    ];
-                }
-                
-                // Vérifier s'il y a un message d'erreur
-                if (isset($message->error)) {
-                    return [
-                        'success' => false,
-                        'message' => 'Erreur SMS: ' . (string)$message->error,
-                        'response' => $xmlString
-                    ];
-                }
+            // Chercher un ID de message
+            if (isset($xml->msgid) || isset($xml->id) || isset($xml->message_id)) {
+                $messageId = (string)($xml->msgid ?? $xml->id ?? $xml->message_id);
+                return [
+                    'success' => true,
+                    'message' => 'SMS envoyé avec succès',
+                    'response' => ['message_id' => $messageId]
+                ];
             }
 
-            // Si la structure n'est pas reconnue mais qu'on a du XML valide
+            // Chercher des erreurs
+            if (isset($xml->error) || isset($xml->err)) {
+                $error = (string)($xml->error ?? $xml->err);
+                return [
+                    'success' => false,
+                    'message' => 'Erreur SMS: ' . $error,
+                    'response' => $xmlString
+                ];
+            }
+
             return [
                 'success' => true,
-                'message' => 'SMS traité (réponse XML reçue)',
+                'message' => 'SMS traité (XML reçu)',
                 'response' => $xmlString
             ];
 
         } catch (Exception $e) {
             Log::error('XML Parsing Error', [
-                'message' => $e->getMessage(),
+                'error' => $e->getMessage(),
                 'xml' => $xmlString
             ]);
 
             return [
                 'success' => false,
-                'message' => 'Erreur lors de l\'analyse de la réponse SMS',
+                'message' => 'Erreur parsing XML: ' . $e->getMessage(),
                 'response' => $xmlString
             ];
         }
     }
 
     /**
-     * Formatage du numéro de téléphone pour le Gabon
-     */
-    private function formatPhoneNumber($phoneNumber)
-    {
-        // Supprimer tous les caractères non numériques
-        $phone = preg_replace('/[^0-9]/', '', $phoneNumber);
-        
-        // Si le numéro est déjà au format international (+241...)
-        if (strpos($phoneNumber, '+241') === 0) {
-            return $phoneNumber;
-        }
-        
-        // Si le numéro commence par 241, on ajoute le +
-        if (strpos($phone, '241') === 0) {
-            return '+' . $phone;
-        }
-        
-        // Si le numéro commence par 0, on le remplace par +241
-        if (strpos($phone, '0') === 0) {
-            return '+241' . substr($phone, 1);
-        }
-        
-        // Si le numéro a 8-9 chiffres, on ajoute +241
-        if (strlen($phone) >= 8 && strlen($phone) <= 9) {
-            return '+241' . $phone;
-        }
-        
-        // Format par défaut
-        return $phoneNumber;
+ * Formatage du numéro de téléphone pour le Gabon
+ * Normalise TOUS les numéros vers le format +241XXXXXXXX (8 chiffres, sans 0 initial)
+ */
+private function formatPhoneNumber($phoneNumber)
+{
+    $phone = preg_replace('/[^0-9+]/', '', $phoneNumber);
+    
+    Log::info('Phone formatting', [
+        'original' => $phoneNumber,
+        'cleaned' => $phone
+    ]);
+    
+    // Enlever le + pour traitement
+    $digits = ltrim($phone, '+');
+    
+    // Si déjà au format +241XXXXXXXX (8 chiffres)
+    if (preg_match('/^\+241[1-9][0-9]{7}$/', $phone)) {
+        return $phone;
     }
-
+    
+    // Si format +241 avec 9 chiffres commençant par 0 → supprimer le 0
+    if (preg_match('/^\+2410[0-9]{8}$/', $phone)) {
+        return '+241' . substr($digits, 4); // Garder après "2410"
+    }
+    
+    // Si commence par 241 (sans +)
+    if (preg_match('/^241[1-9][0-9]{7}$/', $digits)) {
+        return '+' . $digits; // Format 8 chiffres après 241
+    }
+    
+    // Si commence par 241 avec 0 → supprimer le 0
+    if (preg_match('/^2410[0-9]{8}$/', $digits)) {
+        return '+241' . substr($digits, 4); // Supprimer "2410", garder les 8 chiffres
+    }
+    
+    // Si commence par 0 (format local avec 0)
+    if (preg_match('/^0[1-9][0-9]{7}$/', $digits)) {
+        return '+241' . substr($digits, 1); // Supprimer le 0 initial
+    }
+    
+    // Si 8 chiffres (sans indicatif, sans 0 initial)
+    if (preg_match('/^[1-9][0-9]{7}$/', $digits)) {
+        return '+241' . $digits;
+    }
+    
+    // Si 9 chiffres commençant par 0 (sans indicatif)
+    if (preg_match('/^0[1-9][0-9]{7}$/', $digits)) {
+        return '+241' . substr($digits, 1); // Supprimer le 0 initial
+    }
+    
+    Log::warning('Could not format phone number properly', [
+        'original' => $phoneNumber,
+        'cleaned' => $phone,
+        'digits' => $digits
+    ]);
+    
+    // En dernier recours, essayer de nettoyer un éventuel 0 initial
+    if (preg_match('/0([1-9][0-9]{7,8})$/', $digits, $matches)) {
+        $cleanDigits = $matches[1];
+        if (strlen($cleanDigits) === 8) {
+            return '+241' . $cleanDigits;
+        }
+    }
+    
+    return $phoneNumber;
+}
     /**
-     * Test de l'API SMS
+     * Test direct de l'API avec la nouvelle méthode
      */
     public function testSmsApi($phoneNumber = null)
     {
-        $testPhone = $phoneNumber ?? '+24177777777'; // Numéro de test
-        $testCode = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT); // Code aléatoire
+        $testPhone = $phoneNumber ?? '+241077777777';
+        $testCode = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        
+        Log::info('Testing SMS API with corrected URL', [
+            'base_url' => $this->baseUrl,
+            'test_phone' => $testPhone,
+            'test_code' => $testCode
+        ]);
         
         return $this->sendVerificationCode($testPhone, $testCode);
     }
 
     /**
-     * Vérification des paramètres de configuration
+     * Vérification de configuration mise à jour
      */
     public function checkConfiguration()
     {
@@ -273,10 +335,73 @@ class SmsServices
             $issues[] = 'URL de base manquante';
         }
         
+        if (empty($this->config['affiliate'])) {
+            $issues[] = 'Paramètre affiliate manquant (devrait être 999)';
+        }
+        
         return [
             'valid' => empty($issues),
             'issues' => $issues,
-            'config' => $this->config
+            'config' => [
+                'client' => $this->config['client'] ?? 'MISSING',
+                'password' => $this->config['password'] ? '***SET***' : 'MISSING',
+                'from' => $this->config['from'] ?? 'MISSING',
+                'url' => $this->baseUrl ?? 'MISSING',
+                'affiliate' => $this->config['affiliate'] ?? 'MISSING'
+            ]
         ];
     }
+
+
+
+    // Ajoutez cette méthode dans SmsServices.php
+public function sendCustomMessage($phoneNumber, $message)
+{
+    try {
+        $formattedPhone = $this->formatPhoneNumber($phoneNumber);
+        
+        $params = [
+            'client' => $this->config['client'],
+            'password' => $this->config['password'],
+            'phone' => $formattedPhone,
+            'text' => $message,
+            'from' => $this->config['from'],
+            'affiliate' => $this->config['affiliate'] ?? '999'
+        ];
+
+        $fullUrl = $this->baseUrl . '?' . http_build_query($params);
+        
+        Log::info('Custom SMS Request', [
+            'phone' => $formattedPhone,
+            'message' => $message,
+            'url' => $fullUrl
+        ]);
+
+        $response = Http::timeout(45)->get($fullUrl);
+
+        if ($response->successful()) {
+            $responseText = $response->body();
+            
+            if ($this->isSuccessResponse($responseText) || $this->isXmlResponse($responseText)) {
+                return [
+                    'success' => true,
+                    'message' => 'SMS personnalisé envoyé avec succès',
+                    'response' => $responseText
+                ];
+            }
+        }
+        
+        return [
+            'success' => false,
+            'message' => 'Échec envoi SMS personnalisé',
+            'response' => $response->body()
+        ];
+        
+    } catch (\Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'Erreur: ' . $e->getMessage()
+        ];
+    }
+}
 }

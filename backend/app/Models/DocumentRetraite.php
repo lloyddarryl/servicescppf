@@ -204,7 +204,7 @@ class DocumentRetraite extends Model
      */
     public function getUrlTelechargementAttribute()
     {
-        return route('retraites.documents.download', $this->id);
+            return url("/api/retraites/documents/{$this->id}/download");
     }
 
     /**

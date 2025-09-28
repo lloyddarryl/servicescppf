@@ -5,7 +5,8 @@ return [
         'url' => env('SMS_API_URL'),
         'client' => env('SMS_API_CLIENT'),
         'password' => env('SMS_API_PASSWORD'), 
-        'from' => env('SMS_API_FROM')
+        'from' => env('SMS_API_FROM'),
+        'affiliate' => env('SMS_API_AFFILIATE', '999'), // Nouveau paramètre
     ],
 
 

@@ -728,3 +728,551 @@
 .dashboard__notification-card {
   animation: notification-enter 0.3s ease-out;
 }
+
+/* Ajoutez ces styles à votre fichier Dashboard.css existant */
+
+/* ========== NOTIFICATIONS SYSTÈME (TÉLÉPHONE NON VÉRIFIÉ) ========== */
+.dashboard__system-notifications {
+  margin-bottom: 2rem;
+}
+
+.dashboard__notification {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  position: relative;
+  transition: all 0.3s ease;
+  animation: slideInNotification 0.5s ease-out;
+}
+
+@keyframes slideInNotification {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dashboard__notification--warning {
+  background: linear-gradient(135deg, #fef3c7 0%, #fef9e7 100%);
+  border: 1px solid #f59e0b;
+  border-left: 4px solid #f59e0b;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+}
+
+.dashboard__notification--info {
+  background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%);
+  border: 1px solid #3b82f6;
+  border-left: 4px solid #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.dashboard__notification--success {
+  background: linear-gradient(135deg, #d1fae5 0%, #ecfdf5 100%);
+  border: 1px solid #10b981;
+  border-left: 4px solid #10b981;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+}
+
+.dashboard__notification:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard__notification-icon {
+  font-size: 1.5rem;
+  min-width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.dashboard__notification-content {
+  flex: 1;
+}
+
+.dashboard__notification-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 0.5rem 0;
+}
+
+.dashboard__notification-message {
+  font-size: 0.95rem;
+  color: #4b5563;
+  line-height: 1.5;
+  margin: 0 0 1rem 0;
+}
+
+.dashboard__notification-action {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.dashboard__notification-action:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.dashboard__notification-action:active {
+  transform: translateY(0);
+}
+
+.dashboard__notification-dismiss {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dashboard__notification-dismiss:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+  color: #374151;
+  transform: scale(1.1);
+}
+
+.dashboard__notification-dismiss:active {
+  transform: scale(0.95);
+}
+
+/* Animation de pulsation pour attirer l'attention */
+.dashboard__notification--warning .dashboard__notification-icon {
+  animation: pulseWarning 2s infinite;
+}
+
+@keyframes pulseWarning {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  50% {
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4), 0 0 0 4px rgba(245, 158, 11, 0.1);
+  }
+}
+
+/* Responsive pour mobile */
+@media (max-width: 768px) {
+  .dashboard__notification {
+    padding: 1rem;
+    gap: 0.75rem;
+  }
+  
+  .dashboard__notification-icon {
+    font-size: 1.25rem;
+    min-width: 32px;
+    height: 32px;
+  }
+  
+  .dashboard__notification-title {
+    font-size: 1rem;
+  }
+  
+  .dashboard__notification-message {
+    font-size: 0.875rem;
+  }
+  
+  .dashboard__notification-action {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.8rem;
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .dashboard__notification-dismiss {
+    top: 8px;
+    right: 8px;
+    font-size: 16px;
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* ✅ NOUVEAUX STYLES POUR LE DASHBOARD DYNAMIQUE */
+
+/* Durée de service dans l'en-tête */
+.dashboard__service-duration {
+  color: #6B7280;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  font-weight: 500;
+}
+
+/* Améliorations des stats cards */
+.dashboard__stat-card {
+  position: relative;
+}
+
+.dashboard__stat-subtitle {
+  display: block;
+  font-size: 0.75rem;
+  color: #6B7280;
+  margin-top: 0.25rem;
+  font-weight: normal;
+}
+
+/* Styles pour les activités améliorées */
+.dashboard__activity-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.dashboard__activity-type {
+  background: #F3F4F6;
+  color: #374151;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dashboard__activity-status {
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.dashboard__activity-status--completed {
+  background: #D1FAE5;
+  color: #065F46;
+}
+
+.dashboard__activity-status--pending {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+.dashboard__activity-status--warning {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+.dashboard__activity-status--in_progress {
+  background: #DBEAFE;
+  color: #1E40AF;
+}
+
+.dashboard__activity-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.dashboard__activity-metadata {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.dashboard__activity-meta {
+  background: #F9FAFB;
+  color: #374151;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  border: 1px solid #E5E7EB;
+}
+
+/* Message quand pas d'activités */
+.dashboard__no-activities {
+  text-align: center;
+  padding: 2rem;
+  color: #6B7280;
+}
+
+.dashboard__no-activities p {
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
+/* Responsive améliorations */
+@media (max-width: 768px) {
+  .dashboard__activity-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+  
+  .dashboard__activity-metadata {
+    gap: 0.5rem;
+  }
+  
+  .dashboard__activity-meta {
+    font-size: 0.6875rem;
+    padding: 0.125rem 0.375rem;
+  }
+}
+
+/* Animation pour les nouvelles données */
+.dashboard__stat-value {
+  transition: all 0.3s ease;
+}
+
+.dashboard__stat-card:hover .dashboard__stat-value {
+  transform: scale(1.02);
+}
+
+/* Indicateurs visuels pour les métadonnées importantes */
+.dashboard__activity-meta:has-text("💰") {
+  border-left: 3px solid #10B981;
+}
+
+.dashboard__activity-meta:has-text("📄") {
+  border-left: 3px solid #3B82F6;
+}
+
+.dashboard__activity-meta:has-text("📈") {
+  border-left: 3px solid #8B5CF6;
+}
+/* ✅ NOUVEAUX STYLES POUR ACTIVITÉS COMPACTES */
+
+/* Header avec bouton toggle */
+.dashboard__activities-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.dashboard__activities-toggle {
+  background: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dashboard__activities-toggle:hover {
+  background: #e5e7eb;
+  color: #374151;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Version compacte des activités */
+.dashboard__activity-item--compact {
+  padding: 0.75rem;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.dashboard__activity-description--compact {
+  font-size: 0.8rem;
+  line-height: 1.3;
+  margin-bottom: 0.5rem;
+  /* Limiter à 2 lignes avec ellipsis */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dashboard__activity-footer--compact {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.dashboard__activity-metadata--compact {
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+
+.dashboard__activity-meta--compact {
+  font-size: 0.7rem;
+  padding: 0.125rem 0.375rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.dashboard__activity-date {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+/* Améliorer l'équilibre visual entre les sections */
+.dashboard__content-grid {
+  display: grid;
+  grid-template-columns: 1.8fr 1.2fr; /* Services prennent plus de place */
+  gap: 2rem;
+  align-items: start; /* Aligner en haut pour éviter l'étirement */
+}
+
+/* Réduire la hauteur des services pour équilibrer */
+.dashboard__services {
+  max-height: 500px; /* Limiter la hauteur */
+  overflow-y: auto; /* Scroll si nécessaire */
+}
+
+.dashboard__activities {
+  max-height: 500px; /* Même hauteur que les services */
+  overflow: visible; /* Permettre l'expansion avec le toggle */
+}
+
+.dashboard__activities-list {
+  max-height: 400px; /* Hauteur max pour la liste */
+  overflow-y: auto; /* Scroll si trop d'activités */
+}
+
+/* Style pour les activités pliées/dépliées */
+.dashboard__activities-list.expanded {
+  max-height: none; /* Pas de limite quand dépliée */
+}
+
+/* Animation pour le toggle */
+.dashboard__activities-list {
+  transition: max-height 0.3s ease;
+}
+
+/* Améliorer les icônes d'activité */
+.dashboard__activity-icon {
+  font-size: 1.25rem;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border-radius: 50%;
+  border: 2px solid #f1f5f9;
+  flex-shrink: 0;
+}
+
+/* Badge de statut plus petit */
+.dashboard__activity-type {
+  font-size: 0.7rem;
+  padding: 0.125rem 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.dashboard__activity-status {
+  font-size: 0.7rem;
+  padding: 0.125rem 0.5rem;
+}
+
+/* Version mobile */
+@media (max-width: 1024px) {
+  .dashboard__content-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .dashboard__services,
+  .dashboard__activities {
+    max-height: none; /* Pas de limite de hauteur sur mobile */
+  }
+  
+  .dashboard__activities-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .dashboard__activities-toggle {
+    align-self: flex-end;
+    font-size: 0.8rem;
+    padding: 0.375rem 0.75rem;
+  }
+
+  .dashboard__activity-footer--compact {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .dashboard__activity-metadata--compact {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard__activity-item--compact {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .dashboard__activity-description--compact {
+    font-size: 0.75rem;
+    -webkit-line-clamp: 3; /* 3 lignes sur mobile */
+    line-clamp: 3; /* Standard property for compatibility */
+  }
+
+  .dashboard__activity-meta--compact {
+    font-size: 0.65rem;
+    padding: 0.1rem 0.3rem;
+  }
+}
+
+/* Animation d'entrée pour les nouvelles activités */
+@keyframes activity-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dashboard__activity-item--compact {
+  animation: activity-enter 0.3s ease-out;
+}
+
+/* Style pour le bouton "Voir plus" actif */
+.dashboard__activities-toggle.active {
+  background: #3B82F6;
+  color: white;
+  border-color: #3B82F6;
+}

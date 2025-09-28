@@ -34,6 +34,7 @@ class ProfileController extends Controller
                 'phone_verified' => !is_null($user->phone_verified_at),
                 'first_login' => $user->first_login,
                 'password_changed' => $user->password_changed,
+                'pending_phone_number' => $user->pending_phone_number ?? null,
             ];
 
             // Ajouter des données spécifiques selon le type
@@ -74,7 +75,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Mettre à jour le profil
+     * Mettre à jour le profil - VERSION CORRIGÉE
      */
     public function update(Request $request)
     {
@@ -87,7 +88,6 @@ class ProfileController extends Controller
                 'telephone' => 'sometimes|string|regex:/^\+241[0-9]{8,9}$/',
             ];
 
-            // Ajouter la validation unique pour les retraités
             if ($userType === 'retraite') {
                 $rules['email'] = 'sometimes|email|unique:retraites,email,' . $user->id;
             }
@@ -103,29 +103,68 @@ class ProfileController extends Controller
                 ], 422);
             }
 
-            // Mettre à jour les champs modifiables
-            $updateData = $request->only(['email', 'telephone']);
-            
-            // Si l'email change, réinitialiser la vérification
-            if (isset($updateData['email']) && $updateData['email'] !== $user->email) {
+            $updateData = [];
+            $needsPhoneVerification = false;
+
+            // Mise à jour email
+            if ($request->has('email') && $request->email !== $user->email) {
+                $updateData['email'] = $request->email;
                 $updateData['email_verified_at'] = null;
             }
 
-            // Si le téléphone change, réinitialiser la vérification
-            if (isset($updateData['telephone']) && $updateData['telephone'] !== $user->telephone) {
-                $updateData['phone_verified_at'] = null;
+            // Gestion du changement de téléphone
+            if ($request->has('telephone')) {
+                $newPhone = $request->telephone;
+                
+                if ($newPhone !== $user->telephone) {
+                    // Stocker le nouveau numéro temporairement
+                    $user->pending_phone_number = $newPhone;
+                    $user->save();
+                    
+                    $needsPhoneVerification = true;
+                    
+                    Log::info('Nouveau téléphone en attente de vérification', [
+                        'user_id' => $user->id,
+                        'old_phone' => $user->telephone,
+                        'pending_phone' => $newPhone
+                    ]);
+                }
             }
 
-            $user->update($updateData);
+            // Mettre à jour les autres champs (sauf téléphone)
+            if (!empty($updateData)) {
+                $user->update($updateData);
+            }
 
-            return response()->json([
+            $response = [
                 'success' => true,
-                'message' => 'Profil mis à jour avec succès',
-                'profile' => $this->show($request)->getData()->profile
-            ]);
+                'message' => 'Informations mises à jour avec succès'
+            ];
+
+            // Si changement de téléphone, déclencher la vérification
+            if ($needsPhoneVerification) {
+                $verificationResult = $this->sendPhoneVerificationForUpdate($user);
+                
+                if ($verificationResult['success']) {
+                    $response['message'] = 'Code de vérification envoyé pour le nouveau numéro';
+                    $response['phone_verification_required'] = true;
+                    $response['pending_phone'] = $user->pending_phone_number;
+                } else {
+                    // Nettoyer le numéro en attente si erreur SMS
+                    $user->pending_phone_number = null;
+                    $user->save();
+                    
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Erreur lors de l\'envoi du SMS : ' . $verificationResult['message']
+                    ], 500);
+                }
+            }
+
+            return response()->json($response);
 
         } catch (\Exception $e) {
-            Log::error('Erreur dans ProfileController::update', [
+            Log::error('Erreur ProfileController::update', [
                 'message' => $e->getMessage(),
                 'user_id' => $request->user()->id ?? 'unknown',
                 'trace' => $e->getTraceAsString()
@@ -135,6 +174,49 @@ class ProfileController extends Controller
                 'success' => false,
                 'message' => 'Une erreur est survenue lors de la mise à jour du profil'
             ], 500);
+        }
+    }
+
+    /**
+     * Envoyer SMS pour mise à jour de profil
+     */
+    private function sendPhoneVerificationForUpdate($user)
+    {
+        try {
+            if (!$user->pending_phone_number) {
+                return ['success' => false, 'message' => 'Aucun numéro en attente'];
+            }
+
+            // Générer un code aléatoire à 6 chiffres
+            $verificationCode = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            
+            // Sauvegarder le code
+            $user->verification_code = $verificationCode;
+            $user->verification_code_expires_at = now()->addMinutes(15);
+            $user->save();
+
+            // Envoyer le SMS au NOUVEAU numéro
+            $smsService = new SmsServices();
+            $result = $smsService->sendVerificationCode($user->pending_phone_number, $verificationCode);
+
+            Log::info('SMS envoyé pour changement téléphone', [
+                'user_id' => $user->id,
+                'new_phone' => $user->pending_phone_number,
+                'sms_success' => $result['success']
+            ]);
+
+            return $result;
+
+        } catch (\Exception $e) {
+            Log::error('Erreur envoi SMS changement téléphone', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return [
+                'success' => false,
+                'message' => 'Erreur technique lors de l\'envoi du SMS'
+            ];
         }
     }
 
@@ -204,9 +286,13 @@ class ProfileController extends Controller
             Log::debug('Début resendVerification profil', [
                 'user_id' => $user->id,
                 'phone' => $user->telephone,
+                'pending_phone' => $user->pending_phone_number,
             ]);
 
-            if (!$user->telephone) {
+            // Déterminer quel numéro utiliser
+            $phoneToUse = $user->pending_phone_number ?? $user->telephone;
+
+            if (!$phoneToUse) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Aucun numéro de téléphone configuré'
@@ -221,9 +307,9 @@ class ProfileController extends Controller
             $user->verification_code_expires_at = now()->addMinutes(15);
             $user->save();
 
-            // Envoyer le SMS via l'API Wirepick
+            // Envoyer le SMS
             $smsService = new SmsServices();
-            $result = $smsService->sendVerificationCode($user->telephone, $verificationCode);
+            $result = $smsService->sendVerificationCode($phoneToUse, $verificationCode);
 
             if (!$result['success']) {
                 return response()->json([
@@ -252,7 +338,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Vérifier le code SMS
+     * Vérifier le code SMS - VERSION CORRIGÉE
      */
     public function verifyPhone(Request $request)
     {
@@ -291,6 +377,21 @@ class ProfileController extends Controller
                     'success' => false,
                     'message' => 'Code de vérification invalide ou expiré'
                 ], 400);
+            }
+
+            // Appliquer le changement de téléphone si en attente
+            if ($user->pending_phone_number) {
+                $oldPhone = $user->telephone;
+                $newPhone = $user->pending_phone_number;
+                
+                $user->telephone = $newPhone;
+                $user->pending_phone_number = null;
+                
+                Log::info('Téléphone mis à jour après vérification', [
+                    'user_id' => $user->id,
+                    'old_phone' => $oldPhone,
+                    'new_phone' => $newPhone
+                ]);
             }
 
             $user->phone_verified_at = now();

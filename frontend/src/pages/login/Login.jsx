@@ -66,13 +66,13 @@ const Login = () => {
             <div className="login-page__info">
               <div className="login-page__info-content">
                 <h1 className="login-page__title">
-                  Connexion {type === 'actifs' ? 'Agents Actifs' : 'Retraités'}
+                  Connexion {type === 'actifs' ? 'Agents en activité' : 'Retraités'}
                 </h1>
                 
                 <p className="login-page__description">
                   {type === 'actifs' 
                     ? 'Accédez à vos services en tant qu\'agent de l\'État en activité. Gérez vos cotisations, attestations et prestations familiales.'
-                    : 'Accédez à vos services en tant qu\'ancien agent de l\'État. Consultez vos pensions, certificats de vie et historique professionnel.'
+                    : 'Accédez à vos services en tant qu\'ancien agent de l\'État. Consultez votre pension, soumettez vos certificats de vie et accéder à vos données personnelles.'
                   }
                 </p>
 
@@ -85,6 +85,7 @@ const Login = () => {
                         <li className="login-page__feature-item">Grappe familiale</li>
                         <li className="login-page__feature-item">Suivi des cotisations</li>
                         <li className="login-page__feature-item">Prise de rendez-vous</li>
+                        <li className="login-page__feature-item">Dépôt de réclamations</li>
                       </>
                     ) : (
                       <>
@@ -92,6 +93,7 @@ const Login = () => {
                         <li className="login-page__feature-item">Grappe familiale</li>
                         <li className="login-page__feature-item">Historique de paiements</li>
                         <li className="login-page__feature-item">Documentation personnelle</li>
+                        <li className="login-page__feature-item">Dépôt des réclamations</li>
                       </>
                     )}
                   </ul>

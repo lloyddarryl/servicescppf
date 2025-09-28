@@ -596,3 +596,296 @@
     gap: 0.5rem;
   }
 }
+
+/* Ajoutez ces styles à votre fichier EditProfile.css existant */
+
+/* ✅ MODAL DE VÉRIFICATION TÉLÉPHONE */
+.edit-profile__verification-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.edit-profile__verification-modal {
+  background: white;
+  border-radius: 12px;
+  padding: 0;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.edit-profile__verification-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  background: linear-gradient(135deg, #10B981 0%, #F59E0B 50%, #1E40AF 100%);
+  color: white;
+}
+
+.edit-profile__verification-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.edit-profile__modal-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  line-height: 1;
+}
+
+.edit-profile__modal-close:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.edit-profile__verification-content {
+  padding: 24px;
+}
+
+.edit-profile__verification-content p {
+  margin: 0 0 12px 0;
+  color: #4b5563;
+  text-align: center;
+}
+
+.edit-profile__pending-phone {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 1.1rem;
+  text-align: center;
+  background: #f3f4f6;
+  padding: 12px;
+  border-radius: 8px;
+  margin: 16px 0 24px 0;
+  letter-spacing: 0.5px;
+}
+
+.edit-profile__verification-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.edit-profile__verification-input {
+  width: 100%;
+  padding: 16px;
+  border: 2px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1.25rem;
+  text-align: center;
+  letter-spacing: 4px;
+  font-weight: 600;
+  transition: border-color 0.2s;
+}
+
+.edit-profile__verification-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.edit-profile__verification-input.edit-profile__input--error {
+  border-color: #ef4444;
+  background-color: #fef2f2;
+}
+
+.edit-profile__verification-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.edit-profile__verification-actions button {
+  flex: 1;
+  min-width: 140px;
+}
+
+/* ✅ INDICATEURS DE VÉRIFICATION AMÉLIORÉS */
+.edit-profile__phone-status {
+  display: flex;
+  align-items: center;
+  margin-left: 8px;
+}
+
+.edit-profile__phone-verified,
+.edit-profile__phone-unverified {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+.edit-profile__phone-verified {
+  background-color: #10b981;
+  color: white;
+}
+
+.edit-profile__phone-unverified {
+  background-color: #f59e0b;
+  color: white;
+}
+
+.edit-profile__check-icon,
+.edit-profile__warning-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* ✅ NOTIFICATIONS AMÉLIORÉES */
+.edit-profile__notification {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  border-left: 4px solid;
+  animation: slideInNotification 0.3s ease-out;
+}
+
+@keyframes slideInNotification {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.edit-profile__notification--warning {
+  background-color: #fef3c7;
+  border-left-color: #f59e0b;
+  color: #92400e;
+}
+
+.edit-profile__notification--info {
+  background-color: #dbeafe;
+  border-left-color: #3b82f6;
+  color: #1e40af;
+}
+
+.edit-profile__notification--success {
+  background-color: #d1fae5;
+  border-left-color: #10b981;
+  color: #065f46;
+}
+
+.edit-profile__notification-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex: 1;
+}
+
+.edit-profile__notification-icon {
+  font-size: 16px;
+  margin-top: 2px;
+}
+
+.edit-profile__notification-text {
+  flex: 1;
+  line-height: 1.5;
+}
+
+.edit-profile__notification-close {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  font-size: 18px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.edit-profile__notification-close:hover {
+  opacity: 1;
+}
+
+/* ✅ SPINNER AMÉLIORÉ */
+.edit-profile__spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.edit-profile__button-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ✅ ÉTATS DÉSACTIVÉS PENDANT VÉRIFICATION */
+.edit-profile__input:disabled,
+.edit-profile__button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #f9fafb;
+}
+
+/* ✅ RESPONSIVE POUR MOBILE */
+@media (max-width: 768px) {
+  .edit-profile__verification-modal {
+    width: 95%;
+    margin: 20px;
+  }
+  
+  .edit-profile__verification-actions {
+    flex-direction: column;
+  }
+  
+  .edit-profile__verification-actions button {
+    width: 100%;
+  }
+  
+  .edit-profile__verification-input {
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+    padding: 14px;
+  }
+}

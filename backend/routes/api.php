@@ -258,8 +258,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/notifications/dismiss', [App\Http\Controllers\DocumentController::class, 'dismissNotification']);
             Route::get('/', [App\Http\Controllers\DocumentController::class, 'index']); 
             Route::post('/', [App\Http\Controllers\DocumentController::class, 'store']);
+            Route::get('/{id}/download', [App\Http\Controllers\DocumentController::class, 'download']);
             Route::delete('/{id}', [App\Http\Controllers\DocumentController::class, 'destroy']);
-            Route::get('/download/{id}', [App\Http\Controllers\DocumentController::class, 'download'])->name('retraites.documents.download');
+
         });
 
         // ✅ NOUVEAU : Routes pour l'historique des paiements - VERSION CORRIGÉE
@@ -340,4 +341,150 @@ Route::fallback(function () {
 // Route de test simple (sans middleware)
 Route::get('/test-simple', function () {
     return response()->json(['message' => 'API fonctionne', 'time' => now()]);
+});
+
+// Ajoutez cette route dans api.php pour tester
+Route::get('/test-sms/{phone}', function($phone) {
+    try {
+        $smsService = new \App\Services\SmsServices();
+        $result = $smsService->testSmsApi($phone);
+        
+        return response()->json([
+            'success' => true,
+            'sms_result' => $result,
+            'phone_used' => $phone,
+            'config_check' => $smsService->checkConfiguration()
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ]);
+    }
+});
+
+// Ajouter cette route temporaire dans api.php pour tester le stockage
+Route::get('/test-storage', function () {
+    try {
+        $testDir = 'documents/retraites/test';
+        $testFile = 'test.txt';
+        $testContent = 'Test de stockage - ' . now();
+        
+        // Créer le dossier
+        if (!Storage::exists($testDir)) {
+            Storage::makeDirectory($testDir);
+        }
+        
+        // Créer un fichier test
+        $path = Storage::put($testDir . '/' . $testFile, $testContent);
+        
+        $results = [
+            'storage_path' => storage_path('app'),
+            'test_directory' => $testDir,
+            'directory_exists' => Storage::exists($testDir),
+            'file_created' => $path,
+            'file_exists' => Storage::exists($testDir . '/' . $testFile),
+            'absolute_path' => storage_path('app/' . $testDir . '/' . $testFile),
+            'file_exists_absolute' => file_exists(storage_path('app/' . $testDir . '/' . $testFile)),
+            'content_check' => Storage::get($testDir . '/' . $testFile),
+            'permissions_check' => [
+                'directory_writable' => is_writable(storage_path('app/' . $testDir)),
+                'directory_readable' => is_readable(storage_path('app/' . $testDir))
+            ]
+        ];
+        
+        // Nettoyer
+        Storage::delete($testDir . '/' . $testFile);
+        Storage::deleteDirectory($testDir);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Test de stockage réussi',
+            'results' => $results
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+});
+
+// Ajouter cette route temporaire dans api.php
+Route::get('/diagnostic-permissions', function () {
+    try {
+        $storagePath = storage_path('app');
+        $documentsPath = storage_path('app/documents');
+        $retraitesPath = storage_path('app/documents/retraites');
+        
+        $results = [
+            'storage_info' => [
+                'storage_path' => $storagePath,
+                'exists' => file_exists($storagePath),
+                'writable' => is_writable($storagePath),
+                'permissions' => file_exists($storagePath) ? substr(sprintf('%o', fileperms($storagePath)), -4) : null
+            ],
+            'documents_info' => [
+                'documents_path' => $documentsPath,
+                'exists' => file_exists($documentsPath),
+                'writable' => is_writable($documentsPath),
+                'permissions' => file_exists($documentsPath) ? substr(sprintf('%o', fileperms($documentsPath)), -4) : null
+            ],
+            'retraites_info' => [
+                'retraites_path' => $retraitesPath,
+                'exists' => file_exists($retraitesPath),
+                'writable' => is_writable($retraitesPath),
+                'permissions' => file_exists($retraitesPath) ? substr(sprintf('%o', fileperms($retraitesPath)), -4) : null
+            ],
+            'test_creation' => []
+        ];
+        
+        // Test de création de dossier
+        $testPath = storage_path('app/test_permissions');
+        try {
+            if (!file_exists($testPath)) {
+                $created = mkdir($testPath, 0755, true);
+                $results['test_creation']['mkdir_success'] = $created;
+                
+                if ($created) {
+                    // Test de création de fichier
+                    $testFile = $testPath . '/test.txt';
+                    $fileCreated = file_put_contents($testFile, 'test content');
+                    $results['test_creation']['file_creation'] = $fileCreated !== false;
+                    
+                    // Nettoyer
+                    if (file_exists($testFile)) {
+                        unlink($testFile);
+                    }
+                    rmdir($testPath);
+                }
+            }
+        } catch (\Exception $e) {
+            $results['test_creation']['error'] = $e->getMessage();
+        }
+        
+        // Informations système
+        $results['system_info'] = [
+            'php_user' => get_current_user(),
+            'disk_free_space' => disk_free_space($storagePath),
+            'disk_total_space' => disk_total_space($storagePath),
+            'temp_dir' => sys_get_temp_dir(),
+            'upload_max_filesize' => ini_get('upload_max_filesize'),
+            'post_max_size' => ini_get('post_max_size')
+        ];
+        
+        return response()->json([
+            'success' => true,
+            'results' => $results
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
 });
