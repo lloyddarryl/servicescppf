@@ -233,160 +233,163 @@ class AuthController extends Controller
         $user->save();
 
         // Générer et envoyer le code de vérification immédiatement après la configuration du profil
-    try {
-        $verificationCode = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-        $user->verification_code = $verificationCode;
-        $user->verification_code_expires_at = now()->addMinutes(15);
-        $user->save();
+        try {
+            $verificationCode = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            $user->verification_code = $verificationCode;
+            $user->verification_code_expires_at = now()->addMinutes(15);
+            $user->save();
 
-         Log::info('Code SMS généré pour setup', [
-            'user_type' => $userType,
-            'user_id' => $user->id,
-            'phone' => $user->telephone,
-            'code' => $verificationCode
-        ]);
-
-        $smsService = new \App\Services\SmsServices(); // Assurez-vous que le namespace est correct
-        $result = $smsService->sendVerificationCode($user->telephone, $verificationCode);
-        if (!$result['success']) {
-            Log::error('Échec envoi SMS setup', [
+            Log::info('Code SMS généré pour setup', [
                 'user_type' => $userType,
                 'user_id' => $user->id,
-                'sms_error' => $result['message']
+                'phone' => $user->telephone,
+                'code' => $verificationCode
             ]);
-        } else {
-            Log::info('SMS setup envoyé avec succès', [
+
+            $smsService = new SmsServices();
+            $result = $smsService->sendVerificationCode($user->telephone, $verificationCode);
+            
+            if (!$result['success']) {
+                Log::error('Échec envoi SMS setup', [
+                    'user_type' => $userType,
+                    'user_id' => $user->id,
+                    'phone' => $user->telephone,
+                    'sms_error' => $result['message']
+                ]);
+            } else {
+                Log::info('SMS setup envoyé avec succès', [
+                    'user_type' => $userType,
+                    'user_id' => $user->id,
+                    'phone_sent_to' => $user->telephone
+                ]);
+            }   
+        } catch (\Exception $e) {
+            Log::error('Erreur génération/envoi SMS setup', [
                 'user_type' => $userType,
-                'user_id' => $user->id
+                'user_id' => $user->id,
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
-        }   
-    } catch (\Exception $e) {
-        Log::error('Erreur génération/envoi SMS setup', [
-            'user_type' => $userType,
-            'user_id' => $user->id,
-            'message' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profil configuré avec succès',
+            'next_step' => 'phone_verification',
+            'phone' => $telephone
         ]);
     }
-
-    return response()->json([
-        'success' => true,
-        'message' => 'Profil configuré avec succès',
-        'next_step' => 'phone_verification',
-        'phone' => $telephone
-    ]);
-}
 
 
     /**
      * Connexion standard (après configuration initiale)
      */
     public function standardLogin(Request $request)
-{
-    // Ajouter au début
-    Log::info('🔍 standardLogin START', $request->all());
+    {
+        // Ajouter au début
+        Log::info('🔍 standardLogin START', $request->all());
 
-    // Normaliser le user_type AVANT la validation
-    $userType = $request->user_type;
-    if ($userType === 'actifs') {
-        $userType = 'actif';
-    } elseif ($userType === 'retraites') {
-        $userType = 'retraite';
-    }
+        // Normaliser le user_type AVANT la validation
+        $userType = $request->user_type;
+        if ($userType === 'actifs') {
+            $userType = 'actif';
+        } elseif ($userType === 'retraites') {
+            $userType = 'retraite';
+        }
 
-    // Ajouter après normalisation
-    Log::info('📋 user_type normalisé', ['user_type' => $userType]);
+        // Ajouter après normalisation
+        Log::info('📋 user_type normalisé', ['user_type' => $userType]);
 
-    // Validation avec le type normalisé
-    $validator = Validator::make([
-        'identifier' => $request->identifier,
-        'password' => $request->password,
-        'user_type' => $userType
-    ], [
-        'identifier' => 'required|string',
-        'password' => 'required|string',
-        'user_type' => 'required|in:actif,retraite'
-    ]);
+        // Validation avec le type normalisé
+        $validator = Validator::make([
+            'identifier' => $request->identifier,
+            'password' => $request->password,
+            'user_type' => $userType
+        ], [
+            'identifier' => 'required|string',
+            'password' => 'required|string',
+            'user_type' => 'required|in:actif,retraite'
+        ]);
 
-    if ($validator->fails()) {
-        // Ajouter log d'erreur validation
-        Log::error('❌ Validation failed', $validator->errors()->toArray());
+        if ($validator->fails()) {
+            // Ajouter log d'erreur validation
+            Log::error('❌ Validation failed', $validator->errors()->toArray());
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $identifier = $request->identifier;
+        $password = $request->password;
+
+        // Ajouter avant recherche
+        Log::info('🔎 Recherche utilisateur', ['identifier' => $identifier, 'type' => $userType]);
+
+        // Rechercher l'utilisateur selon le type
+        if ($userType === 'actif') {
+            $user = Agent::where('matricule_solde', $identifier)
+                         ->where('is_active', true)
+                         ->where('password_changed', true)
+                         ->first();
+        } else {
+            $user = Retraite::where('numero_pension', $identifier)
+                           ->where('is_active', true)
+                           ->where('password_changed', true)
+                           ->first();
+        }
+
+        // Ajouter après recherche
+        Log::info('👤 Résultat recherche', ['user_found' => $user ? true : false, 'user_id' => $user ? $user->id : null]);
+
+        if (!$user) {
+            Log::error('❌ Utilisateur non trouvé');
+            return response()->json([
+                'success' => false,
+                'message' => 'Utilisateur non trouvé ou profil non configuré'
+            ], 404);
+        }
+
+        // Ajouter avant vérification password
+        Log::info('🔐 Vérification mot de passe');
+
+        if (!Hash::check($password, $user->password)) {
+            Log::error('❌ Mot de passe incorrect');
+            return response()->json([
+                'success' => false,
+                'message' => 'Mot de passe incorrect'
+            ], 401);
+        }
+
+        // Ajouter avant génération token
+        Log::info('🎫 Génération token');
+
+        // ✅ NOUVEAU : Révoquer tous les tokens existants pour éviter les sessions multiples
+        $user->tokens()->delete();
+
+        // Générer le token de session
+        $token = $user->createToken('auth-session')->plainTextToken;
+
+        // Ajouter à la fin
+        Log::info('✅ Connexion réussie', ['user_id' => $user->id]);
+
         return response()->json([
-            'success' => false,
-            'errors' => $validator->errors()
-        ], 422);
+            'success' => true,
+            'message' => 'Connexion réussie',
+            'token' => $token,
+            'user' => [
+                'id' => $user->id,
+                'nom' => $user->nom,
+                'prenoms' => $user->prenoms,
+                'email' => $user->email,
+                'telephone' => $user->telephone,
+                'type' => $userType,
+                'identifier' => $identifier,
+                'poste' => $userType === 'actif' ? $user->poste : $user->ancien_poste
+            ],
+            'redirect' => 'dashboard'
+        ]);
     }
-
-    $identifier = $request->identifier;
-    $password = $request->password;
-
-    // Ajouter avant recherche
-    Log::info('🔎 Recherche utilisateur', ['identifier' => $identifier, 'type' => $userType]);
-
-    // Rechercher l'utilisateur selon le type
-    if ($userType === 'actif') {
-        $user = Agent::where('matricule_solde', $identifier)
-                     ->where('is_active', true)
-                     ->where('password_changed', true)
-                     ->first();
-    } else {
-        $user = Retraite::where('numero_pension', $identifier)
-                       ->where('is_active', true)
-                       ->where('password_changed', true)
-                       ->first();
-    }
-
-    // Ajouter après recherche
-    Log::info('👤 Résultat recherche', ['user_found' => $user ? true : false, 'user_id' => $user ? $user->id : null]);
-
-    if (!$user) {
-        Log::error('❌ Utilisateur non trouvé');
-        return response()->json([
-            'success' => false,
-            'message' => 'Utilisateur non trouvé ou profil non configuré'
-        ], 404);
-    }
-
-    // Ajouter avant vérification password
-    Log::info('🔐 Vérification mot de passe');
-
-    if (!Hash::check($password, $user->password)) {
-        Log::error('❌ Mot de passe incorrect');
-        return response()->json([
-            'success' => false,
-            'message' => 'Mot de passe incorrect'
-        ], 401);
-    }
-
-    // Ajouter avant génération token
-    Log::info('🎫 Génération token');
-
-    // ✅ NOUVEAU : Révoquer tous les tokens existants pour éviter les sessions multiples
-    $user->tokens()->delete();
-
-    // Générer le token de session
-    $token = $user->createToken('auth-session')->plainTextToken;
-
-    // Ajouter à la fin
-    Log::info('✅ Connexion réussie', ['user_id' => $user->id]);
-
-    return response()->json([
-        'success' => true,
-        'message' => 'Connexion réussie',
-        'token' => $token,
-        'user' => [
-            'id' => $user->id,
-            'nom' => $user->nom,
-            'prenoms' => $user->prenoms,
-            'email' => $user->email,
-            'telephone' => $user->telephone,
-            'type' => $userType,
-            'identifier' => $identifier,
-            'poste' => $userType === 'actif' ? $user->poste : $user->ancien_poste
-        ],
-        'redirect' => 'dashboard'
-    ]);
-}
 
     /**
      * Obtenir les informations de l'utilisateur connecté
@@ -441,7 +444,7 @@ class AuthController extends Controller
             
                 // Révoquer le token de setup
                 $request->user()->currentAccessToken()->delete();
-        }
+            }
 
             return response()->json([
                 'success' => true,
@@ -450,11 +453,11 @@ class AuthController extends Controller
         
         } catch (\Exception $e) {
             return response()->json([
-            'success' => false,
-            'message' => 'Erreur lors du nettoyage'
-        ], 500);
+                'success' => false,
+                'message' => 'Erreur lors du nettoyage'
+            ], 500);
+        }
     }
-}
 
 
     /**
@@ -469,97 +472,105 @@ class AuthController extends Controller
             'message' => 'Déconnexion réussie'
         ]);
     }
-/**
+
+    /**
      * Renvoyer le code de vérification via SMS (pendant le setup)
      */
     public function resendVerificationSetup(Request $request)
-{
-    try {
-        // Récupérer l'utilisateur depuis le token
-        $token = $request->bearerToken();
-        if (!$token) {
-            Log::error('Token manquant dans resendVerificationSetup');
-            return response()->json([
-                'success' => false,
-                'message' => 'Token manquant'
-            ], 401);
-        }
+    {
+        try {
+            // Récupérer l'utilisateur depuis le token
+            $token = $request->bearerToken();
+            if (!$token) {
+                Log::error('Token manquant dans resendVerificationSetup');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Token manquant'
+                ], 401);
+            }
 
-        $accessToken = PersonalAccessToken::findToken($token);
-        if (!$accessToken) {
-            Log::error('Token invalide dans resendVerificationSetup', ['token' => substr($token, 0, 10) . '...']);
-            return response()->json([
-                'success' => false,
-                'message' => 'Token invalide'
-            ], 401);
-        }
+            $accessToken = PersonalAccessToken::findToken($token);
+            if (!$accessToken) {
+                Log::error('Token invalide dans resendVerificationSetup', ['token' => substr($token, 0, 10) . '...']);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Token invalide'
+                ], 401);
+            }
 
-        $user = $accessToken->tokenable;
+            $user = $accessToken->tokenable;
 
-        // ✅ CORRECTION : Supporter Agent ET Retraite
-        $userType = $user instanceof Agent ? 'actif' : 'retraite';
+            // ✅ CORRECTION : Supporter Agent ET Retraite
+            $userType = $user instanceof Agent ? 'actif' : 'retraite';
 
-        Log::debug('Début resendVerificationSetup', [
-            'user_id' => $user->id,
-            'user_type' => get_class($user),
-            'phone' => $user->telephone,
-            'first_login' => $user->first_login
-        ]);
-
-        if (!$user->telephone) {
-            Log::error('Téléphone manquant', ['user_id' => $user->id]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Aucun numéro de téléphone configuré'
-            ], 400);
-        }
-
-        // Générer un code aléatoire à 6 chiffres
-        $verificationCode = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-        
-        // Sauvegarder le code
-        $user->verification_code = $verificationCode;
-        $user->verification_code_expires_at = now()->addMinutes(15);
-        $user->save();
-
-        Log::debug('Code de vérification généré', [
-            'user_id' => $user->id,
-            'code' => $verificationCode,
-            'expires_at' => $user->verification_code_expires_at
-        ]);
-
-        // Envoyer le SMS via l'API
-        $smsService = new SmsServices();
-        $result = $smsService->sendVerificationCode($user->telephone, $verificationCode);
-
-        if (!$result['success']) {
-            Log::error('Échec envoi SMS', [
+            Log::debug('Début resendVerificationSetup', [
                 'user_id' => $user->id,
-                'sms_error' => $result['message']
+                'user_type' => get_class($user),
+                'phone' => $user->telephone,
+                'first_login' => $user->first_login
             ]);
+
+            if (!$user->telephone) {
+                Log::error('Téléphone manquant', ['user_id' => $user->id]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Aucun numéro de téléphone configuré'
+                ], 400);
+            }
+
+            // Générer un code aléatoire à 6 chiffres
+            $verificationCode = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            
+            // Sauvegarder le code
+            $user->verification_code = $verificationCode;
+            $user->verification_code_expires_at = now()->addMinutes(15);
+            $user->save();
+
+            Log::debug('Code de vérification généré', [
+                'user_id' => $user->id,
+                'code' => $verificationCode,
+                'expires_at' => $user->verification_code_expires_at,
+                'sending_to' => $user->telephone
+            ]);
+
+            // Envoyer le SMS via l'API
+            $smsService = new SmsServices();
+            $result = $smsService->sendVerificationCode($user->telephone, $verificationCode);
+
+            if (!$result['success']) {
+                Log::error('Échec envoi SMS', [
+                    'user_id' => $user->id,
+                    'phone' => $user->telephone,
+                    'sms_error' => $result['message']
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['message']
+                ], 500);
+            }
+
+            Log::info('SMS renvoyé avec succès', [
+                'user_id' => $user->id,
+                'phone' => $user->telephone
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Code de vérification envoyé par SMS'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur resendVerificationSetup', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => $result['message']
+                'message' => 'Une erreur est survenue lors de l\'envoi du SMS'
             ], 500);
         }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Code de vérification envoyé par SMS'
-        ]);
-
-    } catch (\Exception $e) {
-        Log::error('Erreur resendVerificationSetup', [
-            'message' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ]);
-
-        return response()->json([
-            'success' => false,
-            'message' => 'Une erreur est survenue lors de l\'envoi du SMS'
-        ], 500);
     }
-}
 
 
     /**

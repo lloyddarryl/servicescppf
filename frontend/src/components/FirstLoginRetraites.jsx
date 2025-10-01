@@ -15,11 +15,9 @@ const FirstLoginRetraites = ({ onModeSwitch }) => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     
-    // Validation en temps réel
     let formattedValue = value;
     
     if (name === 'numero_pension') {
-      // Supprimer tous les caractères non numériques
       formattedValue = value.replace(/[^0-9]/g, '');
     }
     
@@ -28,7 +26,6 @@ const FirstLoginRetraites = ({ onModeSwitch }) => {
       [name]: formattedValue
     }));
 
-    // Effacer l'erreur pour ce champ
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -40,7 +37,6 @@ const FirstLoginRetraites = ({ onModeSwitch }) => {
   const validateForm = () => {
     const newErrors = {};
 
-    // Validation numéro de pension
     if (!formData.numero_pension) {
       newErrors.numero_pension = 'Le numéro de pension est requis';
     } else if (!/^[0-9]+$/.test(formData.numero_pension)) {
@@ -49,7 +45,6 @@ const FirstLoginRetraites = ({ onModeSwitch }) => {
       newErrors.numero_pension = 'Le numéro de pension doit contenir au moins 3 chiffres';
     }
 
-    // Validation date de naissance
     if (!formData.date_naissance) {
       newErrors.date_naissance = 'La date de naissance est requise';
     } else {
@@ -84,7 +79,6 @@ const FirstLoginRetraites = ({ onModeSwitch }) => {
       const response = await authService.firstLoginRetraites(formData);
 
       if (response.data.success) {
-        // Stocker le token temporaire pour la configuration
         localStorage.setItem('setup_token', response.data.token);
         localStorage.setItem('user_data', JSON.stringify(response.data.user));
         
@@ -93,10 +87,9 @@ const FirstLoginRetraites = ({ onModeSwitch }) => {
           text: 'Connexion réussie ! Redirection vers la configuration de votre profil...' 
         });
 
-        // Rediriger vers la page de configuration du profil
         setTimeout(() => {
           navigate('/setup-profile');
-        }, 2000);
+        }, 1500);
       }
     } catch (error) {
       console.error('Erreur de connexion:', error);

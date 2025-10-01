@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import { authService } from '../services/api';
 
 const FirstLoginActifs = ({ onModeSwitch }) => {
   const navigate = useNavigate();
@@ -15,20 +15,15 @@ const FirstLoginActifs = ({ onModeSwitch }) => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     
-    // Validation en temps réel
     let formattedValue = value;
     
     if (name === 'matricule_solde') {
-      // Supprimer tous les caractères non alphanumériques
       formattedValue = value.replace(/[^0-9A-Z]/g, '');
-      // Limiter à 13 caractères maximum
       formattedValue = formattedValue.slice(0, 13);
     }
     
     if (name === 'password') {
-      // Supprimer tous les caractères non numériques
       formattedValue = value.replace(/[^0-9]/g, '');
-      // Limiter à 12 chiffres maximum (pour le format 13 caractères)
       formattedValue = formattedValue.slice(0, 12);
     }
 
@@ -37,7 +32,6 @@ const FirstLoginActifs = ({ onModeSwitch }) => {
       [name]: formattedValue
     }));
 
-    // Effacer l'erreur pour ce champ
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -49,19 +43,16 @@ const FirstLoginActifs = ({ onModeSwitch }) => {
   const validateForm = () => {
     const newErrors = {};
 
-    // Validation matricule solde
     if (!formData.matricule_solde) {
       newErrors.matricule_solde = 'Le matricule solde est requis';
     } else {
       const length = formData.matricule_solde.length;
       
       if (length === 7) {
-        // Format 7 caractères : 6 chiffres + 1 lettre
         if (!/^[0-9]{6}[A-Z]$/.test(formData.matricule_solde)) {
           newErrors.matricule_solde = 'Format 7 caractères : 6 chiffres suivis d\'une lettre majuscule';
         }
       } else if (length === 13) {
-        // Format 13 caractères : 12 chiffres + 1 lettre
         if (!/^[0-9]{12}[A-Z]$/.test(formData.matricule_solde)) {
           newErrors.matricule_solde = 'Format 13 caractères : 12 chiffres suivis d\'une lettre majuscule';
         }
@@ -76,21 +67,18 @@ const FirstLoginActifs = ({ onModeSwitch }) => {
       }
     }
 
-    // Validation mot de passe temporaire
     if (!formData.password) {
       newErrors.password = 'Le mot de passe temporaire est requis';
     } else {
       const matriculeLength = formData.matricule_solde.length;
       
       if (matriculeLength === 7) {
-        // Pour le format 7 caractères, le mot de passe doit faire 6 chiffres
         if (formData.password.length !== 6) {
           newErrors.password = 'Le mot de passe doit contenir exactement 6 chiffres';
         } else if (!/^[0-9]{6}$/.test(formData.password)) {
           newErrors.password = 'Le mot de passe doit contenir uniquement des chiffres';
         }
       } else if (matriculeLength === 13) {
-        // Pour le format 13 caractères, le mot de passe doit faire 12 chiffres
         if (formData.password.length !== 12) {
           newErrors.password = 'Le mot de passe doit contenir exactement 12 chiffres';
         } else if (!/^[0-9]{12}$/.test(formData.password)) {
@@ -99,7 +87,6 @@ const FirstLoginActifs = ({ onModeSwitch }) => {
       }
     }
 
-    // Vérifier que le mot de passe correspond aux chiffres du matricule
     if (formData.matricule_solde.length === 7 && formData.password.length === 6) {
       const matriculeNumbers = formData.matricule_solde.slice(0, 6);
       if (matriculeNumbers !== formData.password) {
@@ -127,10 +114,9 @@ const FirstLoginActifs = ({ onModeSwitch }) => {
     setMessage({ type: '', text: '' });
 
     try {
-      const response = await api.post('/auth/first-login/actifs', formData);
+      const response = await authService.firstLoginActifs(formData);
 
       if (response.data.success) {
-        // Stocker le token temporaire pour la configuration
         localStorage.setItem('setup_token', response.data.token);
         localStorage.setItem('user_data', JSON.stringify(response.data.user));
         
@@ -139,10 +125,9 @@ const FirstLoginActifs = ({ onModeSwitch }) => {
           text: 'Connexion réussie ! Redirection vers la configuration de votre profil...' 
         });
 
-        // Rediriger vers la page de configuration du profil
         setTimeout(() => {
           navigate('/setup-profile');
-        }, 2000);
+        }, 1500);
       }
     } catch (error) {
       console.error('Erreur de connexion:', error);
@@ -173,7 +158,6 @@ const FirstLoginActifs = ({ onModeSwitch }) => {
   return (
     <form className="login-form" onSubmit={handleSubmit}>
       <h2 className="login-form__title">Première connexion - Agents Actifs</h2>
-      
 
       {message.text && (
         <div className={`login-form__message login-form__message--${message.type}`}>
@@ -200,8 +184,6 @@ const FirstLoginActifs = ({ onModeSwitch }) => {
         {errors.matricule_solde && (
           <div className="login-form__error">{errors.matricule_solde}</div>
         )}
-        <div className="login-form__help">
-        </div>
       </div>
 
       <div className="login-form__group">

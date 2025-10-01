@@ -20,7 +20,6 @@ const SetupProfile = () => {
   const [message, setMessage] = useState({ type: '', text: '' });
 
   useEffect(() => {
-    // Vérifier qu'on a bien un token de setup et les données utilisateur
     const setupToken = localStorage.getItem('setup_token');
     const storedUserData = utils.getUserData();
 
@@ -32,52 +31,43 @@ const SetupProfile = () => {
     }
 
     setUserData(storedUserData);
- // Vérifier si l'utilisateur avait commencé la configuration
-  const hasStartedSetup = localStorage.getItem('setup_started');
-  if (hasStartedSetup && !storedUserData.phone_verified) {
-    // L'utilisateur avait commencé mais n'a pas terminé
-    // On nettoie et on recommence
-    console.log('⚠️ Configuration incomplète détectée, nettoyage...');
-    
-    // Nettoyer les données partielles côté serveur
-    fetch('http://localhost:8000/api/auth/cleanup-setup', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${setupToken}`,
-        'Content-Type': 'application/json',
-      }
-    }).catch(e => console.log('Nettoyage serveur échoué:', e));
-    
-    // Nettoyer côté client
-    localStorage.removeItem('setup_started');
-    localStorage.removeItem('setup_token');
-    localStorage.removeItem('user_data');
-    
-    // Rediriger vers la connexion
-    navigate(`/login/${storedUserData.type}s`, { 
-      state: { 
-        message: 'Configuration incomplète. Veuillez recommencer la première connexion.',
-        type: 'warning'
-      }
-    });
-    return;
-  }
-}, [navigate]);
+
+    const hasStartedSetup = localStorage.getItem('setup_started');
+    if (hasStartedSetup && !storedUserData.phone_verified) {
+      console.log('⚠️ Configuration incomplète détectée, nettoyage...');
+      
+      fetch('http://localhost:8000/api/auth/cleanup-setup', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${setupToken}`,
+          'Content-Type': 'application/json',
+        }
+      }).catch(e => console.log('Nettoyage serveur échoué:', e));
+      
+      localStorage.removeItem('setup_started');
+      localStorage.removeItem('setup_token');
+      localStorage.removeItem('user_data');
+      
+      navigate(`/login/${storedUserData.type}s`, { 
+        state: { 
+          message: 'Configuration incomplète. Veuillez recommencer la première connexion.',
+          type: 'warning'
+        }
+      });
+      return;
+    }
+  }, [navigate]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     
     let formattedValue = value;
     
-    // Formatage automatique du téléphone
     if (name === 'telephone') {
-      // Supprimer tous les caractères non numériques
       formattedValue = value.replace(/[^0-9]/g, '');
-      // Limiter à 8-9 chiffres après l'indicatif
       formattedValue = formattedValue.slice(0, 9);
     }
 
-    // Formatage du code de vérification
     if (name === 'verification_code') {
       formattedValue = value.replace(/[^0-9]/g, '').slice(0, 6);
     }
@@ -87,7 +77,6 @@ const SetupProfile = () => {
       [name]: formattedValue
     }));
 
-    // Effacer l'erreur pour ce champ
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -99,21 +88,18 @@ const SetupProfile = () => {
   const validateStep1 = () => {
     const newErrors = {};
 
-    // Validation email
     if (!formData.email) {
       newErrors.email = 'L\'email est requis';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Format d\'email invalide';
     }
 
-    // Validation téléphone
     if (!formData.telephone) {
       newErrors.telephone = 'Le numéro de téléphone est requis';
     } else if (formData.telephone.length < 8 || formData.telephone.length > 9) {
       newErrors.telephone = 'Le numéro doit contenir 8 ou 9 chiffres';
     }
 
-    // Validation mot de passe
     if (!formData.password) {
       newErrors.password = 'Le mot de passe est requis';
     } else if (formData.password.length < 8) {
@@ -122,7 +108,6 @@ const SetupProfile = () => {
       newErrors.password = 'Le mot de passe doit contenir au moins une majuscule, une minuscule et un chiffre';
     }
 
-    // Validation confirmation mot de passe
     if (!formData.password_confirmation) {
       newErrors.password_confirmation = 'La confirmation du mot de passe est requise';
     } else if (formData.password !== formData.password_confirmation) {
@@ -157,8 +142,6 @@ const SetupProfile = () => {
     setMessage({ type: '', text: '' });
 
     try {
-
-      // Marquer que la configuration a commencé
       localStorage.setItem('setup_started', 'true');
 
       const setupData = {
@@ -197,7 +180,6 @@ const SetupProfile = () => {
     }
   };
 
-// Méthode handleStep2Submit corrigée
   const handleStep2Submit = async (e) => {
     e.preventDefault();
     
@@ -209,7 +191,6 @@ const SetupProfile = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      //Utiliser la route setup pour la vérification
       const response = await authService.verifyPhone({
         verification_code: formData.verification_code
       });
@@ -217,6 +198,7 @@ const SetupProfile = () => {
       if (response.data.success) {
         localStorage.removeItem('setup_token');
         localStorage.removeItem('user_data');
+        localStorage.removeItem('setup_started');
         
         setMessage({ 
           type: 'success', 
@@ -224,7 +206,6 @@ const SetupProfile = () => {
         });
 
         setTimeout(() => {
-          // Mapper le type utilisateur vers l'URL correcte
           const userTypeUrl = userData.type === 'actif' ? 'actifs' : 'retraites';
           navigate(`/login/${userTypeUrl}`, { 
             state: { message: 'Configuration terminée. Connectez-vous avec vos nouveaux identifiants.' }
@@ -242,8 +223,6 @@ const SetupProfile = () => {
     }
   };
 
-
-  // Méthode resendCode 
   const resendCode = async () => {
     setLoading(true);
     setMessage({ type: '', text: '' });
@@ -251,13 +230,11 @@ const SetupProfile = () => {
     console.log('🔄 Tentative de renvoi du code de vérification...');
     
     try {
-      // Debug des tokens
       const setupToken = localStorage.getItem('setup_token');
       const authToken = localStorage.getItem('auth_token');
       console.log('🔑 Setup token:', setupToken ? 'Présent' : 'Absent');
       console.log('🔑 Auth token:', authToken ? 'Présent' : 'Absent');
       
-      // Utiliser la méthode pour le setup
       const response = await authService.resendVerification();
       console.log('✅ Réponse API reçue:', response.data);
       
@@ -270,8 +247,8 @@ const SetupProfile = () => {
       }
     } catch (error) {
       console.error('❌ Erreur lors du renvoi:', error);
-      console.error('📝 Status:', error.response?.status);
-      console.error('📝 Data:', error.response?.data);
+      console.error('📊 Status:', error.response?.status);
+      console.error('📋 Data:', error.response?.data);
       
       setMessage({ 
         type: 'error', 
@@ -280,6 +257,16 @@ const SetupProfile = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBackToStep1 = () => {
+    setCurrentStep(1);
+    setFormData(prev => ({
+      ...prev,
+      verification_code: ''
+    }));
+    setErrors({});
+    setMessage({ type: '', text: '' });
   };
   
   if (!userData) {
@@ -294,7 +281,6 @@ const SetupProfile = () => {
         <div className="setup-profile__container">
           <div className="setup-profile__content">
             
-            {/* Progress Steps */}
             <div className="setup-profile__progress">
               <div className={`setup-profile__step ${currentStep >= 1 ? 'setup-profile__step--active' : ''}`}>
                 <div className="setup-profile__step-number">1</div>
@@ -307,7 +293,6 @@ const SetupProfile = () => {
               </div>
             </div>
 
-            {/* Welcome Message */}
             <div className="setup-profile__welcome">
               <h1 className="setup-profile__title">
                 Bienvenue {userData.prenoms} {userData.nom} !
@@ -318,7 +303,6 @@ const SetupProfile = () => {
               </p>
             </div>
 
-            {/* Form Container */}
             <div className="setup-profile__form-container">
               
               {message.text && (
@@ -327,7 +311,6 @@ const SetupProfile = () => {
                 </div>
               )}
 
-              {/* Step 1: Configuration */}
               {currentStep === 1 && (
                 <form className="setup-profile__form" onSubmit={handleStep1Submit}>
                   <h2 className="setup-profile__form-title">Configuration de votre profil</h2>
@@ -439,9 +422,19 @@ const SetupProfile = () => {
                 </form>
               )}
 
-              {/* Step 2: Phone Verification */}
               {currentStep === 2 && (
                 <form className="setup-profile__form" onSubmit={handleStep2Submit}>
+                  <div className="setup-profile__back-button-container">
+                    <button 
+                      type="button" 
+                      className="setup-profile__back-button"
+                      onClick={handleBackToStep1}
+                      disabled={loading}
+                    >
+                      ← Précedent
+                    </button>
+                  </div>
+
                   <h2 className="setup-profile__form-title">Vérification du téléphone</h2>
                   <p className="setup-profile__verification-text">
                     Un code de vérification a été envoyé au numéro :<br/>
@@ -470,7 +463,6 @@ const SetupProfile = () => {
                     <div className="setup-profile__help">
                       <small>Un code de vérification à 6 chiffres a été envoyé à votre numéro</small>
                     </div>
-
                   </div>
 
                   <button 
@@ -489,21 +481,15 @@ const SetupProfile = () => {
                   </button>
 
                   <div className="setup-profile__resend">
-                  <p>Vous n'avez pas reçu le code ?</p>
-                  <button 
-                    type="button" 
-                    className="setup-profile__resend-button"
-                    onClick={resendCode}
-                    disabled={loading}
-                  >
-                    {loading ? 'Envoi en cours...' : 'Renvoyer le code'}
-                  </button>
-                  {message.type === 'error' && (
-                    <p className="setup-profile__error-text">
-                      {message.text}
-                    </p>
-                  )}
-
+                    <p>Vous n'avez pas reçu le code ?</p>
+                    <button 
+                      type="button" 
+                      className="setup-profile__resend-button"
+                      onClick={resendCode}
+                      disabled={loading}
+                    >
+                      {loading ? 'Envoi en cours...' : 'Renvoyer le code'}
+                    </button>
                   </div>
                 </form>
               )}

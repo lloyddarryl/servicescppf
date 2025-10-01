@@ -11,7 +11,7 @@ class Carriere extends Model
     use HasFactory;
 
     protected $fillable = [
-        'agent_id', 'numero_ordre', 'date_debut', 'date_fin',
+        'agent_id','matricule_solde', 'numero_ordre', 'date_debut', 'date_fin',
         'position', 'etablissement', 'corps', 'grade', 'indice',
         'retenue', 'nombre_mois', 'regime', 'sous_regime',
         'annuite', 'statut', 'observations', 'total_cotisations'

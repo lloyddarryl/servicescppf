@@ -427,7 +427,10 @@ const SuiviCotisations = () => {
                   <tbody>
                     {cotisations?.map((cotisation, index) => (
                       <tr key={cotisation.id || index} className="cotisation-row">
-                        <td>{cotisation.periode_formatee}</td>
+                        <td>
+                        {cotisation.periode_formatee || 
+                        `${cotisation.date_debut || 'N/A'} - ${cotisation.date_fin || 'En cours'}`}
+                      </td>
                         <td>{cotisation.position}</td>
                         <td className="etablissement-cell" title={cotisation.etablissement}>
                           {cotisation.etablissement?.substring(0, 30) || 'N/A'}
