@@ -942,6 +942,22 @@ export const cotisationService = {
   }
 };
 
+
+// Services pour les notifications (universels actifs/retraités)
+export const notificationService = {
+  getAll: () => {
+    const userType = localStorage.getItem('user_type');
+    return api.get(`/notifications?user_type=${userType}`);
+  },
+  
+  marquerLue: (id) => api.put(`/notifications/${id}/lue`),
+  
+  marquerToutesLues: () => {
+    const userType = localStorage.getItem('user_type');
+    return api.put(`/notifications/toutes-lues?user_type=${userType}`);
+  }
+};
+
 // Service pour l'historique des paiements (retraités uniquement)
 export const historiquePaiementService = {
   // Obtenir l'historique avec filtres et pagination

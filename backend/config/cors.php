@@ -3,7 +3,7 @@
 return [
     'paths' => ['api/*', 'sanctum/csrf-cookie'],
     'allowed_methods' => ['*'],
-    'allowed_origins' => ['http://localhost:3000', 'http://localhost:8000','http://127.0.0.1:3000','http://localhost:3001',
+    'allowed_origins' => ['http://localhost', 'http://localhost:3000', 'http://localhost:8000','http://127.0.0.1:3000','http://localhost:3001',
  'https://*.cppf-services.com','https://servicescppf.vercel.app',
 ],
 

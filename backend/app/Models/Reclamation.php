@@ -25,12 +25,16 @@ class Reclamation extends Model
         'necessite_document',
         'documents',
         'date_soumission',
+        'reponse_admin',
+        'date_traitement',  // ✅ UTILISER date_traitement à la place
+        'admin_id',
     ];
 
     protected $casts = [
         'documents' => 'array',
         'necessite_document' => 'boolean',
         'date_soumission' => 'datetime',
+        'date_traitement' => 'datetime',  // ✅ UTILISER date_traitement
     ];
 
     // Types de réclamations disponibles
@@ -115,7 +119,7 @@ class Reclamation extends Model
                 STR_PAD_LEFT
             ) . substr(uniqid(), -2);
             
-            Log::info('🔢 Génération numéro réclamation tentative ' . $tentatives . ': ' . $numero);
+            Log::info('📢 Génération numéro réclamation tentative ' . $tentatives . ': ' . $numero);
             
             // Vérifier l'unicité
             $existe = self::where('numero_reclamation', $numero)->exists();
@@ -257,5 +261,29 @@ class Reclamation extends Model
         ]);
         
         return $this;
+    }
+
+    /**
+     * ✅ Vérifier si une réponse admin existe
+     */
+    public function aReponseAdmin()
+    {
+        return !empty($this->reponse_admin) && !is_null($this->date_traitement);
+    }
+
+    /**
+     * ✅ Obtenir la réponse admin formatée
+     */
+    public function getReponseAdminFormatteeAttribute()
+    {
+        if (!$this->aReponseAdmin()) {
+            return null;
+        }
+
+        return [
+            'message' => $this->reponse_admin,
+            'date' => $this->date_traitement->format('d/m/Y à H:i'),
+            'date_relative' => $this->date_traitement->diffForHumans()
+        ];
     }
 }

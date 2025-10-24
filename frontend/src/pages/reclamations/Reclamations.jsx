@@ -445,6 +445,64 @@ const Reclamations = () => {
     }
   };
 
+  // ✅ NOUVELLE FONCTION : Télécharger un document
+const handleDownloadDocument = async (reclamationId, documentIndex, documentName) => {
+  try {
+    console.log('📥 Téléchargement document:', { reclamationId, documentIndex, documentName });
+    
+    const userType = localStorage.getItem('user_type');
+    const token = localStorage.getItem('auth_token');
+    
+    if (!token) {
+      afficherNotification('Vous devez être connecté pour télécharger un document', 'error');
+      return;
+    }
+
+    // Construire l'URL de l'endpoint
+    const endpoint = userType === 'retraite' 
+      ? `http://localhost:8000/api/retraites/reclamations/${reclamationId}/documents/${documentIndex}` 
+      : `http://localhost:8000/api/actifs/reclamations/${reclamationId}/documents/${documentIndex}`;
+
+    // Faire la requête avec fetch pour avoir plus de contrôle
+    const response = await fetch(endpoint, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/octet-stream'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Erreur téléchargement:', errorText);
+      throw new Error('Erreur lors du téléchargement');
+    }
+
+    // Récupérer le blob
+    const blob = await response.blob();
+    
+    // Créer un URL temporaire
+    const url = window.URL.createObjectURL(blob);
+    
+    // Créer un lien et le cliquer
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = documentName;
+    document.body.appendChild(link);
+    link.click();
+    
+    // Nettoyer
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    afficherNotification('Document téléchargé avec succès', 'success');
+    
+  } catch (error) {
+    console.error('Erreur téléchargement document:', error);
+    afficherNotification('Erreur lors du téléchargement du document', 'error');
+  }
+};
+
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
     
@@ -1105,18 +1163,49 @@ const Reclamations = () => {
                               </span>
                             </div>
                             <button 
-                              onClick={() => {
-                                window.open(
-                                  `http://localhost:8000/api/${localStorage.getItem('user_type') === 'retraite' ? 'retraites' : 'actifs'}/reclamations/${reclamationSelectionnee.id}/documents/${index}`,
-                                  '_blank'
-                                );
-                              }}
+                              onClick={() => handleDownloadDocument(
+                              reclamationSelectionnee.id,
+                              index,
+                              document.nom || `document_${index + 1}.${document.type}`
+                                )}
                               className="reclamations__document-download"
-                            >
-                              📥 Télécharger
-                            </button>
+                              title={`Télécharger ${document.nom || 'le document'}`}
+                              >
+                                📥 Télécharger
+                              </button>
                           </div>
                         ))}
+                      </div>
+                    </div>
+                  )}
+                  {/* Réponse de l'administration */}
+                  {reclamationSelectionnee.reponse_admin && (
+                    <div className="reclamations__details-section reclamations__reponse-admin">
+                      <h3 className="reclamations__details-section-title">
+                        <span className="icon">💬</span>
+                        Réponse de l'administration
+                      </h3>
+                      <div className="reclamations__admin-reponse-box">
+                        <div className="reclamations__admin-reponse-header">
+                          <span className="admin-badge">
+                            <span className="icon">👤</span>
+                            Administration CPPF
+                          </span>
+                          {reclamationSelectionnee.date_traitement && (
+                            <span className="date-traitement">
+                              {new Date(reclamationSelectionnee.date_traitement).toLocaleDateString('fr-FR', {
+                                day: 'numeric',
+                                month: 'long',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          )}
+                        </div>
+                        <div className="reclamations__admin-reponse-content">
+                          {reclamationSelectionnee.reponse_admin}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -1124,7 +1213,7 @@ const Reclamations = () => {
                   {/* Commentaires admin */}
                   {reclamationSelectionnee.commentaires_admin && (
                     <div className="reclamations__details-section">
-                      <h3 className="reclamations__details-section-title">Commentaire de l'administration</h3>
+                      <h3 className="reclamations__details-section-title">Commentaire de l'administration CPPF</h3>
                       <div className="reclamations__admin-comment">
                         {reclamationSelectionnee.commentaires_admin}
                       </div>

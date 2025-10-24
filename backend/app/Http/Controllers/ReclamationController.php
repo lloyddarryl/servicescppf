@@ -119,6 +119,9 @@ class ReclamationController extends Controller
                     'documents' => $reclamation->documents ?? [],
                     'date_soumission' => $reclamation->date_soumission->format('Y-m-d H:i:s'),
                     'date_soumission_formatee' => $reclamation->date_soumission->format('d/m/Y à H:i'),
+                    'date_traitement' => $reclamation->date_traitement,
+                    'date_traitement_formatee' => $reclamation->date_traitement ? $reclamation->date_traitement->format('d/m/Y à H:i') : null,
+                    'reponse_admin' => $reclamation->reponse_admin, // ← IMPORTANT
                     'temps_ecoule' => $reclamation->temps_ecoule,
                     'en_cours' => $reclamation->en_cours,
                     'peut_supprimer' => $this->peutSupprimer($reclamation),
@@ -363,6 +366,179 @@ class ReclamationController extends Controller
             ], 500);
         }
     }
+
+    /**
+ * ✅ Télécharger un document joint à une réclamation
+ * Cette méthode gère TOUS les formats de stockage de documents
+ */
+public function telechargerDocument(Request $request, $id, $index)
+{
+    try {
+        $user = $request->user();
+        $userType = $user instanceof \App\Models\Agent ? 'agent' : 'retraite';
+
+        Log::info('📥 Téléchargement document réclamation:', [
+            'reclamation_id' => $id,
+            'document_index' => $index,
+            'user_id' => $user->id,
+            'user_type' => $userType
+        ]);
+
+        // Récupérer la réclamation
+        $reclamation = Reclamation::where('id', $id)
+                                 ->where('user_id', $user->id)
+                                 ->where('user_type', $userType)
+                                 ->firstOrFail();
+
+        // Vérifier que des documents existent
+        if (empty($reclamation->documents)) {
+            Log::warning('⚠️ Aucun document trouvé pour cette réclamation');
+            return response()->json([
+                'success' => false,
+                'message' => 'Aucun document disponible'
+            ], 404);
+        }
+
+        // Décoder les documents (peuvent être en JSON ou array)
+        $documents = is_string($reclamation->documents) 
+            ? json_decode($reclamation->documents, true) 
+            : $reclamation->documents;
+
+        Log::info('📄 Documents récupérés:', [
+            'count' => count($documents),
+            'index_demande' => $index,
+            'format' => is_array($documents[0] ?? null) ? 'nouveau (objet)' : 'ancien (string)'
+        ]);
+
+        // Vérifier que l'index existe
+        if (!isset($documents[$index])) {
+            Log::warning('⚠️ Index de document invalide:', [
+                'index_demande' => $index,
+                'documents_count' => count($documents)
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Document non trouvé'
+            ], 404);
+        }
+
+        // ✅ NOUVEAU : Gérer les DEUX formats de stockage
+        $documentInfo = $documents[$index];
+        $documentPath = null;
+        $documentNom = null;
+
+        // FORMAT 1 : Nouveau format (objet avec chemin, nom_original, etc.)
+        if (is_array($documentInfo)) {
+            // Chercher le chemin dans différentes clés possibles
+            $documentPath = $documentInfo['chemin'] 
+                         ?? $documentInfo['path'] 
+                         ?? $documentInfo['url'] 
+                         ?? null;
+            
+            $documentNom = $documentInfo['nom_original'] 
+                        ?? $documentInfo['nom'] 
+                        ?? $documentInfo['nom_stocke'] 
+                        ?? basename($documentPath ?? '');
+
+            Log::info('📎 Format nouveau (objet):', [
+                'chemin' => $documentPath,
+                'nom' => $documentNom
+            ]);
+        }
+        // FORMAT 2 : Ancien format (string simple)
+        else if (is_string($documentInfo)) {
+            $documentPath = $documentInfo;
+            $documentNom = basename($documentPath);
+
+            Log::info('📎 Format ancien (string):', [
+                'chemin' => $documentPath,
+                'nom' => $documentNom
+            ]);
+        }
+
+        // Vérifier qu'on a un chemin valide
+        if (!$documentPath) {
+            Log::error('❌ Chemin du document invalide:', [
+                'document_info' => $documentInfo
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Chemin du document invalide'
+            ], 500);
+        }
+
+        // ✅ IMPORTANT : Nettoyer le chemin (enlever "public/" si présent)
+        // Le fichier peut être stocké avec "public/reclamations/..." ou "reclamations/..."
+        $cleanPath = str_replace('public/', '', $documentPath);
+        
+        // Essayer d'abord avec le chemin nettoyé
+        if (Storage::disk('public')->exists($cleanPath)) {
+            $fullPath = storage_path('app/public/' . $cleanPath);
+            Log::info('✅ Fichier trouvé (disk public):', [
+                'clean_path' => $cleanPath,
+                'full_path' => $fullPath,
+                'exists' => file_exists($fullPath)
+            ]);
+
+            if (file_exists($fullPath)) {
+                return response()->download($fullPath, $documentNom);
+            }
+        }
+
+        // Sinon essayer avec le chemin original sur le disk par défaut
+        if (Storage::exists($documentPath)) {
+            $fullPath = storage_path('app/' . $documentPath);
+            Log::info('✅ Fichier trouvé (disk default):', [
+                'path' => $documentPath,
+                'full_path' => $fullPath,
+                'exists' => file_exists($fullPath)
+            ]);
+
+            if (file_exists($fullPath)) {
+                return response()->download($fullPath, $documentNom);
+            }
+        }
+
+        // Si rien n'a fonctionné, le fichier n'existe pas
+        Log::error('❌ Fichier introuvable sur le disque:', [
+            'original_path' => $documentPath,
+            'clean_path' => $cleanPath,
+            'checked_paths' => [
+                'public' => storage_path('app/public/' . $cleanPath),
+                'default' => storage_path('app/' . $documentPath)
+            ]
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Fichier introuvable sur le serveur'
+        ], 404);
+
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        Log::error('❌ Réclamation non trouvée ou accès non autorisé:', [
+            'reclamation_id' => $id,
+            'user_id' => $request->user()?->id
+        ]);
+        return response()->json([
+            'success' => false,
+            'message' => 'Réclamation non trouvée ou accès non autorisé'
+        ], 404);
+
+    } catch (\Exception $e) {
+        Log::error('❌ Erreur lors du téléchargement du document:', [
+            'reclamation_id' => $id,
+            'document_index' => $index,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        return response()->json([
+            'success' => false,
+            'message' => 'Erreur lors du téléchargement: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+
 
     /**
      * ✅ NOUVELLE MÉTHODE : Télécharger l'accusé de réception
@@ -744,4 +920,102 @@ class ReclamationController extends Controller
             'numero_reclamation' => $reclamation->numero_reclamation
         ]);
     }
+
+    // app/Http/Controllers/ReclamationController.php
+
+public function indexAdmin(Request $request)
+{
+    $query = Reclamation::with('historique')
+                       ->orderBy('date_soumission', 'desc');
+
+    // Filtres
+    if ($request->has('statut') && $request->statut !== '') {
+        $query->where('statut', $request->statut);
+    }
+
+    if ($request->has('priorite') && $request->priorite !== '') {
+        $query->where('priorite', $request->priorite);
+    }
+
+    if ($request->has('user_type') && $request->user_type !== '') {
+        $query->where('user_type', $request->user_type);
+    }
+
+    $reclamations = $query->paginate(20);
+
+    return response()->json([
+        'success' => true,
+        'reclamations' => $reclamations->map(fn($r) => [
+            'id' => $r->id,
+            'numero_reclamation' => $r->numero_reclamation,
+            'user_nom_complet' => $r->user_prenoms . ' ' . $r->user_nom,
+            'user_type' => $r->user_type,
+            'user_email' => $r->user_email,
+            'type_reclamation' => $r->type_reclamation_info['nom'],
+            'description' => $r->description,
+            'statut' => $r->statut_libelle,
+            'priorite' => $r->priorite_info['nom'],
+            'date_soumission' => $r->date_soumission->format('d/m/Y H:i'),
+            'documents_count' => count($r->documents ?? []),
+            'en_cours' => $r->en_cours
+        ]),
+        'pagination' => [
+            'current_page' => $reclamations->currentPage(),
+            'last_page' => $reclamations->lastPage(),
+            'total' => $reclamations->total()
+        ]
+    ]);
 }
+
+public function traiterReclamationAdmin(Request $request, $id)
+{
+    $validator = Validator::make($request->all(), [
+        'nouveau_statut' => 'required|in:en_attente,en_cours,en_revision,resolu,ferme,rejete',
+        'commentaire_admin' => 'required|string|max:1000'
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'success' => false,
+            'errors' => $validator->errors()
+        ], 422);
+    }
+
+    $reclamation = Reclamation::findOrFail($id);
+    $admin = $request->user(); // Admin authentifié
+
+    // Changer le statut avec historique
+    $reclamation->changerStatut(
+        $request->nouveau_statut,
+        $request->commentaire_admin,
+        "{$admin->prenoms} {$admin->nom} (Admin)"
+    );
+
+    // Mettre à jour les commentaires admin
+    $reclamation->commentaires_admin = $request->commentaire_admin;
+    $reclamation->save();
+
+    // Envoyer email à l'utilisateur
+    try {
+        $user = $reclamation->user_type === 'agent'
+            ? Agent::find($reclamation->user_id)
+            : Retraite::find($reclamation->user_id);
+
+        if ($user) {
+            $dernierHistorique = $reclamation->historique()->latest()->first();
+            Mail::to($user->email)->send(new ReclamationStatusChangedMail($reclamation, $user, $dernierHistorique));
+        }
+    } catch (\Exception $e) {
+        Log::error('Erreur envoi email traitement réclamation:', [
+            'reclamation_id' => $reclamation->id,
+            'error' => $e->getMessage()
+        ]);
+    }
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Réclamation traitée avec succès'
+    ]);
+}
+}
+

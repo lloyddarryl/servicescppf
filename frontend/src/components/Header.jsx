@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './Header.css';
+import cppfLogo from '../assets/images/cppf.png';
+
 
 const Header = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -25,7 +27,7 @@ const Header = () => {
   <div className="header__logo-wrapper">
     <Link to="/">
       <img 
-        src="/images/cppf.png" 
+        src={cppfLogo} 
         alt="CPPF Logo" 
         className="header__logo"
       />

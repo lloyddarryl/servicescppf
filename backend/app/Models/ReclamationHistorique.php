@@ -17,7 +17,9 @@ class ReclamationHistorique extends Model
         'ancien_statut',
         'nouveau_statut',
         'commentaire',
-        'modifie_par'
+        'modifie_par',
+        'admin_id'
+
     ];
 
     protected $casts = [
@@ -33,6 +35,14 @@ class ReclamationHistorique extends Model
         return $this->belongsTo(Reclamation::class);
     }
 
+    /**
+     * Obtenir le temps écoulé depuis la modification
+     */
+    public function getTempsEcouleAttribute()
+    {
+        return $this->created_at->diffForHumans();
+    }
+    
     /**
      * Obtenir les libellés des statuts
      */

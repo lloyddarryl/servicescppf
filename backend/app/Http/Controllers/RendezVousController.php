@@ -673,23 +673,9 @@ public function annuler(Request $request, $id)
     public function changerStatut(Request $request, $id)
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'nouveau_statut' => 'required|in:en_attente,accepte,refuse,reporte,annule',
-                'reponse_admin' => 'nullable|string|max:1000',
-                'date_rdv_confirme' => 'nullable|date|after:now',
-                'lieu_rdv' => 'nullable|string|max:255'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
             $demande = RendezVousDemande::findOrFail($id);
-
-            // Changer le statut
+            
+            // Changer le statut avec les informations complètes
             $demande->changerStatut(
                 $request->nouveau_statut,
                 $request->reponse_admin,
@@ -697,23 +683,15 @@ public function annuler(Request $request, $id)
                 $request->lieu_rdv
             );
 
-            // Envoyer email à l'utilisateur
-            try {
-                $user = $demande->user_type === 'agent'
-                    ? Agent::find($demande->user_id)
-                    : Retraite::find($demande->user_id);
+            // Ajouter la notification avec l'ID de l'utilisateur
+            $message = [
+                'user_id' => $demande->user_id, // Ajouter l'ID de l'utilisateur
+                'admin_id' => $request->user()->id,
+                'titre' => 'Rendez-vous ' . $demande->statut_info['nom'],
+                'message' => "Votre demande de rendez-vous n°{$demande->numero_demande} a été traitée."
+            ];
 
-                if ($user) {
-                    Mail::to($user->email)->send(new RendezVousReponseUserMail($demande, $user));
-                    $demande->update(['email_user_reponse_envoye' => true]);
-                    Log::info('📧 Email réponse RDV envoyé à l\'utilisateur');
-                }
-            } catch (\Exception $e) {
-                Log::error('❌ Erreur envoi email réponse RDV:', [
-                    'rdv_id' => $demande->id,
-                    'error' => $e->getMessage()
-                ]);
-            }
+            \App\Models\MessageDashboard::create($message);
 
             return response()->json([
                 'success' => true,

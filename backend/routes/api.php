@@ -52,6 +52,14 @@ Route::prefix('auth')->group(function () {
 // Routes protégées par authentification Sanctum
 Route::middleware('auth:sanctum')->group(function () {
 
+
+    Route::post('/logout', [App\Http\Controllers\Admin\AdminAuthController::class, 'logout']);
+    Route::get('/me', [App\Http\Controllers\Admin\AdminAuthController::class, 'me']);
+    Route::post('/changer-mot-de-passe', [App\Http\Controllers\Admin\AdminAuthController::class, 'changerMotDePasse']);
+
+    Route::get('/dashboard', [App\Http\Controllers\Admin\AdminDashboardController::class, 'index']);
+
+
     // Route de test famille
     Route::get('/test-famille', function (Request $request) {
         try {
@@ -142,9 +150,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/documents', [DashboardController::class, 'uploadDocument']);
 
         // Notifications
-        Route::get('/notifications', [DashboardController::class, 'getNotifications']);
-        Route::put('/notifications/{id}/read', [DashboardController::class, 'markNotificationRead']);
-
+        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::put('/notifications/{id}/lue', [NotificationController::class, 'marquerLue']);
+        Route::put('/notifications/toutes-lues', [NotificationController::class, 'marquerToutesLues']);
+        Route::delete('/notifications/{id}', [NotificationController::class, 'supprimer']);
+       
         // FAMILLE - Routes pour les agents actifs
         Route::prefix('famille')->group(function () {
             Route::get('/', [FamilleController::class, 'getGrappeFamiliale']);
@@ -179,6 +189,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/', [ReclamationController::class, 'store']);
             Route::get('/{id}', [ReclamationController::class, 'show']);
             Route::delete('/{id}', [ReclamationController::class, 'destroy']);
+            Route::get('/{id}/documents/{index}', [ReclamationController::class, 'telechargerDocument']);
             Route::get('/{id}/accuse-reception', [ReclamationController::class, 'telechargerAccuseReception']);
             Route::get('/{id}/documents/{documentIndex}', [ReclamationController::class, 'downloadDocument']);
         });
@@ -245,6 +256,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/types', [ReclamationController::class, 'getTypesReclamations']);
             Route::get('/', [ReclamationController::class, 'index']);
             Route::post('/', [ReclamationController::class, 'store']);
+            Route::get('/{id}/documents/{index}', [ReclamationController::class, 'telechargerDocument']);
             Route::get('/{id}/accuse-reception', [ReclamationController::class, 'telechargerAccuseReception']);
             Route::get('/{id}/documents/{documentIndex}', [ReclamationController::class, 'downloadDocument']);
             // Route générique EN DERNIER
@@ -316,19 +328,102 @@ Route::middleware('auth:sanctum')->group(function () {
         }
     });
 
-    // NOUVEAU : Routes d'administration pour les rendez-vous
-    Route::prefix('admin/rendez-vous')->group(function () {
-        Route::get('/', [RendezVousController::class, 'indexAdmin']);
-        Route::get('/statistiques', [RendezVousController::class, 'statistiquesAdmin']);
-        Route::put('/{id}/statut', [RendezVousController::class, 'changerStatut']);
-        Route::get('/export', [RendezVousController::class, 'export']);
-        Route::get('/creneaux-occupes/{date}', [RendezVousController::class, 'getCreneauxOccupes']);
-        Route::get('/rechercher', [RendezVousController::class, 'rechercher']);
-        Route::delete('/{id}', [RendezVousController::class, 'destroy']);
-        Route::get('/rapport', [RendezVousController::class, 'rapport']);
-    });
 });
 
+
+Route::prefix('admin')->group(function () {
+    // ✅ Login admin (SANS middleware - route publique admin)
+    Route::post('/login', [App\Http\Controllers\Admin\AdminAuthController::class, 'login']);
+    
+    // ✅ Routes protégées admin avec middleware auth:sanctum + vérification admin
+    Route::middleware(['auth:admin'])->group(function () {
+        // Auth admin
+        Route::post('/logout', [App\Http\Controllers\Admin\AdminAuthController::class, 'logout']);
+        Route::get('/me', [App\Http\Controllers\Admin\AdminAuthController::class, 'me']);
+        Route::post('/changer-mot-de-passe', [App\Http\Controllers\Admin\AdminAuthController::class, 'changerMotDePasse']);
+        Route::get('/verifier-token', [App\Http\Controllers\Admin\AdminAuthController::class, 'verifierToken']);
+
+        // ✅ Dashboard admin (PRÉFIXÉ /admin/)
+        Route::get('/dashboard', [App\Http\Controllers\Admin\AdminDashboardController::class, 'index']);
+        Route::get('/statistiques', [App\Http\Controllers\Admin\AdminDashboardController::class, 'statistiquesGlobales']);
+
+    
+
+        // Gestion des rendez-vous admin
+    Route::prefix('rendez-vous')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\AdminRendezVousController::class, 'index']);
+        Route::get('/statistiques', [App\Http\Controllers\Admin\AdminRendezVousController::class, 'statistiques']);
+        Route::get('/{id}', [App\Http\Controllers\Admin\AdminRendezVousController::class, 'show']);
+        Route::put('/{id}/statut', [App\Http\Controllers\Admin\AdminRendezVousController::class, 'changerStatut']);
+        Route::post('/traitement-lot', [App\Http\Controllers\Admin\AdminRendezVousController::class, 'traitementLot']);
+    });
+
+        // Documents admin
+        Route::prefix('documents')->group(function () {
+            Route::get('/', [App\Http\Controllers\Admin\DocumentAdminController::class, 'index']);
+            Route::get('/{id}', [App\Http\Controllers\Admin\DocumentAdminController::class, 'show']);
+            Route::get('/{id}/download', [App\Http\Controllers\Admin\DocumentAdminController::class, 'download']);
+            Route::put('/{id}/valider', [App\Http\Controllers\Admin\DocumentAdminController::class, 'validerDocument']);
+            Route::put('/{id}/rejeter', [App\Http\Controllers\Admin\DocumentAdminController::class, 'rejeterDocument']);
+            Route::delete('/{id}', [App\Http\Controllers\Admin\DocumentAdminController::class, 'supprimerDocument']);
+            Route::get('/statistiques', [App\Http\Controllers\Admin\DocumentAdminController::class, 'statistiques']);
+            Route::post('/traitement-lot', [App\Http\Controllers\Admin\DocumentAdminController::class, 'traitementLot']);
+        });
+
+        // Messages Dashboard admin
+        Route::prefix('messages')->group(function () {
+            Route::post('/envoyer', [App\Http\Controllers\Admin\MessageDashboardController::class, 'envoyerMessage']);
+            Route::post('/envoyer-global', [App\Http\Controllers\Admin\MessageDashboardController::class, 'envoyerMessageGlobal']);
+            Route::get('/historique', [App\Http\Controllers\Admin\MessageDashboardController::class, 'historique']);
+            Route::get('/utilisateur/{userId}/{userType}', [App\Http\Controllers\Admin\MessageDashboardController::class, 'getMessagesUtilisateur']);
+            Route::put('/{id}/statut', [App\Http\Controllers\Admin\MessageDashboardController::class, 'changerStatutMessage']);
+            Route::delete('/{id}', [App\Http\Controllers\Admin\MessageDashboardController::class, 'supprimerMessage']);
+            Route::get('/statistiques', [App\Http\Controllers\Admin\MessageDashboardController::class, 'statistiquesMessages']);
+            Route::get('/expiration', [App\Http\Controllers\Admin\MessageDashboardController::class, 'messagesExpiration']);
+            Route::post('/archiver-expires', [App\Http\Controllers\Admin\MessageDashboardController::class, 'archiverMessagesExpires']);
+        });
+
+        // Utilisateurs admin
+        Route::prefix('utilisateurs')->group(function () {
+            Route::get('/agents', [App\Http\Controllers\Admin\AdminUtilisateurController::class, 'indexAgents']);
+            Route::get('/retraites', [App\Http\Controllers\Admin\AdminUtilisateurController::class, 'indexRetraites']);
+            Route::get('/agent/{id}', [App\Http\Controllers\Admin\AdminUtilisateurController::class, 'showAgent']);
+            Route::get('/retraite/{id}', [App\Http\Controllers\Admin\AdminUtilisateurController::class, 'showRetraite']);
+            Route::put('/agent/{id}/statut', [App\Http\Controllers\Admin\AdminUtilisateurController::class, 'changerStatutAgent']);
+            Route::put('/retraite/{id}/statut', [App\Http\Controllers\Admin\AdminUtilisateurController::class, 'changerStatutRetraite']);
+            Route::post('/{type}/{id}/reinitialiser-mot-de-passe', [App\Http\Controllers\Admin\AdminUtilisateurController::class, 'reinitialiserMotDePasse']);
+            Route::get('/statistiques', [App\Http\Controllers\Admin\AdminUtilisateurController::class, 'statistiquesUtilisateurs']);
+        });
+
+
+    // Rapports et exports
+    Route::prefix('rapports')->group(function () {
+        Route::get('/mensuel', [RapportController::class, 'rapportMensuel']);
+        Route::get('/activites', [RapportController::class, 'rapportActivites']);
+        Route::get('/export/excel', [RapportController::class, 'exportExcel']);
+        Route::get('/export/pdf', [RapportController::class, 'exportPDF']);
+    });
+
+    // Logs et audit
+    Route::prefix('logs')->group(function () {
+        Route::get('/actions', [AuditController::class, 'actionsRecentes']);
+        Route::get('/connexions', [AuditController::class, 'historiqueConnexions']);
+    });
+    // Dans routes/api.php, section admin middleware
+
+// Gestion des réclamations admin
+    Route::prefix('reclamations')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\AdminReclamationController::class, 'index']);
+        Route::get('/statistiques', [App\Http\Controllers\Admin\AdminReclamationController::class, 'statistiques']);
+        Route::get('/{id}', [App\Http\Controllers\Admin\AdminReclamationController::class, 'show']);
+        Route::put('/{id}/traiter', [App\Http\Controllers\Admin\AdminReclamationController::class, 'traiter']);
+        Route::get('/{id}/document/{index}', [App\Http\Controllers\Admin\AdminReclamationController::class, 'telechargerDocument']);
+        Route::delete('/{id}', [App\Http\Controllers\Admin\AdminReclamationController::class, 'supprimer']);
+        Route::get('/reclamations/{id}/historique', [AdminReclamationController::class, 'historique']);
+
+        });
+    });
+});
 // Route de fallback pour API
 Route::fallback(function () {
     return response()->json([
