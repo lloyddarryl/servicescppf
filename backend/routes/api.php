@@ -10,6 +10,9 @@ use App\Http\Controllers\FamilleController;
 use App\Http\Controllers\ReclamationController;
 use App\Http\Controllers\RendezVousController;
 use App\Http\Controllers\HistoriquePaiementController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Admin\DocumentAdminController;
+use App\Http\Controllers\Admin\RapportController;
 use App\Models\DocumentRetraite; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +23,15 @@ use Illuminate\Support\Facades\Log;
 | API Routes
 |--------------------------------------------------------------------------
 */
+// ⚠️ ROUTE TEMPORAIRE pour éviter l'erreur "Route [login] not defined"
+Route::get('/login', function() {
+    return response()->json([
+        'success' => false,
+        'message' => 'Veuillez vous authentifier via /api/admin/login',
+        'error' => 'Unauthenticated'
+    ], 401);
+})->name('login');
+
 Route::get('/debug-test', function () {
     Log::info('Route de test atteinte');
     return response()->json([
@@ -270,6 +282,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/notifications/dismiss', [App\Http\Controllers\DocumentController::class, 'dismissNotification']);
             Route::get('/', [App\Http\Controllers\DocumentController::class, 'index']); 
             Route::post('/', [App\Http\Controllers\DocumentController::class, 'store']);
+            Route::get('/documents/{id}/view', [DocumentController::class, 'view']);
             Route::get('/{id}/download', [App\Http\Controllers\DocumentController::class, 'download']);
             Route::delete('/{id}', [App\Http\Controllers\DocumentController::class, 'destroy']);
 
@@ -358,17 +371,27 @@ Route::prefix('admin')->group(function () {
         Route::post('/traitement-lot', [App\Http\Controllers\Admin\AdminRendezVousController::class, 'traitementLot']);
     });
 
-        // Documents admin
-        Route::prefix('documents')->group(function () {
-            Route::get('/', [App\Http\Controllers\Admin\DocumentAdminController::class, 'index']);
-            Route::get('/{id}', [App\Http\Controllers\Admin\DocumentAdminController::class, 'show']);
-            Route::get('/{id}/download', [App\Http\Controllers\Admin\DocumentAdminController::class, 'download']);
-            Route::put('/{id}/valider', [App\Http\Controllers\Admin\DocumentAdminController::class, 'validerDocument']);
-            Route::put('/{id}/rejeter', [App\Http\Controllers\Admin\DocumentAdminController::class, 'rejeterDocument']);
-            Route::delete('/{id}', [App\Http\Controllers\Admin\DocumentAdminController::class, 'supprimerDocument']);
-            Route::get('/statistiques', [App\Http\Controllers\Admin\DocumentAdminController::class, 'statistiques']);
-            Route::post('/traitement-lot', [App\Http\Controllers\Admin\DocumentAdminController::class, 'traitementLot']);
-        });
+    // Documents admin
+Route::prefix('documents')->group(function () {
+    Route::get('/dashboard', [DocumentAdminController::class, 'dashboard']);
+    Route::get('/motifs-rejet', [DocumentAdminController::class, 'getMotifsRejet']);
+    Route::get('/', [DocumentAdminController::class, 'index']);
+    
+    // Routes spécifiques (avec sous-chemins) AVANT la route générique
+    Route::get('/{id}/view', [DocumentAdminController::class, 'view']);
+    Route::get('/{id}/download', [DocumentAdminController::class, 'download']);
+    
+    Route::post('/{id}/valider', [DocumentAdminController::class, 'valider']);
+    Route::post('/{id}/rejeter', [DocumentAdminController::class, 'rejeter']);
+    Route::delete('/{id}', [DocumentAdminController::class, 'destroy']);
+    
+    // Route générique EN DERNIER pour éviter les conflits
+    Route::get('/{id}', [DocumentAdminController::class, 'show']);
+});
+
+// ✅ AJOUT: Route rappel certificat (APRÈS la fermeture du prefix documents)
+Route::post('/retraites/{id}/rappel-certificat', [DocumentAdminController::class, 'envoyerRappel']);
+
 
         // Messages Dashboard admin
         Route::prefix('messages')->group(function () {
@@ -409,7 +432,6 @@ Route::prefix('admin')->group(function () {
         Route::get('/actions', [AuditController::class, 'actionsRecentes']);
         Route::get('/connexions', [AuditController::class, 'historiqueConnexions']);
     });
-    // Dans routes/api.php, section admin middleware
 
 // Gestion des réclamations admin
     Route::prefix('reclamations')->group(function () {
@@ -432,6 +454,45 @@ Route::fallback(function () {
         'error' => 'La route demandée n\'existe pas'
     ], 404);
 });
+
+/**
+ * AJOUTER temporairement cette route dans api.php pour diagnostic
+ */
+Route::get('/admin/documents/{id}/diagnostic', function($id) {
+    try {
+        $document = \App\Models\DocumentRetraite::findOrFail($id);
+        
+        $chemin_complet = storage_path('app/' . $document->chemin_fichier);
+        
+        return response()->json([
+            'success' => true,
+            'document' => [
+                'id' => $document->id,
+                'nom_original' => $document->nom_original,
+                'chemin_fichier' => $document->chemin_fichier,
+                'chemin_complet' => $chemin_complet,
+            ],
+            'verifications' => [
+                'storage_exists' => \Storage::exists($document->chemin_fichier),
+                'file_exists' => file_exists($chemin_complet),
+                'is_readable' => is_readable($chemin_complet),
+                'file_size' => file_exists($chemin_complet) ? filesize($chemin_complet) : null,
+                'permissions' => file_exists($chemin_complet) ? substr(sprintf('%o', fileperms($chemin_complet)), -4) : null,
+            ],
+            'storage_info' => [
+                'storage_path' => storage_path('app'),
+                'documents_path' => storage_path('app/documents'),
+            ]
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+})->middleware('auth:admin');
 
 // Route de test simple (sans middleware)
 Route::get('/test-simple', function () {

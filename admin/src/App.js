@@ -2,9 +2,11 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import AdminLogin from './pages/Login/AdminLogin';
 import AdminDashboard from './pages/Dashboard/AdminDashboard';
+import AdminDocuments from './pages/Documents/AdminDocuments';
 import './App.css';
 import AdminRendezVous from './pages/RendezVous/AdminRendezVous';
 import AdminReclamations from './pages/Reclamations/AdminReclamations';
+
 
 // Fonction pour vérifier si l'admin est connecté
 const isAuthenticated = () => {
@@ -54,6 +56,10 @@ function App() {
           <Route path="/admin/rendez-vous" element={<AdminRendezVous />} />
 
           <Route path="/admin/reclamations" element={<AdminReclamations />} />
+
+
+          <Route path="/admin/documents" element={<AdminDocuments />} />
+
 
           
           {/* Route de fallback - rediriger vers login */}

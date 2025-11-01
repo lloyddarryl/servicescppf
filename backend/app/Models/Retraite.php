@@ -16,6 +16,8 @@ class Retraite extends Authenticatable
         'numero_pension',
         'nom',
         'prenoms',
+        'sexe',
+        'situation_matrimoniale',
         'date_naissance',
         'date_retraite',
         'ancien_poste',
@@ -170,6 +172,14 @@ public function getAConjointAttribute()
 public function documents()
 {
     return $this->hasMany(DocumentRetraite::class);
+}
+
+/**
+ * Alias pour documentsRetraite (compatibilité contrôleur admin)
+ */
+public function documentsRetraite()
+{
+    return $this->documents();
 }
 
 /**

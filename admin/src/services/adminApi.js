@@ -396,30 +396,80 @@ L'équipe CPPF`
   }
 };
 
-// Services Documents Admin
+// Services Documents Admin - VERSION CORRIGÉE
 export const adminDocumentService = {
-  getAll: (params) => {
-    const queryParams = new URLSearchParams(params).toString();
-    return adminApi.get(`/documents?${queryParams}`);
+  // Dashboard documents
+  getDashboard: () => adminApi.get('/documents/dashboard'),
+  
+  // Liste des documents avec filtres
+  getAll: (params = {}) => {
+    const queryParams = new URLSearchParams();
+    
+    Object.keys(params).forEach(key => {
+      if (params[key] !== '' && params[key] !== null && params[key] !== undefined) {
+        queryParams.append(key, params[key]);
+      }
+    });
+    
+    return adminApi.get(`/documents?${queryParams.toString()}`);
   },
+  
+  // Motifs de rejet prédéfinis
+  getMotifsRejet: () => adminApi.get('/documents/motifs-rejet'),
+  
+  // Détail d'un document
   getById: (id) => adminApi.get(`/documents/${id}`),
-  download: (id) => adminApi.get(`/documents/${id}/download`, {
+  
+  // Visualiser un document (PDF/Image)
+  view: (id) => adminApi.get(`/documents/${id}/view`, {
     responseType: 'blob'
   }),
-  valider: (id, data) => adminApi.put(`/documents/${id}/valider`, data),
-  rejeter: (id, data) => adminApi.put(`/documents/${id}/rejeter`, data),
-  supprimer: (id, data) => adminApi.delete(`/documents/${id}`, { data }),
-  getStatistiques: () => adminApi.get('/documents/statistiques'),
   
+  // Télécharger un document
+  download: async (id, filename = 'document') => {
+    try {
+      const response = await adminApi.get(`/documents/${id}/view`, {
+        responseType: 'blob'
+      });
+      
+      // Créer un blob et télécharger
+      const url = window.URL.createObjectURL(response.data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Erreur téléchargement:', error);
+      throw error;
+    }
+  },
+  
+  // Valider un document
+  valider: (id, data = {}) => adminApi.post(`/documents/${id}/valider`, data),
+  
+  // Rejeter un document
+  rejeter: (id, data) => adminApi.post(`/documents/${id}/rejeter`, data),
+  
+  // Supprimer un document
+  supprimer: (id) => adminApi.delete(`/documents/${id}`),
+  
+  // Utils pour documents
   utils: {
+    // Formater la taille de fichier
     formatFileSize: (bytes) => {
       if (bytes === 0) return '0 B';
       const k = 1024;
       const sizes = ['B', 'KB', 'MB', 'GB'];
       const i = Math.floor(Math.log(bytes) / Math.log(k));
-      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     },
     
+    // Obtenir le statut d'expiration
     getExpirationStatus: (dateExpiration) => {
       if (!dateExpiration) return null;
       
@@ -428,23 +478,115 @@ export const adminDocumentService = {
       const diffDays = Math.ceil((expiration - now) / (1000 * 60 * 60 * 24));
       
       if (diffDays < 0) {
-        return { status: 'expired', color: '#EF4444', label: 'Expiré' };
+        return { 
+          status: 'expired', 
+          color: '#EF4444', 
+          label: 'Expiré',
+          icon: '❌'
+        };
       } else if (diffDays <= 30) {
-        return { status: 'expiring_soon', color: '#F59E0B', label: 'Expire bientôt' };
+        return { 
+          status: 'expiring_soon', 
+          color: '#F59E0B', 
+          label: 'Expire bientôt',
+          icon: '⚠️'
+        };
+      } else if (diffDays <= 60) {
+        return { 
+          status: 'expiring_warning', 
+          color: '#F59E0B', 
+          label: 'Attention',
+          icon: '⚠️'
+        };
       } else {
-        return { status: 'valid', color: '#10B981', label: 'Valide' };
+        return { 
+          status: 'valid', 
+          color: '#10B981', 
+          label: 'Valide',
+          icon: '✅'
+        };
       }
     },
     
+    // Obtenir l'icône selon l'extension
+    getFileIcon: (extension) => {
+      const icons = {
+        'pdf': '📄',
+        'jpg': '🖼️',
+        'jpeg': '🖼️',
+        'png': '🖼️',
+        'doc': '📝',
+        'docx': '📝',
+        'xls': '📊',
+        'xlsx': '📊'
+      };
+      return icons[extension?.toLowerCase()] || '📄';
+    },
+    
+    // Télécharger un blob
     downloadBlob: (blob, filename) => {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', filename);
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
-      link.remove();
+      document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
+    },
+    
+    // Valider les données de validation
+    validerDonneesValidation: (data) => {
+      const errors = [];
+      
+      // Le commentaire est optionnel mais doit être < 500 caractères
+      if (data.commentaire && data.commentaire.length > 500) {
+        errors.push('Le commentaire ne doit pas dépasser 500 caractères');
+      }
+      
+      return {
+        isValid: errors.length === 0,
+        errors
+      };
+    },
+    
+    // Valider les données de rejet
+    validerDonneesRejet: (data) => {
+      const errors = [];
+      
+      // Motif obligatoire
+      if (!data.motif) {
+        errors.push('Le motif de rejet est obligatoire');
+      }
+      
+      // Si motif "autre", commentaire obligatoire
+      if (data.motif === 'autre' && (!data.commentaire || data.commentaire.trim() === '')) {
+        errors.push('Le commentaire est obligatoire pour le motif "Autre"');
+      }
+      
+      // Commentaire < 500 caractères
+      if (data.commentaire && data.commentaire.length > 500) {
+        errors.push('Le commentaire ne doit pas dépasser 500 caractères');
+      }
+      
+      return {
+        isValid: errors.length === 0,
+        errors
+      };
+    },
+    
+    // Messages de notification selon l'action
+    getNotificationMessage: (action, data = {}) => {
+      const messages = {
+        'validation_success': `Document validé avec succès`,
+        'rejet_success': `Document rejeté`,
+        'suppression_success': `Document supprimé`,
+        'upload_success': `${data.count || 1} document(s) déposé(s) avec succès`,
+        'validation_error': `Erreur lors de la validation`,
+        'rejet_error': `Erreur lors du rejet`,
+        'suppression_error': `Erreur lors de la suppression`
+      };
+      return messages[action] || 'Action effectuée';
     }
   }
 };

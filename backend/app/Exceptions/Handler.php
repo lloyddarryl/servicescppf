@@ -46,7 +46,12 @@ class Handler extends ExceptionHandler
             ], 401);
         }
 
-        // Pour les requêtes web normales, rediriger vers la page de login
-        return redirect()->guest(route('login'));
+        // ✅ CORRECTION CRITIQUE: Ne pas essayer de rediriger vers route('login')
+        // Pour une application 100% API, on retourne toujours du JSON
+        return response()->json([
+            'success' => false,
+            'message' => 'Non authentifié',
+            'error' => 'Unauthenticated'
+        ], 401);
     }
 }

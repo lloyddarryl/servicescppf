@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminHeader from '../../components/AdminHeader';
 import AdminNav from '../../components/AdminNav';
@@ -80,7 +80,7 @@ const AdminDashboard = () => {
     );
   }
 
-  const { stats, alertes_urgentes, evolution_demandes, repartition_types, activites_recentes } = dashboardData;
+  const { stats, alertes_urgentes, repartition_types, activites_recentes } = dashboardData;
 
   return (
     <div className="admin-dashboard">
@@ -334,6 +334,9 @@ const AdminDashboard = () => {
                 <span className="status-icon">👤</span>
                 <span>Rôle: {adminData?.role}</span>
               </div>
+            </div>
+            <div className="test-actions">
+              <button className="logout-btn" onClick={handleLogout}>Déconnexion</button>
             </div>
           </section>
         </div>

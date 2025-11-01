@@ -334,74 +334,63 @@ class DocumentController extends Controller
         }
     }
 
-    /**
-     * Supprimer un document
-     */
-    public function destroy(Request $request, $id)
-    {
-        try {
-            $retraite = $request->user();
-            
-            if (!($retraite instanceof \App\Models\Retraite)) {
-                return response()->json(['success' => false, 'message' => 'Accès refusé'], 403);
-            }
-            
-            $document = DocumentRetraite::where('id', $id)
-                                      ->where('retraite_id', $retraite->id)
-                                      ->where('statut', 'actif')
-                                      ->first();
-
-            if (!$document) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Document non trouvé'
-                ], 404);
-            }
-
-            // Vérification certificat valide
-            if ($document->type_document === 'certificat_vie' && 
-                $document->date_expiration && 
-                $document->date_expiration->isFuture()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Impossible de supprimer un certificat de vie valide'
-                ], 400);
-            }
-
-            DB::beginTransaction();
-
-            // Supprimer fichier physique
-            $cheminAbsolu = storage_path('app/' . $document->chemin_fichier);
-            if (file_exists($cheminAbsolu)) {
-                unlink($cheminAbsolu);
-            }
-
-            // Marquer comme supprimé
-            $document->update([
-                'statut' => 'supprime',
-                'date_suppression' => now()
-            ]);
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Document supprimé avec succès'
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Erreur suppression', [
-                'document_id' => $id,
-                'error' => $e->getMessage()
-            ]);
-            
+   public function destroy(Request $request, $id)
+{
+    try {
+        $retraite = $request->user();
+        
+        if (!($retraite instanceof \App\Models\Retraite)) {
+            return response()->json(['success' => false, 'message' => 'Accès refusé'], 403);
+        }
+        
+        $document = DocumentRetraite::where('id', $id)
+                                  ->where('retraite_id', $retraite->id)
+                                  ->where('statut', 'actif')
+                                  ->first();
+        
+        if (!$document) {
             return response()->json([
                 'success' => false,
-                'message' => 'Erreur suppression'
-            ], 500);
+                'message' => 'Document non trouvé'
+            ], 404);
         }
+        
+        DB::beginTransaction();
+        
+        // Supprimer fichier physique
+        $cheminAbsolu = storage_path('app/' . $document->chemin_fichier);
+        if (file_exists($cheminAbsolu)) {
+            unlink($cheminAbsolu);
+        }
+        
+        // ✅ SUPPRESSION RÉELLE
+        $document->delete();
+        
+        DB::commit();
+        
+        Log::info('Document supprimé', [
+            'document_id' => $id,
+            'retraite_id' => $retraite->id
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Document supprimé avec succès'
+        ]);
+        
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Erreur suppression', [
+            'document_id' => $id,
+            'error' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Erreur suppression'
+        ], 500);
     }
+}
 
     /**
      * CORRECTION PRINCIPALE: Envoi email avec pièces jointes
