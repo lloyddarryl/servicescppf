@@ -113,7 +113,41 @@ const AdminDocuments = () => {
       if (response.data.success) {
         setDocuments(response.data.documents || []);
         
+        if (response.data.pagination) {
+          setPagination(response.data.pagination);
+        }
+      } else {
+        throw new Error('Erreur lors du chargement');
+      }
+    } catch (error) {
+      console.error('Erreur chargement documents:', error);
+      setError('Impossible de charger les documents');
+      setDocuments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
+    // Reset pagination sauf pour recherche (géré par debounce)
+    if (key !== 'recherche') {
+      setPagination(prev => ({ ...prev, current_page: 1 }));
+    }
+  };
+
+  const handleResetFilters = () => {
+    setFilters({
+      type: 'tous',
+      statut: 'tous',
+      recherche: '',
+      filtre: '',
+      sort: 'date_depot',
+      order: 'desc',
+      per_page: 20
     });
     setPagination({ current_page: 1, last_page: 1, total: 0 });
   };
