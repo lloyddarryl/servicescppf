@@ -7,12 +7,14 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PensionSimulatorController;
 use App\Http\Controllers\FamilleController;
+use App\Http\Controllers\MessageController;
 use App\Http\Controllers\ReclamationController;
 use App\Http\Controllers\RendezVousController;
 use App\Http\Controllers\HistoriquePaiementController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Admin\DocumentAdminController;
 use App\Http\Controllers\Admin\RapportController;
+use App\Http\Controllers\Admin\AdminMessageController;
 use App\Models\DocumentRetraite; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -215,6 +217,20 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{id}', [RendezVousController::class, 'show']);
             Route::put('/{id}/annuler', [RendezVousController::class, 'annuler']);
         });
+
+         // ✅ MESSAGERIE AGENTS ACTIFS
+    Route::prefix('messages')->group(function () {
+        Route::get('/conversations', [MessageController::class, 'index']);
+        Route::post('/conversations', [MessageController::class, 'store']);
+        Route::get('/conversations/{id}', [MessageController::class, 'show']);
+        Route::post('/conversations/{id}/messages', [MessageController::class, 'sendMessage']);
+        Route::get('/templates', [MessageController::class, 'templates']);
+        Route::get('/unread-count', [MessageController::class, 'unreadCount']);
+        Route::put('/messages/{id}', [MessageController::class, 'updateMessage']);
+        Route::delete('/messages/{id}', [MessageController::class, 'deleteMessage']);
+    });
+
+
     });
 
     // Routes spécifiques aux retraités avec préfixe /retraites
@@ -288,7 +304,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         });
 
-        // ✅ NOUVEAU : Routes pour l'historique des paiements - VERSION CORRIGÉE
+        // Routes pour l'historique des paiements - VERSION CORRIGÉE
         Route::prefix('historique-paiements')->group(function () {
             Route::get('/', [HistoriquePaiementController::class, 'index']);
             Route::get('/statistiques', [HistoriquePaiementController::class, 'statistiques']);
@@ -311,6 +327,19 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{id}', [RendezVousController::class, 'show']);
             Route::put('/{id}/annuler', [RendezVousController::class, 'annuler']);
         });
+
+        // ✅ MESSAGERIE RETRAITÉS
+    Route::prefix('messages')->group(function () {
+        Route::get('/conversations', [MessageController::class, 'index']);
+        Route::post('/conversations', [MessageController::class, 'store']);
+        Route::get('/conversations/{id}', [MessageController::class, 'show']);
+        Route::post('/conversations/{id}/messages', [MessageController::class, 'sendMessage']);
+        Route::get('/templates', [MessageController::class, 'templates']);
+        Route::get('/unread-count', [MessageController::class, 'unreadCount']);
+        Route::put('/messages/{id}', [MessageController::class, 'updateMessage']);
+        Route::delete('/messages/{id}', [MessageController::class, 'deleteMessage']);
+         });
+
     });
 
     // Route générale pour le dashboard (redirige selon le type d'utilisateur)
@@ -392,19 +421,18 @@ Route::prefix('documents')->group(function () {
 // ✅ AJOUT: Route rappel certificat (APRÈS la fermeture du prefix documents)
 Route::post('/retraites/{id}/rappel-certificat', [DocumentAdminController::class, 'envoyerRappel']);
 
-
-        // Messages Dashboard admin
-        Route::prefix('messages')->group(function () {
-            Route::post('/envoyer', [App\Http\Controllers\Admin\MessageDashboardController::class, 'envoyerMessage']);
-            Route::post('/envoyer-global', [App\Http\Controllers\Admin\MessageDashboardController::class, 'envoyerMessageGlobal']);
-            Route::get('/historique', [App\Http\Controllers\Admin\MessageDashboardController::class, 'historique']);
-            Route::get('/utilisateur/{userId}/{userType}', [App\Http\Controllers\Admin\MessageDashboardController::class, 'getMessagesUtilisateur']);
-            Route::put('/{id}/statut', [App\Http\Controllers\Admin\MessageDashboardController::class, 'changerStatutMessage']);
-            Route::delete('/{id}', [App\Http\Controllers\Admin\MessageDashboardController::class, 'supprimerMessage']);
-            Route::get('/statistiques', [App\Http\Controllers\Admin\MessageDashboardController::class, 'statistiquesMessages']);
-            Route::get('/expiration', [App\Http\Controllers\Admin\MessageDashboardController::class, 'messagesExpiration']);
-            Route::post('/archiver-expires', [App\Http\Controllers\Admin\MessageDashboardController::class, 'archiverMessagesExpires']);
-        });
+    // Gestion des messages et conversations admin
+         Route::prefix('messages')->group(function () {
+        Route::get('/conversations', [AdminMessageController::class, 'index']);
+        Route::post('/conversations', [AdminMessageController::class, 'store']);
+        Route::get('/conversations/{id}', [AdminMessageController::class, 'show']);
+        Route::put('/conversations/{id}', [AdminMessageController::class, 'update']);
+        Route::post('/conversations/{id}/messages', [AdminMessageController::class, 'sendMessage']);
+        Route::get('/templates', [AdminMessageController::class, 'templates']);
+        Route::get('/search-users', [AdminMessageController::class, 'searchUsers']);
+        Route::put('/messages/{id}', [MessageController::class, 'updateMessage']);
+        Route::delete('/messages/{id}', [MessageController::class, 'deleteMessage']);
+    });
 
         // Utilisateurs admin
         Route::prefix('utilisateurs')->group(function () {

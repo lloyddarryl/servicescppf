@@ -76,9 +76,15 @@ class Admin extends Authenticatable
     }
 
     public function messagesEnvoyes()
-    {
-        return $this->hasMany(MessageDashboard::class, 'admin_id');
-    }
+{
+    return $this->hasMany(Message::class, 'sender_id')
+        ->where('sender_type', 'admin');
+}
+
+public function conversationsGerees()
+{
+    return $this->hasMany(Conversation::class, 'admin_id');
+}
 
     public function logsActivites()
     {

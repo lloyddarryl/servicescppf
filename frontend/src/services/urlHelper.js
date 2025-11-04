@@ -16,7 +16,8 @@ export const urlHelper = {
     const commonRoutes = [
       '/auth/',
       '/profile/',
-      '/dashboard' 
+      '/dashboard',
+      // ❌ RETIRÉ: '/messages/' car les routes sont dans /actifs et /retraites
     ];
     
     // Vérifier si c'est une route commune
@@ -58,7 +59,8 @@ export const urlHelper = {
       carriere: '/carriere',
       profil: '/profil',
       documents: '/documents',
-      notifications: '/notifications'
+      notifications: '/notifications',
+      messages: '/messages/conversations', // ✅ Messages dans /actifs
     },
     
     // URLs pour retraités
@@ -72,7 +74,8 @@ export const urlHelper = {
       suiviPaiements: '/suivi-paiements',
       profil: '/profil',
       documents: '/documents',
-      notifications: '/notifications'
+      notifications: '/notifications',
+      messages: '/messages/conversations', // ✅ Messages dans /retraites
     }
   }
 };
@@ -81,22 +84,29 @@ export const urlHelper = {
 export const apiCall = async (endpoint, options = {}) => {
   const url = urlHelper.buildUrl(endpoint);
   
-  const defaultOptions = {
-    headers: {
-      'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
+  // ✅ Headers par défaut
+  const defaultHeaders = {
+    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+    'Accept': 'application/json',
   };
+
+  // ✅ Ajouter Content-Type SEULEMENT si ce n'est pas FormData
+  const isFormData = options.body instanceof FormData;
+  
+  if (!options.skipContentType && !isFormData) {
+    defaultHeaders['Content-Type'] = 'application/json';
+  }
   
   const mergedOptions = {
-    ...defaultOptions,
     ...options,
     headers: {
-      ...defaultOptions.headers,
+      ...defaultHeaders,
       ...options.headers
     }
   };
+
+  // ✅ Supprimer skipContentType car ce n'est pas un paramètre fetch valide
+  delete mergedOptions.skipContentType;
   
   return fetch(url, mergedOptions);
 };

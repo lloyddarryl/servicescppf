@@ -5,6 +5,7 @@ import { authService, utils } from '../../services/api';
 import { apiCall } from '../../services/urlHelper';
 import RdvNotifications from '../../components/RdvNotifications';
 import WelcomeNotifications from '../../components/WelcomeNotifications';
+import FloatingMessageButton from '../../components/FloatingMessageButton';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -562,6 +563,8 @@ const Dashboard = () => {
 
         </div>
       </main>
+      {/* Bouton de messagerie flottant */}
+      <FloatingMessageButton />
     </div>
   );
 };

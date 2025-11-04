@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import AdminLogin from './pages/Login/AdminLogin';
 import AdminDashboard from './pages/Dashboard/AdminDashboard';
 import AdminDocuments from './pages/Documents/AdminDocuments';
+import AdminMessages from './pages/Messages/AdminMessages';
 import './App.css';
 import AdminRendezVous from './pages/RendezVous/AdminRendezVous';
 import AdminReclamations from './pages/Reclamations/AdminReclamations';
@@ -60,6 +61,7 @@ function App() {
 
           <Route path="/admin/documents" element={<AdminDocuments />} />
 
+          <Route path="/admin/messages" element={<AdminMessages />}  />
 
           
           {/* Route de fallback - rediriger vers login */}

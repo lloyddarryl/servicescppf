@@ -245,7 +245,7 @@ const DocumentDetailsModal = ({ document, onClose }) => {
                 <div className="info-grid">
                   <div className="info-item">
                     <strong>Nom complet:</strong>
-                    <span>{document.retraite?.nom_complet_avec_titre || 'N/A'}</span>
+                    <span>{document.retraite?.nom_complet || 'N/A'}</span>
                   </div>
                   <div className="info-item">
                     <strong>N° Pension:</strong>
