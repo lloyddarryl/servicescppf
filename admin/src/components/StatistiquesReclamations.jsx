@@ -71,7 +71,7 @@ const StatistiquesReclamations = ({ showTitle = true, compact = false }) => {
             <span className="stat-value">{attentionRequise}</span>
             <span className="stat-label">À traiter</span>
           </div>
-          <div className="stat-mini">
+          <div className="stat-mini info">
             <span className="stat-value">{globales.en_cours}</span>
             <span className="stat-label">En cours</span>
           </div>
@@ -93,14 +93,20 @@ const StatistiquesReclamations = ({ showTitle = true, compact = false }) => {
         <div className="stat-mini urgent">
           <span className="stat-value">{globales.en_attente}</span>
           <span className="stat-label">En attente</span>
+          {globales.en_attente > 5 && (
+            <span className="stat-badge">{globales.en_attente}</span>
+          )}
         </div>
-        <div className="stat-mini">
+        <div className="stat-mini info">
           <span className="stat-value">{globales.en_cours}</span>
           <span className="stat-label">En cours</span>
         </div>
         <div className="stat-mini warning">
           <span className="stat-value">{globales.urgentes}</span>
           <span className="stat-label">Urgentes</span>
+          {globales.urgentes > 0 && (
+            <span className="stat-badge">!</span>
+          )}
         </div>
         <div className="stat-mini success">
           <span className="stat-value">{globales.resolues}</span>
@@ -111,40 +117,51 @@ const StatistiquesReclamations = ({ showTitle = true, compact = false }) => {
       {/* Métriques de performance */}
       <div className="stats-summary">
         <div className="summary-item">
-          <strong>Total:</strong> {globales.total} réclamations
+          <span>Total:</span>
+          <strong>{globales.total} réclamations</strong>
         </div>
         <div className="summary-item">
-          <strong>Taux de résolution:</strong> {tauxResolution}%
+          <span>Taux de résolution:</span>
+          <strong style={{ color: tauxResolution >= 70 ? '#059669' : '#d97706' }}>
+            {tauxResolution}%
+          </strong>
         </div>
         <div className="summary-item">
-          <strong>Ce mois:</strong> {periode.nouvelles_ce_mois} nouvelles
+          <span>Ce mois:</span>
+          <strong>{periode.nouvelles_ce_mois} nouvelles</strong>
         </div>
         <div className="summary-item">
-          <strong>Traitées ce mois:</strong> {periode.traitees_ce_mois}
+          <span>Traitées ce mois:</span>
+          <strong>{periode.traitees_ce_mois}</strong>
         </div>
       </div>
 
       {/* Alertes si nécessaire */}
       {globales.urgentes > 0 && (
         <div className="stats-alert urgent">
-          ⚠️ {globales.urgentes} réclamation(s) urgente(s) nécessitent une attention immédiate
+          ⚠️ <strong>{globales.urgentes}</strong> réclamation(s) urgente(s) nécessitent une attention immédiate
         </div>
       )}
 
       {globales.en_attente > 10 && (
         <div className="stats-alert warning">
-          📋 {globales.en_attente} réclamations en attente de traitement
+          📋 <strong>{globales.en_attente}</strong> réclamations en attente de traitement
         </div>
       )}
 
       {/* Répartition par type (top 3) */}
       {par_type && par_type.length > 0 && (
         <div className="stats-breakdown">
-          <h4>Types les plus fréquents:</h4>
+          <h4>📊 Types les plus fréquents</h4>
           <div className="breakdown-list">
             {par_type.slice(0, 3).map((type, index) => (
               <div key={index} className="breakdown-item">
-                <span className="breakdown-label">{type.type_reclamation}</span>
+                <span className="breakdown-label">
+                  {index === 0 && '🥇 '}
+                  {index === 1 && '🥈 '}
+                  {index === 2 && '🥉 '}
+                  {type.type_reclamation}
+                </span>
                 <span className="breakdown-value">{type.total}</span>
               </div>
             ))}

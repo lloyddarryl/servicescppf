@@ -490,7 +490,7 @@ public function view($id)
 }
     
     /**
-     * 🔧 CORRECTION: Télécharger un document
+     * Télécharger un document
      */
     public function download($id)
     {

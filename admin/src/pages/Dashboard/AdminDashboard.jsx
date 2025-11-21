@@ -238,13 +238,13 @@ const AdminDashboard = () => {
                 <small>{stats.reclamations_actives} actives</small>
               </button>
               
-              <button className="action-btn" onClick={() => alert('Gestion documents - À implémenter')}>
+              <button className="action-btn" onClick={() => navigate('/admin/documents')}>
                 <div className="action-icon">📄</div>
                 <span>Valider documents</span>
                 <small>{stats.documents_en_attente} en attente</small>
               </button>
               
-              <button className="action-btn" onClick={() => alert('Messages - À implémenter')}>
+              <button className="action-btn" onClick={() => navigate('/admin/messages')}>
                 <div className="action-icon">💬</div>
                 <span>Envoyer message</span>
                 <small>Aux utilisateurs</small>

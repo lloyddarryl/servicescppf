@@ -179,10 +179,16 @@ class Carriere extends Model
         return $query->where('statut', 'VALIDE');
     }
 
+        /**
+     * Obtenir des statistiques sur les carrières d'un agent
+     * Calcule (retenue * nombre_mois) pour chaque carrière
+     */
     public static function getStatistiquesAgent($agentId)
     {
-        $carrieres = self::where('agent_id', $agentId)->valides()->get();
-        
+        $carrieres = self::where('agent_id', $agentId)
+                        ->where('statut', 'VALIDE')
+                        ->get();
+
         if ($carrieres->isEmpty()) {
             return [
                 'nombre_carrieres' => 0,
@@ -190,17 +196,29 @@ class Carriere extends Model
                 'total_cotisations' => 0,
                 'cotisation_moyenne' => 0,
                 'premiere_carriere' => null,
-                'derniere_carriere' => null,
+                'derniere_carriere' => null
             ];
         }
+
+    
         
+        $totalCotisations = 0;
+        foreach ($carrieres as $carriere) {
+            $totalCotisations += ($carriere->retenue * $carriere->nombre_mois);
+        }
+
+        
+
+        $dureeTotaleMois = $carrieres->sum('nombre_mois');
+        $nombreCarrieres = $carrieres->count();
+
         return [
-            'nombre_carrieres' => $carrieres->count(),
-            'duree_totale_mois' => $carrieres->sum('nombre_mois'),
-            'total_cotisations' => $carrieres->first()->total_cotisations ?? 0,
-            'cotisation_moyenne' => $carrieres->avg('retenue'),
+            'nombre_carrieres' => $nombreCarrieres,
+            'duree_totale_mois' => $dureeTotaleMois,
+            'total_cotisations' => $totalCotisations,
+            'cotisation_moyenne' => $nombreCarrieres > 0 ? ($totalCotisations / $dureeTotaleMois) : 0,
             'premiere_carriere' => $carrieres->min('date_debut'),
-            'derniere_carriere' => $carrieres->max('date_fin') ?: $carrieres->max('date_debut'),
+            'derniere_carriere' => $carrieres->max('date_debut')
         ];
     }
 }

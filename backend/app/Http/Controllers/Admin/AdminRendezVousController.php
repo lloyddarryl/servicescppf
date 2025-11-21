@@ -18,7 +18,7 @@ class AdminRendezVousController extends Controller
     public function index(Request $request)
     {
         try {
-            // ✅ CORRECTION : Ne pas utiliser with(['agent']) car la relation n'existe pas
+        
             $query = RendezVousDemande::query();
 
             // Filtres
@@ -36,7 +36,7 @@ class AdminRendezVousController extends Controller
 
             if ($request->filled('search')) {
                 $search = $request->search;
-                // ✅ CORRECTION : Chercher dans user_nom et user_prenoms (pas agent.nom)
+                // Chercher dans user_nom et user_prenoms 
                 $query->where(function($q) use ($search) {
                     $q->where('user_nom', 'like', "%{$search}%")
                       ->orWhere('user_prenoms', 'like', "%{$search}%")
@@ -58,13 +58,13 @@ class AdminRendezVousController extends Controller
 
             $rdvs = $query->paginate($request->get('per_page', 15));
 
-            // ✅ CORRECTION : Ajouter des informations calculées
+            //  Ajouter des informations calculées
             $rdvs->getCollection()->transform(function ($rdv) {
                 $rdv->jours_attente = $rdv->date_soumission->diffInDays(now());
                 $rdv->urgent = $rdv->statut === 'en_attente' && $rdv->jours_attente > 2;
                 $rdv->peut_modifier = in_array($rdv->statut, ['en_attente', 'reporte']);
                 
-                // ✅ Créer un objet agent factice pour compatibilité frontend
+                //  Créer un objet agent factice pour compatibilité frontend
                 $rdv->agent = (object) [
                     'nom' => $rdv->user_nom,
                     'prenom' => $rdv->user_prenoms,
@@ -103,7 +103,6 @@ class AdminRendezVousController extends Controller
     public function show($id)
     {
         try {
-            // ✅ CORRECTION : Pas de with(['agent', 'admin'])
             $rdv = RendezVousDemande::findOrFail($id);
             
             $rdv->jours_attente = $rdv->date_soumission->diffInDays(now());
@@ -162,7 +161,7 @@ class AdminRendezVousController extends Controller
                 ], 400);
             }
 
-            // ✅ CORRECTION : Utiliser les bonnes colonnes selon votre migration
+            //  Utiliser les bonnes colonnes selon votre migration
             $updateData = [
                 'statut' => $request->statut,
                 'admin_id' => $admin->id,
@@ -209,7 +208,7 @@ class AdminRendezVousController extends Controller
     }
 
     /**
-     * ✅ CORRECTION : Envoyer un message automatique selon le statut
+     * Envoyer un message automatique selon le statut
      */
     private function envoyerMessageAutomatique($rdv, $admin, $statut)
     {
@@ -248,7 +247,7 @@ class AdminRendezVousController extends Controller
 
         $messageConfig = $messages[$statut];
         
-        // ✅ CORRECTION : Utiliser user_prenoms et user_nom
+  
         $nomComplet = $rdv->user_prenoms . ' ' . $rdv->user_nom;
         
         // Remplacer les variables dans le template

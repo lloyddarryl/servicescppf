@@ -293,7 +293,7 @@ const SuiviCotisations = () => {
             <div className="stat-card stat-card--success">
               <div className="stat-icon">⏱️</div>
               <div className="stat-content">
-                <h3>Durée de Service</h3>
+                <h3>Durée de cotisation</h3>
                 <p className="stat-value">{statistiques?.duree_totale}</p>
               </div>
             </div>

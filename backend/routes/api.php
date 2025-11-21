@@ -148,9 +148,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Prestations
         Route::get('/prestations', [DashboardController::class, 'getPrestations']);
 
-        // Cotisations et gestion de carrière
-        Route::get('/cotisations', [DashboardController::class, 'getCotisations']);
-        Route::get('/carriere', [DashboardController::class, 'getCarriere']);
+        
 
         // Routes de profil
         Route::get('/profil', [ProfileController::class, 'show']);

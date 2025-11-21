@@ -26,7 +26,7 @@ class ReclamationController extends Controller
 
     public function __construct()
     {
-        // ✅ Initialisation conditionnelle pour éviter les erreurs
+        
         try {
             $this->accuseService = app(AccuseReceptionService::class);
         } catch (\Exception $e) {
@@ -368,7 +368,7 @@ class ReclamationController extends Controller
     }
 
     /**
- * ✅ Télécharger un document joint à une réclamation
+ *  Télécharger un document joint à une réclamation
  * Cette méthode gère TOUS les formats de stockage de documents
  */
 public function telechargerDocument(Request $request, $id, $index)
@@ -422,7 +422,7 @@ public function telechargerDocument(Request $request, $id, $index)
             ], 404);
         }
 
-        // ✅ NOUVEAU : Gérer les DEUX formats de stockage
+        //  Gérer les 2 formats de stockage
         $documentInfo = $documents[$index];
         $documentPath = null;
         $documentNom = null;
@@ -467,7 +467,7 @@ public function telechargerDocument(Request $request, $id, $index)
             ], 500);
         }
 
-        // ✅ IMPORTANT : Nettoyer le chemin (enlever "public/" si présent)
+        //  Nettoyer le chemin (enlever "public/" si présent)
         // Le fichier peut être stocké avec "public/reclamations/..." ou "reclamations/..."
         $cleanPath = str_replace('public/', '', $documentPath);
         
@@ -541,7 +541,7 @@ public function telechargerDocument(Request $request, $id, $index)
 
 
     /**
-     * ✅ NOUVELLE MÉTHODE : Télécharger l'accusé de réception
+     *  Télécharger l'accusé de réception
      */
     public function telechargerAccuseReception(Request $request, $id)
     {

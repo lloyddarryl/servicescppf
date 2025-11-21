@@ -201,35 +201,35 @@ const AdminRendezVous = () => {
           )}
 
           {/* Liste des RDV */}
-          <section className="welcome-section">
-            <div className="table-header">
-              <h2>Liste des rendez-vous ({pagination.total})</h2>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={selectedRdvs.length === rdvs.length && rdvs.length > 0}
-                  onChange={handleSelectAll}
-                />
-                Tout sélectionner
-              </label>
-            </div>
+                <section className="welcome-section">
+                <div className="table-header">
+                  <h2>Liste des rendez-vous ({Math.round(pagination.total || 0)})</h2>
+                  <label>
+                  <input
+                    type="checkbox"
+                    checked={selectedRdvs.length === rdvs.length && rdvs.length > 0}
+                    onChange={handleSelectAll}
+                  />
+                  Tout sélectionner
+                  </label>
+                </div>
 
-            {loading ? (
-              <div className="loading-container">
-                <div className="spinner"></div>
-                <p>Chargement des rendez-vous...</p>
-              </div>
-            ) : (
-              <div className="table-container">
-                <table className="admin-table">
-                  <thead>
+                {loading ? (
+                  <div className="loading-container">
+                  <div className="spinner"></div>
+                  <p>Chargement des rendez-vous...</p>
+                  </div>
+                ) : (
+                  <div className="table-container">
+                  <table className="admin-table">
+                    <thead>
                     <tr>
                       <th>
-                        <input
-                          type="checkbox"
-                          checked={selectedRdvs.length === rdvs.length && rdvs.length > 0}
-                          onChange={handleSelectAll}
-                        />
+                      <input
+                        type="checkbox"
+                        checked={selectedRdvs.length === rdvs.length && rdvs.length > 0}
+                        onChange={handleSelectAll}
+                      />
                       </th>
                       <th>Agent</th>
                       <th>Motif</th>
@@ -239,46 +239,46 @@ const AdminRendezVous = () => {
                       <th>Soumis le</th>
                       <th>Actions</th>
                     </tr>
-                  </thead>
-                  <tbody>
+                    </thead>
+                    <tbody>
                     {rdvs.map((rdv) => (
                       <tr key={rdv.id} className={rdv.urgent ? 'row-urgent' : ''}>
-                        <td>
-                          <input
-                            type="checkbox"
-                            checked={selectedRdvs.includes(rdv.id)}
-                            onChange={() => handleSelectRdv(rdv.id)}
-                          />
-                        </td>
-                        <td>
-                          <div>
-                            <strong>{rdv.agent?.nom} {rdv.agent?.prenom}</strong>
-                            <br />
-                            <small>{rdv.agent?.matricule}</small>
-                          </div>
-                        </td>
-                        <td>{rdv.motif}</td>
-                        <td>{new Date(rdv.date_demandee).toLocaleDateString('fr-FR')}</td>
-                        <td>{rdv.heure_demandee}</td>
-                        <td>
-                          <span 
-                            className="status-badge"
-                            style={{ backgroundColor: getStatusColor(rdv.statut) }}
-                          >
-                            {getStatusLabel(rdv.statut)}
-                          </span>
-                          {rdv.urgent && <span className="urgent-badge">URGENT</span>}
-                        </td>
-                        <td>
-                          {new Date(rdv.date_soumission).toLocaleDateString('fr-FR')}
-                          <br />
-                          <small>{rdv.jours_attente} jour(s)</small>
-                        </td>
-                        <td>
-                          <div className="action-buttons">
-                            <button
-                              className="btn-view"
-                              onClick={() => {
+                      <td>
+                        <input
+                        type="checkbox"
+                        checked={selectedRdvs.includes(rdv.id)}
+                        onChange={() => handleSelectRdv(rdv.id)}
+                        />
+                      </td>
+                      <td>
+                        <div>
+                        <strong>{rdv.agent?.nom} {rdv.agent?.prenom}</strong>
+                        <br />
+                        <small>{rdv.agent?.matricule}</small>
+                        </div>
+                      </td>
+                      <td>{rdv.motif}</td>
+                      <td>{new Date(rdv.date_demandee).toLocaleDateString('fr-FR')}</td>
+                      <td>{rdv.heure_demandee}</td>
+                      <td>
+                        <span 
+                        className="status-badge"
+                        style={{ backgroundColor: getStatusColor(rdv.statut) }}
+                        >
+                        {getStatusLabel(rdv.statut)}
+                        </span>
+                        {rdv.urgent && <span className="urgent-badge">URGENT</span>}
+                      </td>
+                      <td>
+                        {new Date(rdv.date_soumission).toLocaleDateString('fr-FR')}
+                        <br />
+                        <small>{rdv.jours_attente != null ? Math.round(rdv.jours_attente) : 0} jour(s)</small>
+                      </td>
+                      <td>
+                        <div className="action-buttons">
+                        <button
+                          className="btn-view"
+                          onClick={() => {
                                 setSelectedRdv(rdv);
                                 setShowModal(true);
                               }}

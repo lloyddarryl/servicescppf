@@ -54,7 +54,7 @@ class AdminReclamationController extends Controller
 
             // Ajouter des infos calculées
             $reclamations->getCollection()->transform(function ($reclamation) {
-                // ✅ APRÈS:
+                
 // Calculer le temps d'attente formaté ET en jours
             if ($reclamation->statut === 'resolu' || $reclamation->statut === 'ferme' || $reclamation->statut === 'rejete') {
     // Si réclamation traitée, afficher "TRAITÉ" ou temps depuis traitement
@@ -160,7 +160,7 @@ class AdminReclamationController extends Controller
     }
 
     /**
- * ✅ MÉTHODE SHOW CORRIGÉE - À COPIER/COLLER COMPLÈTEMENT
+ * 
  */
 public function show($id)
 {
@@ -186,7 +186,7 @@ public function show($id)
                 : null
         ];
 
-        // ✅ CORRECTION : Vérifier et formater les documents correctement
+        //  Vérifier et formater les documents correctement
         $documents = [];
         
         if ($reclamation->documents) {

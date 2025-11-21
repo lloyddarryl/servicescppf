@@ -94,7 +94,7 @@ class RendezVousController extends Controller
     }
 
     /**
-     * ✅ CORRECTION FINALE : Obtenir les créneaux disponibles pour une date
+     *  Obtenir les créneaux disponibles pour une date
      */
     public function getCreneauxDisponibles($date)
     {
@@ -243,7 +243,7 @@ class RendezVousController extends Controller
 
 
     /**
-     * ✅ CORRECTION : Créer une nouvelle demande de rendez-vous
+     *  Créer une nouvelle demande de rendez-vous
      */
     public function store(Request $request)
     {
@@ -257,12 +257,12 @@ class RendezVousController extends Controller
                 'form_data' => $request->except(['documents'])
             ]);
 
-            // ✅ VALIDATION CORRIGÉE - Plus de "after:tomorrow"
+         
             $validator = Validator::make($request->all(), [
                 'date_demandee' => 'required|date',
                 'heure_demandee' => 'required|date_format:H:i',
                 'motif' => 'required|in:' . implode(',', array_keys(RendezVousDemande::$motifs)),
-                'motif_autre' => 'nullable|string|max:255|required_if:motif,autre', // ✅ nullable en premier
+                'motif_autre' => 'nullable|string|max:255|required_if:motif,autre', 
                 'commentaires' => 'nullable|string|max:1000'
             ], [
                 'date_demandee.required' => 'La date est obligatoire',
@@ -341,7 +341,7 @@ class RendezVousController extends Controller
                 ], 422);
             }
 
-            // ✅ VÉRIFICATION FINALE : Créneau encore disponible ?
+            //  Créneau encore disponible ?
             if (!RendezVousDemande::estCreneauDisponible($request->date_demandee, $request->heure_demandee)) {
                 Log::warning('⚠️ [RDV] Créneau plus disponible au moment de la soumission:', [
                     'date' => $request->date_demandee,
@@ -355,7 +355,7 @@ class RendezVousController extends Controller
                 ], 422);
             }
 
-            // ✅ CRÉATION DE LA DEMANDE
+            //  CRÉATION DE LA DEMANDE
             $demande = new RendezVousDemande([
                 'user_id' => $user->id,
                 'user_type' => $userType,

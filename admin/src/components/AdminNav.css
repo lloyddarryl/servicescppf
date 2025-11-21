@@ -6,6 +6,8 @@
   gap: 1rem;
   border-bottom: 1px solid #e5e7eb;
   overflow-x: auto;
+  justify-content: center; /* Ajouter cette ligne pour centrer horizontalement */
+
 }
 
 .nav-item {

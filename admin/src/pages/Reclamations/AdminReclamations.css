@@ -2,7 +2,6 @@
 
 /* Section Statistiques Widget */
 .stats-widget {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   padding: 1.5rem;
   border-radius: 0.75rem;
@@ -110,6 +109,14 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
+}
+
+.admin-main {
+  background: #f3f4f6;
+}
+
+.dashboard-content {
+  background: #f3f4f6;
 }
 
 .admin-table.compact th {
